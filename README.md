@@ -2,65 +2,65 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-MUSA es una herramienta Python para análisis fractal y multifractal de datos espaciales, con flujo GIS para lineamientos geológicos.
+MUSA is a Python tool for fractal and multifractal analysis of spatial data, with a GIS workflow for geological lineaments.
 
-## Algoritmos listos
+## Available algorithms
 
-| Bloque | Estado | Salidas principales |
+| Component | Status | Main outputs |
 | --- | --- | --- |
-| Espectro multifractal global | Listo | Dq, tau, alpha, f alpha, diagnósticos por escala |
-| Chhabra Jensen local por celda madre | Listo | alpha, f alpha por ventana madre |
-| Ponderación zeta multiescala | Listo | alpha_w, f_alpha_w, zeta_mean, zeta_min |
-| Filtro reliable | Listo | bandera reliable por madre y q |
-| Monofractal local | Listo | D0 local, D1 local, versiones ponderadas y robustas |
-| Bootstrap y jackknife | Listo | intervalos y sensibilidad leave one scale out |
-| Theil Sen robusto | Listo | alpha_ts, f_alpha_ts, D0_ts, D1_ts |
-| Diagnósticos de leverage y Cook | Listo | CSV global y local por escala |
-| Sensibilidad de zeta | Listo | perfiles baseline, coverage heavy, mass heavy, scale heavy, neff heavy y soft |
-| Estadística estructural | Listo | densidad, longitud total, orientación dominante y anisotropía |
-| Conectividad de lineamientos | Experimental listo | componentes, intersecciones y densidad de red |
-| Export GIS | Listo | GeoPackage de celdas madre y capas reliable |
-| Paquete de corrida | Listo | ZIP organizado por categorías |
-| Validación sintética | Listo | resumen por escenarios controlados |
+| Global multifractal spectrum | Ready | Dq, tau, alpha, f alpha, and per-scale diagnostics |
+| Local Chhabra Jensen by mother cell | Ready | alpha and f alpha by mother window |
+| Multiscale zeta weighting | Ready | alpha_w, f_alpha_w, zeta_mean, and zeta_min |
+| Reliability filter | Ready | reliable flag by mother cell and q |
+| Local monofractal analysis | Ready | Local D0 and D1, including weighted and robust versions |
+| Bootstrap and jackknife | Ready | Confidence intervals and leave-one-scale-out sensitivity |
+| Robust Theil Sen estimation | Ready | alpha_ts, f_alpha_ts, D0_ts, and D1_ts |
+| Leverage and Cook diagnostics | Ready | Global and local per-scale CSV outputs |
+| Zeta sensitivity | Ready | Baseline, coverage-heavy, mass-heavy, scale-heavy, neff-heavy, and soft profiles |
+| Structural statistics | Ready | Density, total length, dominant orientation, and anisotropy |
+| Lineament connectivity | Experimental | Components, intersections, and network density |
+| GIS export | Ready | Mother-cell GeoPackage and reliable layers |
+| Run packaging | Ready | ZIP archive organized by category |
+| Synthetic validation | Ready | Summary across controlled scenarios |
 
-## Lectura metodológica
+## Methodological scope
 
-La contribución defendible de MUSA no es inventar la multifractalidad de lineamientos. Esa línea ya existe. La novedad está en combinar:
+MUSA does not claim to introduce multifractal analysis of lineaments. Its contribution is the integration of:
 
-* Chhabra Jensen directo global y local.
-* Recálculo de probabilidades dentro de cada celda madre.
-* Ponderación local por zeta como confiabilidad multiescala.
-* Separación explícita entre densidad estructural, complejidad multifractal y confiabilidad.
-* Exportación GIS reproducible para mapas e interpretación geológica.
+* Direct global and local Chhabra Jensen analysis.
+* Probability recalculation within each mother cell.
+* Local zeta weighting as a measure of multiscale reliability.
+* Explicit separation of structural density, multifractal complexity, and reliability.
+* Reproducible GIS export for mapping and geological interpretation.
 
-*Zeta debe interpretarse como peso operativo de confiabilidad, no como propiedad física directa.*
+*Zeta should be interpreted as an operational reliability weight, not as a direct physical property.*
 
-## Flujo recomendado
+## Recommended workflow
 
-1. Definir lineamientos y límite de análisis en CRS métrico o permitir reproyección automática.
-2. Elegir una celda madre y resoluciones hijas suficientes para regresión.
-3. Ejecutar el análisis global.
-4. Exportar celdas madre locales con zeta y reliable.
-5. Comparar densidad, orientación, alpha, alpha_w y reliable.
-6. Usar validación sintética y sensibilidad de zeta antes de sostener conclusiones geológicas fuertes.
+1. Define the lineaments and analysis boundary in a metric CRS, or enable automatic reprojection.
+2. Select a mother-cell size and enough child resolutions for regression.
+3. Run the global analysis.
+4. Export local mother cells with zeta and reliable values.
+5. Compare density, orientation, alpha, alpha_w, and reliable.
+6. Use synthetic validation and zeta sensitivity before drawing strong geological conclusions.
 
-## Documentación vigente
+## Documentation
 
-| Archivo | Uso |
+| File | Purpose |
 | --- | --- |
-| docs/theory.md | Definición técnica completa del método |
-| docs/references.md | Referencias científicas públicas |
+| docs/theory.md | Complete technical definition of the method |
+| docs/references.md | Public scientific references |
 
-## Resultados y corridas
+## Generated results
 
-Los resultados generados se excluyen del control de versiones para evitar publicar datos de trabajo o artefactos temporales.
+Generated results are excluded from version control to prevent working data and temporary artifacts from being published.
 
-## Entrada y uso desde Python
+## Python API
 
-El paquete expone MUSA, MUSAResult, resolutions_from_mother_cell, export_analysis_plots, export_mother_plots, export_mother_geopackage, package_run_output, run_synthetic_validation, compute_lineament_mother_structural_stats y compute_lineament_network_stats.
+The package exposes MUSA, MUSAResult, resolutions_from_mother_cell, export_analysis_plots, export_mother_plots, export_mother_geopackage, package_run_output, run_synthetic_validation, compute_lineament_mother_structural_stats, and compute_lineament_network_stats.
 
-Para lineamientos GIS se debe usar data como capa de líneas, boundary como límite de análisis y resolutions_m en metros. El análisis por celdas madre se obtiene con export_cell_outputs usando aggregate_to_mother activado.
+For GIS lineaments, use data as the line layer, boundary as the analysis boundary, and resolutions_m in meters. Mother-cell analysis is produced through export_cell_outputs with aggregate_to_mother enabled.
 
-## Interfaz
+## Desktop interface
 
-La interfaz de escritorio se lanza con musa-ui cuando el paquete está instalado en modo editable o normal.
+Launch the desktop interface with musa-ui after installing the package in editable or standard mode.
