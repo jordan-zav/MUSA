@@ -15,8 +15,12 @@ def test_interface_defaults_to_explorer_mode_with_advanced_controls_hidden():
         assert app.export_gis_package.get() is True
         assert app.create_zip_package.get() is True
         assert app.export_zeta_sensitivity.get() is False
+        assert app.viewport.cget("xscrollcommand")
+        assert app.viewport.cget("yscrollcommand")
         assert "Explorer" in app.summary_method.get()
     finally:
+        app.logo_image = None
+        app.window_icon_image = None
         root.destroy()
 
 
@@ -32,6 +36,8 @@ def test_interface_geomatics_mode_shows_advanced_controls():
         assert app.robustness_card.grid_info() != {}
         assert "Geomatics" in app.summary_method.get()
     finally:
+        app.logo_image = None
+        app.window_icon_image = None
         root.destroy()
 
 
@@ -53,4 +59,6 @@ def test_interface_language_switch_updates_primary_labels():
         assert app.run_button.cget("text") == "Run MUSA"
         assert app.suggest_button.cget("text") == "Suggest Scales"
     finally:
+        app.logo_image = None
+        app.window_icon_image = None
         root.destroy()

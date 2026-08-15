@@ -33,3 +33,13 @@ def test_package_run_output_creates_zip_with_grouped_files(tmp_path):
         assert "MUSA_Test_Run/figures/mother_spatial_alpha_w_q2.png" in names
         cfg = json.loads(zf.read("MUSA_Test_Run/metadata/run_config.json").decode("utf-8"))
         assert cfg["qmin"] == -4
+
+
+def test_windows_distribution_spec_includes_brand_assets():
+    spec = (Path(__file__).parents[1] / "MUSA.spec").read_text(encoding="utf-8")
+
+    assert "['launch_musa.py']" in spec
+    assert "src\\\\musa\\\\assets" in spec
+    assert "musa\\\\assets" in spec
+    assert "icon='src\\\\musa\\\\assets\\\\icon.png'" in spec
+    assert "'backends': 'TkAgg'" in spec

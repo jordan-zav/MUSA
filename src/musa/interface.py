@@ -1,10 +1,29 @@
 from __future__ import annotations
 
-import threading
 import math
+import os
+import sys
+import threading
 from pathlib import Path
 from datetime import datetime
-from tkinter import BooleanVar, END, PhotoImage, StringVar, TclError, Tk
+
+
+def _configure_tcl_tk_runtime() -> None:
+    """Point tkinter at the Tcl/Tk libraries bundled with the active Python."""
+    if os.name != "nt" or getattr(sys, "frozen", False):
+        return
+    tcl_root = Path(sys.base_prefix) / "tcl"
+    tcl_library = tcl_root / "tcl8.6"
+    tk_library = tcl_root / "tk8.6"
+    if tcl_library.is_dir():
+        os.environ.setdefault("TCL_LIBRARY", str(tcl_library))
+    if tk_library.is_dir():
+        os.environ.setdefault("TK_LIBRARY", str(tk_library))
+
+
+_configure_tcl_tk_runtime()
+
+from tkinter import BooleanVar, Canvas, END, PhotoImage, StringVar, TclError, Tk
 from tkinter import filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
@@ -169,7 +188,14 @@ class MusaInterface:
         self.root.geometry("1080x860")
         self.root.minsize(980, 760)
         self.root.configure(bg=self.COLORS["ivory"])
-        self.main_frame = ttk.Frame(self.root)
+        self.viewport = Canvas(self.root, bg=self.COLORS["ivory"], highlightthickness=0)
+        self.main_frame = ttk.Frame(self.viewport, padding=16)
+        self.vertical_scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.viewport.yview)
+        self.horizontal_scrollbar = ttk.Scrollbar(self.root, orient="horizontal", command=self.viewport.xview)
+        self.viewport.configure(
+            yscrollcommand=self.vertical_scrollbar.set,
+            xscrollcommand=self.horizontal_scrollbar.set,
+        )
         self.logo_image: PhotoImage | None = None
         self.window_icon_image: PhotoImage | None = None
 
@@ -362,8 +388,26 @@ class MusaInterface:
     def _build_layout(self) -> None:
         pad = {"padx": 10, "pady": 7}
         frm = self.main_frame
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        self.viewport.grid(row=0, column=0, sticky="nsew")
+        self.vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+        viewport_window = self.viewport.create_window((0, 0), window=frm, anchor="nw")
+
+        def refresh_scroll_region(_event=None) -> None:
+            self.viewport.configure(scrollregion=self.viewport.bbox("all"))
+
+        def fit_content_to_viewport(event) -> None:
+            self.viewport.itemconfigure(
+                viewport_window,
+                width=max(event.width, frm.winfo_reqwidth()),
+                height=max(event.height, frm.winfo_reqheight()),
+            )
+
+        frm.bind("<Configure>", refresh_scroll_region)
+        self.viewport.bind("<Configure>", fit_content_to_viewport)
         frm.configure(style="App.TFrame")
-        frm.pack(fill="both", expand=True, padx=16, pady=16)
         frm.columnconfigure(0, weight=0)
         frm.columnconfigure(1, weight=1)
         frm.rowconfigure(1, weight=1)
@@ -1026,15 +1070,12 @@ class MusaInterface:
             if target_mother <= 0:
                 raise ValueError("Mother Cell target debe ser > 0.")
 
-            # No-crop rule on current extent: mother cell must divide width and height exactly.
             gcd_wh = math.gcd(width_i, height_i)
             unit_candidates: list[tuple[int, int, int, int]] = []
             for unit in valid_units:
                 exact_mothers = [m for m in range(unit, gcd_wh + 1, unit) if gcd_wh % m == 0]
                 if not exact_mothers:
                     continue
-
-                # Prefer exact mothers close to target.
                 large_exact = [m for m in exact_mothers if m >= 2000]
                 pool = large_exact if large_exact else exact_mothers
                 best_m = min(pool, key=lambda m: abs(m - target_mother))
@@ -1044,7 +1085,6 @@ class MusaInterface:
             if not unit_candidates:
                 raise ValueError("No hay combinacion exacta unit/mother sin recorte para este boundary.")
 
-            # Choose closest to target; tie-break by richer divisor set.
             unit_candidates.sort(key=lambda t: (t[0], t[1]))
             _, neg_div_count, unit, mother_cell = unit_candidates[0]
             mode = "unit-then-mother-exact"
@@ -1052,7 +1092,6 @@ class MusaInterface:
             expand_y = 0
 
             if self.auto_expand_target.get() and target_mother % unit == 0:
-                # Keep no-crop by expanding the frame to the next target-mother multiples.
                 pad_x = (target_mother - (width_i % target_mother)) % target_mother
                 pad_y = (target_mother - (height_i % target_mother)) % target_mother
                 mother_cell = target_mother

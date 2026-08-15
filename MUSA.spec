@@ -2,15 +2,15 @@
 
 
 a = Analysis(
-    ['src\\musa\\interface.py'],
+    ['launch_musa.py'],
     pathex=['src'],
     binaries=[],
-    datas=[],
+    datas=[('src\\musa\\assets', 'musa\\assets')],
     hiddenimports=[],
     hookspath=[],
-    hooksconfig={},
+    hooksconfig={'matplotlib': {'backends': 'TkAgg'}},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['torch', 'torchvision', 'torchaudio', 'tensorflow', 'keras', 'cv2', 'PySide6', 'shiboken6', 'sympy', 'IPython', 'notebook', 'grpc', 'boto3', 'botocore', 'folium', 'xarray', 'jedi', 'lxml'],
     noarchive=False,
     optimize=0,
 )
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='src\\musa\\assets\\icon.png',
 )
