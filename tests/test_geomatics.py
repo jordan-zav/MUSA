@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from musa.geomatics import export_mother_geopackage
+from musa.plotting import export_presentation_maps
 
 
 pytest.importorskip("geopandas")
@@ -98,3 +99,14 @@ def test_export_mother_geopackage_writes_q2_polygons_and_reliable_layer(tmp_path
     assert len(reliable) == 1
     assert q2.geometry.iloc[0].geom_type == "Polygon"
     assert q2.crs.to_epsg() == 3857
+
+    presentation = export_presentation_maps(
+        outputs["geopackage"], tmp_path / "presentation", dpi=72
+    )
+
+    assert set(presentation) == {
+        "presentation_zeta",
+        "presentation_alpha_w",
+        "presentation_density",
+    }
+    assert all(Path(path).is_file() for path in presentation.values())

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from math import atan2, cos, degrees, floor, hypot, pi, radians, sin
+from math import atan2, degrees, floor, hypot
 from typing import Any
 
 import numpy as np
@@ -20,8 +20,6 @@ def compute_lineament_mother_structural_stats(
         raise ValueError("orientation_bin_degrees debe dividir exactamente 180.")
     if boundary_geom is None or boundary_geom.is_empty:
         raise ValueError("boundary_geom no puede estar vacio.")
-
-    from shapely.geometry import box
 
     ox, oy = _origin_xy(boundary_geom, origin)
     minx, miny, maxx, maxy = boundary_geom.bounds

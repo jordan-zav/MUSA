@@ -2,7 +2,13 @@ from .core import MUSA, MUSAResult
 from .geomatics import export_mother_geopackage
 from .network import compute_lineament_network_stats
 from .packaging import package_run_output
-from .plotting import export_analysis_plots, export_mother_plots, plot_loglog, plot_singularity_spectrum
+from .plotting import (
+    export_analysis_plots,
+    export_mother_plots,
+    export_presentation_maps,
+    plot_loglog,
+    plot_singularity_spectrum,
+)
 from .structural import compute_lineament_mother_structural_stats
 from .synthetic import run_synthetic_validation
 from .spectrum import fit_quadratic_spectrum, spectrum_shape_diagnostics, write_spectrum_fit_summary
@@ -21,6 +27,7 @@ __all__ = [
     "launch_interface",
     "export_analysis_plots",
     "export_mother_plots",
+    "export_presentation_maps",
     "export_mother_geopackage",
     "package_run_output",
     "plot_loglog",

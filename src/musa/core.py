@@ -1223,12 +1223,12 @@ class MUSA:
         eps_coarse = float(regression_scales[0])
         eps_fine = float(regression_scales[-1])
         lookup: dict[tuple[int, int, float], float] = {}
-        for mother_key, stats in mother_regression_stats.items():
+        for mother_key, mother_stats in mother_regression_stats.items():
             meta = mother_meta.get(mother_key)
             if meta is None:
                 continue
             m_finest = float(meta["measure_sum_m"])
-            for entry in stats:
+            for entry in mother_stats:
                 eps = float(entry["eps"])
                 zeta = MUSA._zeta_mother_scale(
                     mother_scale=mother_scale,

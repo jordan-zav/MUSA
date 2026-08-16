@@ -1254,9 +1254,12 @@ class MusaInterface:
             self.root.after(0, lambda: self._set_status("Complete"))
             self.root.after(0, lambda: messagebox.showinfo("MUSA", self._ui_text("Analysis completed successfully.")))
         except Exception as exc:  # pragma: no cover
-            self.root.after(0, lambda: self._log(f"Error: {exc}"))
+            self.root.after(0, lambda error=exc: self._log(f"Error: {error}"))
             self.root.after(0, lambda: self._set_status("Error"))
-            self.root.after(0, lambda: messagebox.showerror("MUSA Error", str(exc)))
+            self.root.after(
+                0,
+                lambda error=exc: messagebox.showerror("MUSA Error", str(error)),
+            )
         finally:
             self.root.after(0, lambda: self.run_button.config(state="normal"))
             self.root.after(0, self._refresh_summary)

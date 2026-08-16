@@ -1,11 +1,21 @@
-from tkinter import Tk
+from tkinter import TclError, Tk
+
+import pytest
 
 from musa.interface import MusaInterface
 
 
-def test_interface_defaults_to_explorer_mode_with_advanced_controls_hidden():
-    root = Tk()
+def _tk_root():
+    try:
+        root = Tk()
+    except TclError as exc:
+        pytest.skip(f"Tk runtime is unavailable: {exc}")
     root.withdraw()
+    return root
+
+
+def test_interface_defaults_to_explorer_mode_with_advanced_controls_hidden():
+    root = _tk_root()
     try:
         app = MusaInterface(root)
 
@@ -25,8 +35,7 @@ def test_interface_defaults_to_explorer_mode_with_advanced_controls_hidden():
 
 
 def test_interface_geomatics_mode_shows_advanced_controls():
-    root = Tk()
-    root.withdraw()
+    root = _tk_root()
     try:
         app = MusaInterface(root)
         app.workflow_mode.set("Geomatics")
@@ -42,8 +51,7 @@ def test_interface_geomatics_mode_shows_advanced_controls():
 
 
 def test_interface_language_switch_updates_primary_labels():
-    root = Tk()
-    root.withdraw()
+    root = _tk_root()
     try:
         app = MusaInterface(root)
 

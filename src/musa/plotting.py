@@ -7,6 +7,8 @@ import matplotlib
 
 matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 
 from .core import MUSAResult
@@ -107,6 +109,132 @@ def _unique_mother_zeta_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]
         seen.add(key)
         unique_rows.append(row)
     return unique_rows
+
+
+def export_presentation_maps(
+    gpkg_path: str | Path,
+    output_dir: str | Path,
+    *,
+    q_value: float = 2.0,
+    lineaments_path: str | Path | None = None,
+    dpi: int = 180,
+) -> dict[str, str]:
+    """Export GIS-faithful maps styled for reports and presentations.
+
+    Unlike compact diagnostic scatter plots, these maps use the actual
+    mother-cell polygons in the GeoPackage and may overlay input lineaments.
+    """
+    try:
+        import geopandas as gpd
+    except ImportError as exc:  # pragma: no cover - optional GIS dependency
+        raise ImportError("export_presentation_maps requiere geopandas.") from exc
+
+    gpkg_path = Path(gpkg_path)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    dpi = max(72, min(600, int(dpi)))
+    q_label = f"{q_value:g}"
+    all_cells = gpd.read_file(gpkg_path, layer=f"mother_multifractal_q{q_label}")
+    reliable_cells = gpd.read_file(gpkg_path, layer=f"mother_multifractal_q{q_label}_reliable")
+    structural_cells = gpd.read_file(gpkg_path, layer="mother_structural_stats")
+    if all_cells.empty:
+        return {}
+
+    lineaments = None
+    if lineaments_path is not None:
+        lineaments = gpd.read_file(lineaments_path)
+        if lineaments.crs is not None and all_cells.crs is not None and lineaments.crs != all_cells.crs:
+            lineaments = lineaments.to_crs(all_cells.crs)
+
+    theme = {
+        "background": "#F3EFE3",
+        "panel": "#FBF9F3",
+        "navy": "#172637",
+        "gold": "#B9851C",
+        "muted": "#62717D",
+        "grid": "#DDD6C9",
+        "outline": "#F7F3E9",
+    }
+    zeta_cmap = LinearSegmentedColormap.from_list(
+        "musa_zeta", ["#DCE5E7", "#6E8792", theme["navy"], theme["gold"]]
+    )
+    alpha_cmap = LinearSegmentedColormap.from_list(
+        "musa_alpha", [theme["navy"], "#2F7D83", "#7EBF91", "#E0BE48"]
+    )
+    density_cmap = LinearSegmentedColormap.from_list(
+        "musa_density", ["#E8E4DA", "#9EB5B5", "#417985", theme["gold"]]
+    )
+
+    def add_context(ax) -> None:
+        ax.set_facecolor(theme["panel"])
+        all_cells.plot(ax=ax, color="#E7E2D8", edgecolor=theme["outline"], linewidth=0.22, zorder=1)
+        if lineaments is not None and not lineaments.empty:
+            lineaments.plot(ax=ax, color="#111111", linewidth=0.42, alpha=0.88, zorder=3)
+        ax.set_aspect("equal")
+        kilometers = FuncFormatter(lambda value, _position: f"{value / 1000:.0f}")
+        ax.xaxis.set_major_formatter(kilometers)
+        ax.yaxis.set_major_formatter(kilometers)
+        ax.set_xlabel("Este (km)", color=theme["muted"])
+        ax.set_ylabel("Norte (km)", color=theme["muted"])
+        ax.tick_params(colors=theme["muted"], labelsize=8, length=3)
+        for spine in ax.spines.values():
+            spine.set_color(theme["grid"])
+        ax.grid(color=theme["grid"], linewidth=0.45, alpha=0.55, zorder=0)
+
+    def add_scale_bar(ax) -> None:
+        min_x, min_y, max_x, max_y = all_cells.total_bounds
+        width = max_x - min_x
+        height = max_y - min_y
+        if width <= 0 or height <= 0:
+            return
+        target_length = width * 0.22
+        magnitude = 10 ** np.floor(np.log10(target_length))
+        length_m = max(
+            candidate * magnitude
+            for candidate in (1, 2, 5, 10)
+            if candidate * magnitude <= target_length
+        )
+        start_x = min_x + width * 0.055
+        y = min_y + height * 0.055
+        original_xlim = ax.get_xlim()
+        original_ylim = ax.get_ylim()
+        ax.plot([start_x, start_x + length_m], [y, y], color=theme["navy"], linewidth=2.6, zorder=5)
+        ax.plot([start_x, start_x], [y - height * 0.009, y + height * 0.009], color=theme["navy"], linewidth=1.4, zorder=5)
+        ax.plot([start_x + length_m, start_x + length_m], [y - height * 0.009, y + height * 0.009], color=theme["navy"], linewidth=1.4, zorder=5)
+        scale_label = (
+            f"{length_m / 1000:g} km" if length_m >= 1000 else f"{length_m:g} m"
+        )
+        ax.text(start_x + length_m / 2, y + height * 0.018, scale_label, ha="center", va="bottom", fontsize=8, color=theme["navy"], zorder=5)
+        ax.annotate("N", xy=(max_x - width * 0.065, max_y - height * 0.075), xytext=(max_x - width * 0.065, max_y - height * 0.18), ha="center", color=theme["navy"], fontsize=9, fontweight="bold", arrowprops={"arrowstyle": "-|>", "color": theme["navy"], "lw": 1.4}, zorder=5)
+        ax.set_xlim(original_xlim)
+        ax.set_ylim(original_ylim)
+
+    def save_map(cells, column: str, cmap, title: str, subtitle: str, color_label: str, filename: str) -> str:
+        fig, ax = plt.subplots(figsize=(7.2, 7.6), facecolor=theme["background"], constrained_layout=True)
+        path = output_dir / filename
+        try:
+            add_context(ax)
+            mapped = cells.plot(ax=ax, column=column, cmap=cmap, edgecolor=theme["outline"], linewidth=0.28, zorder=2, legend=False)
+            collection = mapped.collections[-1]
+            colorbar = fig.colorbar(collection, ax=ax, fraction=0.047, pad=0.018)
+            colorbar.set_label(color_label, color=theme["navy"], fontsize=9)
+            colorbar.ax.tick_params(labelsize=8, colors=theme["muted"])
+            ax.set_title(title, loc="left", color=theme["navy"], fontsize=15, fontweight="bold", pad=17)
+            ax.text(0.0, 1.01, subtitle, transform=ax.transAxes, color=theme["muted"], fontsize=9, va="bottom")
+            add_scale_bar(ax)
+            fig.savefig(path, dpi=dpi, facecolor=theme["background"], bbox_inches="tight", pad_inches=0.09)
+        finally:
+            plt.close(fig)
+        return str(path)
+
+    outputs = {
+        "presentation_zeta": save_map(all_cells, "zeta_mean", zeta_cmap, "Soporte multiescala local", f"{len(all_cells)} celdas madre con resultado local · zeta es un indicador operativo", "zeta_mean", "01_soporte_multiescala_zeta.png"),
+    }
+    if not reliable_cells.empty:
+        outputs["presentation_alpha_w"] = save_map(reliable_cells, "alpha_w", alpha_cmap, "Complejidad multifractal local con soporte", f"q = {q_label} · {len(reliable_cells)} de {len(all_cells)} celdas cumplen R² ≥ 0.90 y zeta ≥ 0.15", "alpha_w ponderado", "02_alpha_w_filtrado_q2.png")
+    if not structural_cells.empty and "density_m_per_km2" in structural_cells:
+        outputs["presentation_density"] = save_map(structural_cells, "density_m_per_km2", density_cmap, "Intensidad estructural de lineamientos", f"{len(structural_cells)} celdas madre estructurales · longitud de lineamiento por unidad de área", "densidad (m por km²)", "03_densidad_lineamientos.png")
+    return outputs
 
 
 def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[str, str]:
