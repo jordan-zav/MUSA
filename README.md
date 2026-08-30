@@ -11,7 +11,7 @@
   <a href="https://github.com/jordan-zav/MUSA/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/jordan-zav/MUSA/total?style=flat-square"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="GIS ready" src="https://img.shields.io/badge/GIS-GeoPackage-2E7D32?style=flat-square">
-  <a href="LICENSE"><img alt="GNU GPLv3" src="https://img.shields.io/badge/License-GPLv3-blue?style=flat-square"></a>
+  <a href="LICENSE"><img alt="GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-0f766e?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -132,6 +132,18 @@ Zeta is an operational reliability weight. It should not be interpreted as a dir
 
 Generated datasets, local experiments, and temporary outputs are intentionally excluded from version control.
 
+## Project status
+
+MUSA 1.0.1 is the current public release. Automated tests cover the global and
+local spectra, zeta formula, interface modes, GIS packaging, structural metrics
+and synthetic cases. External geological validation remains dataset-specific:
+a stable numerical fit or high zeta weight is not proof of a geological process.
+
 ## License
 
-MUSA is distributed under the [GNU General Public License v3.0](LICENSE). The source code required to build and modify each release is available in this repository.
+MUSA is distributed under the [GNU General Public License v3.0](LICENSE). The
+source code required to build and modify each release is available in this
+repository.
+
+Jordan Zavaleta — GisGeo Dev<br>
+[jordanzav@gisgeo.dev](mailto:jordanzav@gisgeo.dev) · [gisgeo.dev](https://gisgeo.dev)

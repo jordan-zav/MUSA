@@ -8,7 +8,7 @@ version = "1.0.1"
 description = "MUSA: Multifractal Spectrum Analyzer for spatial and GIS-ready data."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "GNU GPLv3" }
+license = "GPL-3.0-or-later"
 authors = [{ name = "MUSA Contributors" }]
 dependencies = [
   "numpy>=1.24",
