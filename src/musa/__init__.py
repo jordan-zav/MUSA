@@ -1,6 +1,7 @@
 from .core import MUSA, MUSAResult
 from .geomatics import export_mother_geopackage
 from .network import compute_lineament_network_stats
+from .moving import analyze_moving_windows, export_moving_windows
 from .packaging import package_run_output
 from .plotting import (
     export_analysis_plots,
@@ -24,6 +25,8 @@ def launch_interface() -> None:
 __all__ = [
     "MUSA",
     "MUSAResult",
+    "analyze_moving_windows",
+    "export_moving_windows",
     "launch_interface",
     "export_analysis_plots",
     "export_mother_plots",

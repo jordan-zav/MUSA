@@ -24,16 +24,16 @@ def compute_lineament_mother_structural_stats(
     ox, oy = _origin_xy(boundary_geom, origin)
     minx, miny, maxx, maxy = boundary_geom.bounds
     ix0 = int(floor((minx - ox) / mother_scale))
-    ix1 = int(floor((maxx - ox - 1e-12) / mother_scale))
+    ix1 = int(np.ceil((maxx - ox) / mother_scale)) - 1
     iy0 = int(floor((miny - oy) / mother_scale))
-    iy1 = int(floor((maxy - oy - 1e-12) / mother_scale))
+    iy1 = int(np.ceil((maxy - oy) / mother_scale)) - 1
     bins = _bin_names(orientation_bin_degrees)
     accum: dict[tuple[int, int], dict[str, Any]] = {}
 
     for ix in range(ix0, ix1 + 1):
         for iy in range(iy0, iy1 + 1):
             cell = _mother_box(ox, oy, ix, iy, mother_scale)
-            if cell.intersection(boundary_geom).is_empty:
+            if cell.intersection(boundary_geom).area <= 0:
                 continue
             accum[(ix, iy)] = {
                 "lengths": [],
@@ -47,33 +47,28 @@ def compute_lineament_mother_structural_stats(
         clipped = geom.intersection(boundary_geom)
         if clipped.is_empty:
             continue
-        gminx, gminy, gmaxx, gmaxy = clipped.bounds
-        gx0 = int(floor((gminx - ox) / mother_scale))
-        gx1 = int(floor((gmaxx - ox) / mother_scale))
-        gy0 = int(floor((gminy - oy) / mother_scale))
-        gy1 = int(floor((gmaxy - oy) / mother_scale))
-        for ix in range(gx0, gx1 + 1):
-            for iy in range(gy0, gy1 + 1):
-                key = (ix, iy)
-                if key not in accum:
-                    continue
-                inter = clipped.intersection(_mother_box(ox, oy, ix, iy, mother_scale))
-                if inter.is_empty:
-                    continue
-                for segment in _iter_line_parts(inter):
-                    length = float(segment.length)
-                    if length <= 0:
-                        continue
-                    azimuth = _axial_azimuth(segment)
-                    bin_name = _bin_name_for_azimuth(azimuth, orientation_bin_degrees)
-                    accum[key]["lengths"].append(length)
-                    accum[key]["azimuths"].append(azimuth)
-                    accum[key]["bins"][bin_name] += length
+        from .partition import line_cell_segments
+        for key, length, azimuth in line_cell_segments([clipped], mother_scale, (ox, oy)):
+            # If the positive-side cell has no observed area, a coincident
+            # boundary edge belongs to its observed negative-side neighbour.
+            # This covers outer upper edges and holes, without bridging gaps.
+            if key not in accum:
+                if azimuth == 0.0:
+                    key = (key[0], key[1]-1)
+                elif azimuth == 90.0:
+                    key = (key[0]-1, key[1])
+            if key not in accum:
+                continue
+            bin_name = _bin_name_for_azimuth(azimuth, orientation_bin_degrees)
+            accum[key]["lengths"].append(length)
+            accum[key]["azimuths"].append(azimuth)
+            accum[key]["bins"][bin_name] += length
 
     rows: list[dict[str, float | int | str]] = []
-    mother_area_km2 = (mother_scale * mother_scale) / 1_000_000.0
     for key in sorted(accum):
         ix, iy = key
+        observed_area = _mother_box(ox, oy, ix, iy, mother_scale).intersection(boundary_geom).area
+        mother_area_km2 = observed_area / 1_000_000.0
         data = accum[key]
         lengths = np.array(data["lengths"], dtype=float)
         azimuths = np.array(data["azimuths"], dtype=float)
@@ -85,6 +80,7 @@ def compute_lineament_mother_structural_stats(
             "mother_centroid_y": oy + (iy + 0.5) * mother_scale,
             "mother_scale_m": float(mother_scale),
             "mother_area_km2": float(mother_area_km2),
+            "coverage_fraction": float(observed_area / mother_scale**2),
             "measure_sum_m": float(total),
             "density_m_per_km2": float(total / mother_area_km2) if mother_area_km2 > 0 else "",
             "segment_count": int(lengths.size),

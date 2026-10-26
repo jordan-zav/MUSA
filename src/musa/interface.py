@@ -30,6 +30,7 @@ from tkinter.scrolledtext import ScrolledText
 import numpy as np
 
 from .core import MUSA
+from .moving import export_moving_windows, ENSEMBLE_OFFSETS, ENSEMBLE_DIVISORS
 from .packaging import package_run_output
 from .plotting import export_analysis_plots, export_mother_plots
 from .spectrum import write_spectrum_fit_summary
@@ -113,6 +114,16 @@ class MusaInterface:
     }
 
     UI_ES = {
+        "Average 16 grid origins": "Promediar 16 origenes de grilla",
+        "Smallest cell = window side / largest divisor; check map resolution": "Celda minima = lado de ventana / divisor mayor; revisar resolucion cartografica",
+        "Candidates: relative ranks; classes require complete stable support": "Candidatos: rangos relativos; clases con soporte completo y estable",
+        "Potential interactions by radius": "Interacciones potenciales por radio",
+        "Exploratory radii (m), comma separated": "Radios exploratorios (m), separados por comas",
+        "Moving windows (experimental)": "Ventanas moviles (experimental)",
+        "Window sides (m), comma separated": "Lados de ventana (m), separados por comas",
+        "Window step (m)": "Paso entre ventanas (m)",
+        "Structural junctions; not measured permeability": "Cruces estructurales; no permeabilidad medida",
+        "Internal divisors (at least four)": "Divisores internos (al menos cuatro)",
         "Geological multiscale workspace": "Espacio geomatico multiescala",
         "Multifractal analysis for lineaments, scale logic, and spatial robustness": "Analisis multifractal de lineamientos, escalas y robustez espacial",
         "Mode": "Modo",
@@ -203,6 +214,13 @@ class MusaInterface:
         self.workflow_mode = StringVar(value="Explorer")
         self.robustness_mode = StringVar(value="baseline")
         self.aggregate_mother = BooleanVar(value=True)
+        self.moving_enabled = BooleanVar(value=False)
+        self.moving_sizes = StringVar(value="2000,4000,8000")
+        self.moving_step = StringVar(value="1000")
+        self.moving_divisors = StringVar(value=",".join(map(str,ENSEMBLE_DIVISORS)))
+        self.moving_origin_ensemble = BooleanVar(value=True)
+        self.proximity_enabled = BooleanVar(value=False)
+        self.proximity_radii = StringVar(value="100,250,500")
         self.auto_expand_target = BooleanVar(value=True)
         self.export_gis_package = BooleanVar(value=True)
         self.create_zip_package = BooleanVar(value=True)
@@ -441,7 +459,7 @@ class MusaInterface:
         self.language_box = ttk.Combobox(
             header_actions,
             textvariable=self.language,
-            values=["English", "Español"],
+            values=["English", "EspaÃ±ol"],
             state="readonly",
             width=10,
             style="Form.TCombobox",
@@ -544,6 +562,22 @@ class MusaInterface:
             variable=self.create_zip_package,
             command=self._refresh_summary,
         ).grid(row=3, column=0, sticky="w", **pad)
+
+        ttk.Checkbutton(options_card, text="Moving windows (experimental)", variable=self.moving_enabled).grid(row=4, column=0, sticky="w", **pad)
+        ttk.Label(options_card, text="Window sides (m), comma separated").grid(row=5, column=0, sticky="w", **pad)
+        ttk.Entry(options_card, textvariable=self.moving_sizes).grid(row=6, column=0, sticky="ew", **pad)
+        ttk.Label(options_card, text="Window step (m)").grid(row=7, column=0, sticky="w", **pad)
+        ttk.Entry(options_card, textvariable=self.moving_step).grid(row=8, column=0, sticky="ew", **pad)
+        ttk.Label(options_card, text="Structural junctions; not measured permeability", wraplength=360).grid(row=9, column=0, sticky="w", **pad)
+        ttk.Label(options_card, text="Internal divisors (at least four)").grid(row=10, column=0, sticky="w", **pad)
+        ttk.Entry(options_card, textvariable=self.moving_divisors).grid(row=11, column=0, sticky="ew", **pad)
+        ttk.Checkbutton(options_card, text="Potential interactions by radius", variable=self.proximity_enabled).grid(row=12, column=0, sticky="w", **pad)
+        ttk.Label(options_card, text="Exploratory radii (m), comma separated").grid(row=13, column=0, sticky="w", **pad)
+        ttk.Entry(options_card, textvariable=self.proximity_radii).grid(row=14, column=0, sticky="ew", **pad)
+        ttk.Label(options_card, text="Candidates: relative ranks; classes require complete stable support", wraplength=360).grid(row=15, column=0, sticky="w", **pad)
+
+        ttk.Checkbutton(options_card, text="Average 16 grid origins", variable=self.moving_origin_ensemble).grid(row=16, column=0, sticky="w", **pad)
+        ttk.Label(options_card, text="Smallest cell = window side / largest divisor; check map resolution", wraplength=360).grid(row=17, column=0, sticky="w", **pad)
 
         summary_card = ttk.LabelFrame(content, text="Run Summary", style="Card.TLabelframe")
         summary_card.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -882,6 +916,13 @@ class MusaInterface:
             ),
             "zeta_scale_floor": float(self.zeta_scale_floor.get().strip()),
             "aggregate_mother": self.aggregate_mother.get(),
+            "moving_enabled": self.moving_enabled.get(),
+            "proximity_enabled": self.proximity_enabled.get(),
+            "proximity_radii_m": _parse_csv_floats(self.proximity_radii.get()) if self.proximity_enabled.get() else None,
+            "moving_sizes_m": _parse_csv_floats(self.moving_sizes.get()) if self.moving_enabled.get() else [],
+            "moving_step_m": float(self.moving_step.get()) if self.moving_enabled.get() else None,
+            "moving_origin_offsets": ENSEMBLE_OFFSETS if self.moving_origin_ensemble.get() else None,
+            "moving_divisors": _parse_csv_floats(self.moving_divisors.get()) if self.moving_enabled.get() else [],
             "export_gis_package": self.export_gis_package.get(),
             "create_zip_package": self.create_zip_package.get(),
             "export_zeta_sensitivity": self.export_zeta_sensitivity.get(),
@@ -891,6 +932,20 @@ class MusaInterface:
         return config
 
     def _validate_run_config(self, config: dict[str, object]) -> None:
+        if config.get('proximity_enabled'):
+            if not config.get('moving_enabled'):
+                raise ValueError("Activa ventanas moviles para exportar interacciones potenciales.")
+            if not all(np.isfinite(r) and r > 0 for r in config['proximity_radii_m']):
+                raise ValueError("Los radios deben ser positivos y finitos, en metros.")
+        if config.get("moving_enabled"):
+            values = [*config["moving_sizes_m"], config["moving_step_m"]]
+            if not all(np.isfinite(v) and v > 0 for v in values):
+                raise ValueError("Window sizes and step must be positive and finite.")
+            if max(abs(float(config["qmin"])), abs(float(config["qmax"]))) > 100:
+                raise ValueError("Moving-window q must be between -100 and 100.")
+            divisors = np.unique(config["moving_divisors"])
+            if len(divisors) < 4 or not np.all(np.isfinite(divisors)) or np.any(divisors < 2) or np.any(divisors != np.floor(divisors)):
+                raise ValueError("Use at least four distinct integer divisors >= 2.")
         qstep = float(config["qstep"])
         qmax = float(config["qmax"])
         qmin = float(config["qmin"])
@@ -1186,7 +1241,7 @@ class MusaInterface:
                 resolutions_m=resolutions,
                 cell_length_threshold_m=float(config["threshold_m"]),
                 aggregate_to_mother=bool(config["aggregate_mother"]),
-                q_values=result.q,
+                q_values=q_values if config.get("moving_enabled") else result.q,
                 reliable_min_zeta=float(config["reliable_min_zeta"]),
                 reliable_min_r2=float(config["reliable_min_r2"]),
                 local_bootstrap_iterations=int(config["local_bootstrap_iterations"]),
@@ -1206,6 +1261,19 @@ class MusaInterface:
             outputs.update(export_analysis_plots(str(config["out_dir"]), result))
             if bool(config["aggregate_mother"]):
                 outputs.update(export_mother_plots(str(config["out_dir"]), result, highlight_q=2.0))
+            if config.get("moving_enabled"):
+                self.root.after(0, lambda: self._log("Moving windows: local spectra and exact structural junctions..."))
+                outputs.update(export_moving_windows(
+                    analyzer, str(config["out_dir"]), config["moving_sizes_m"], config["moving_step_m"],
+                    q_values=q_values, export_gis=bool(config["export_gis_package"]),
+                    divisors=config["moving_divisors"],
+                    origin_offsets=config["moving_origin_offsets"],
+                    proximity_radii_m=config.get('proximity_radii_m'),
+                    zeta_exponents=tuple(config["zeta_exponents"]),
+                    zeta_scale_floor=float(config["zeta_scale_floor"]),
+                    reliable_min_zeta=float(config["reliable_min_zeta"]),
+                    min_r2=float(config["reliable_min_r2"]),
+                ))
             if bool(config["create_zip_package"]):
                 zip_result = package_run_output(
                     str(config["out_dir"]),

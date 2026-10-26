@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 import numpy as np
 from scipy import stats
+from scipy.special import logsumexp
 
 
 @dataclass
@@ -84,6 +85,7 @@ class MUSA:
         self._line_geometries = prepared.get("line_geometries")
         self._boundary_geom = prepared.get("boundary_geom")
         self._active_crs = prepared.get("crs")
+        self._source_gdf = prepared.get("source_gdf")
 
     def run_analysis(
         self,
@@ -144,11 +146,11 @@ class MUSA:
                     # Capacity dimension scales with log(N_boxes).
                     features_by_q[j, i] = np.log(np.count_nonzero(probs_q > 0))
                 else:
-                    z = np.sum(probs_q**q)
+                    log_z = logsumexp(q * np.log(probs_q))
                     # sum(p_i ** q) scales as epsilon ** tau(q). Because the
                     # regression x-axis is log(1 / epsilon), the sign is
                     # inverted to recover positive generalized dimensions.
-                    features_by_q[j, i] = -np.log(z + 1e-300) / (q - 1.0)
+                    features_by_q[j, i] = -log_z / (q - 1.0)
 
                 mu = self._mu_for_q(probs_q, q)
                 alpha_features_by_q[j, i] = np.sum(mu * np.log(probs_q + 1e-300))
@@ -1143,8 +1145,8 @@ class MUSA:
         if np.isclose(q, 0.0):
             n_boxes = int(np.count_nonzero(probs > 0))
             return np.full(probs.shape, 1.0 / n_boxes, dtype=float)
-        zq = float(np.sum(probs**q))
-        return (probs**q) / zq
+        log_weights = q * np.log(probs)
+        return np.exp(log_weights - logsumexp(log_weights))
 
     @staticmethod
     def _stabilize_probs_for_q(
@@ -1177,6 +1179,7 @@ class MUSA:
         entropy: float = 0.0,
         exponents: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0),
         scale_floor: float = 0.25,
+        possible_boxes: int | None = None,
     ) -> float:
         """
         Reliability weight zeta (ζ) for a mother cell at scale eps.
@@ -1185,10 +1188,12 @@ class MUSA:
           c = coverage (occupied child cells / possible child cells)
           m_r = relative mass vs finest scale in the same mother cell
           s = scale position between coarsest and finest regression scales
+        Implementation also includes exp(entropy)/n_occupied and a scale floor.
+        possible_boxes overrides the aligned square count for shifted supports.
         """
         exponents = MUSA._normalize_zeta_exponents(exponents)
         n_side = int(round(mother_scale / eps))
-        n_total = max(n_side * n_side, 1)
+        n_total = max(n_side * n_side if possible_boxes is None else possible_boxes, 1)
         coverage = float(n_occupied) / float(n_total)
         mass_ratio = float(m_total / m_finest) if m_finest > 0 else 0.0
         if n_occupied > 0 and np.isfinite(entropy):
@@ -1841,6 +1846,7 @@ class MUSA:
             return {
                 "kind": "lines",
                 "line_geometries": lines,
+                "source_gdf": gdf,
                 "origin": origin,
                 "boundary_geom": boundary_geom,
                 "crs": gdf.crs,
@@ -1872,33 +1878,12 @@ class MUSA:
         origin: np.ndarray,
         min_cell_length: float = 0.0,
     ) -> dict[tuple[int, int], float]:
-        from shapely.geometry import box
+        from .mass_partition import line_masses
 
-        weights_by_cell: dict[tuple[int, int], float] = {}
-        ox, oy = float(origin[0]), float(origin[1])
-
-        for line in line_geometries:
-            minx, miny, maxx, maxy = line.bounds
-            ix0 = int(np.floor((minx - ox) / eps))
-            ix1 = int(np.floor((maxx - ox) / eps))
-            iy0 = int(np.floor((miny - oy) / eps))
-            iy1 = int(np.floor((maxy - oy) / eps))
-
-            for ix in range(ix0, ix1 + 1):
-                cell_minx = ox + ix * eps
-                cell_maxx = cell_minx + eps
-                for iy in range(iy0, iy1 + 1):
-                    cell_miny = oy + iy * eps
-                    cell_maxy = cell_miny + eps
-                    inter = line.intersection(box(cell_minx, cell_miny, cell_maxx, cell_maxy))
-                    if inter.is_empty:
-                        continue
-                    w = float(inter.length)
-                    if w > min_cell_length:
-                        key = (ix, iy)
-                        weights_by_cell[key] = weights_by_cell.get(key, 0.0) + w
-
-        return weights_by_cell
+        weights_by_cell = line_masses(line_geometries, eps, origin)
+        # The threshold applies to the complete cell, not individual features.
+        return {key: value for key, value in weights_by_cell.items()
+                if value > min_cell_length}
 
     def _cell_centroid(self, ix: int, iy: int, eps: float) -> tuple[float, float]:
         if self._origin is None:

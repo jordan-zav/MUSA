@@ -30,6 +30,12 @@ It is designed for spatial point data and geological lineaments where multifract
 
 ## Highlights
 
+Experimental overlapping multiscale windows are available in the desktop
+output options and Python API. They export local spectra and unique planar
+fracture junctions with coverage and high-q dominance diagnostics. See
+[moving-window usage and limitations](docs/moving_windows.md). These outputs
+describe structural concentration; they do not estimate permeability.
+
 | Analysis | Reliability | GIS and outputs |
 | --- | --- | --- |
 | Global and local multifractal spectra | Multiscale zeta weighting | GeoPackage mother-cell export |
@@ -113,6 +119,19 @@ More complete spatial, GIS, synthetic, and structural examples are available in 
 | Structural products | Density, total length, dominant azimuth, anisotropy, and connectivity |
 | GIS package | GeoPackage layers for mapping and downstream analysis |
 | Run package | Organized ZIP archive containing selected outputs |
+
+## Moving-window development profile
+
+This development profile is documented with generic methods and synthetic
+controls. Private project datasets, deliverables, geological rules and production
+metrics are maintained separately and are not distributed as MUSA examples.
+
+The current GUI and folder-runner profile averages 16 grid origins over seven
+internal scales and checks both candidate and background origin banks. Descriptive
+ranks remain separate from supported classes. See [candidate scoring](docs/candidate_scoring.md)
+for v7 configuration, diagnostics, residual boundary bias and map-resolution limits.
+Optional acceleration: `pip install -e ".[gis,fast]"`; the Python fallback uses the
+same conservative partition. This development profile is not geological validation.
 
 ## Methodological scope
 

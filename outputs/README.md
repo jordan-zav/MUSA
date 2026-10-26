@@ -1,22 +1,10 @@
-# Resultados vigentes de MUSA
+# Resultados locales
 
-Esta carpeta conserva solo resultados utiles para evidencia o validacion. Las corridas temporales de desarrollo fueron retiradas.
+Esta carpeta no distribuye datos de proyectos, entregas privadas ni resultados
+de producción. Los archivos generados se excluyen de Git por defecto.
 
-## Carpetas vigentes
+Los ejemplos de MUSA utilizan casos sintéticos y escriben sus salidas en un
+directorio elegido por el usuario. Sus resultados describen el comportamiento
+numérico del método; no se presentan como validación geológica de un proyecto.
 
-| Carpeta | Rol |
-| --- | --- |
-| algorithm_experiments | Experimentos reproducibles sobre casos sinteticos de puntos |
-| congreso_geologia_evidence | Corrida principal Broken Hill con tablas, figuras, GeoPackage y paquete ZIP local |
-| structural_trap_experiments | Experimentos GIS con lineamientos sinteticos y trampas estructurales |
-| synthetic_validation | Validacion sintetica resumida |
-
-## Lectura recomendada
-
-Para el benchmark geologico usar primero congreso_geologia_evidence.
-
-Para defender el comportamiento del algoritmo antes de interpretacion geologica usar synthetic_validation.
-
-## No versionar corridas temporales
-
-Nuevas corridas exploratorias deben generarse fuera de estas carpetas o mantenerse ignoradas por git. Si una corrida se vuelve evidencia oficial, debe documentarse aqui antes de conservarse.
+Conservar datos y entregas de proyectos externos fuera del repositorio.

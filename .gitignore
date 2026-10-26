@@ -28,6 +28,14 @@ docs/local/
 docs/rendered_informe_musa/
 docs/literature/pdf/*.pdf
 
+# Local/private working material is not part of the software distribution
+artifacts/
+temp/
+
+# Local DevResources configuration
+.devresources.local.cmd
+.devresources.runner.ps1
+
 # Ignore all outputs by default
 outputs/**
 !outputs/README.md
