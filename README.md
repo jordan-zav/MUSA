@@ -1,3 +1,5 @@
+<p align="center"><strong>English</strong> · <a href="README.es.md">Español</a></p>
+
 <p align="center">
   <img src="src/musa/assets/logo.png" alt="MUSA — Multifractal Spectrum Analyzer" width="820">
 </p>
@@ -56,7 +58,7 @@ The standalone Windows build does not require a separate Python installation.
 
 | Release | Platform | File | SHA-256 |
 | --- | --- | --- | --- |
-| v1.0.1 | Windows x64 | MUSA-1.0.1-Windows-x64.exe | `d10181fd2f34c663dc0b05398f8ab48dfc10cded0fe19b710bb4db8602cfb158` |
+| v1.0.1 | Windows x64 | MUSA-1.0.1-Windows-x64.exe | <code>d10181fd2f34c663dc0b05398f8ab48dfc10cded0fe19b710bb4db8602cfb158</code> |
 
 See the [latest release](https://github.com/jordan-zav/MUSA/releases/latest) for release notes and assets.
 
@@ -130,7 +132,7 @@ The current GUI and folder-runner profile averages 16 grid origins over seven
 internal scales and checks both candidate and background origin banks. Descriptive
 ranks remain separate from supported classes. See [candidate scoring](docs/candidate_scoring.md)
 for v7 configuration, diagnostics, residual boundary bias and map-resolution limits.
-Optional acceleration: `pip install -e ".[gis,fast]"`; the Python fallback uses the
+Optional acceleration: <code>pip install -e ".[gis,fast]"</code>; the Python fallback uses the
 same conservative partition. This development profile is not geological validation.
 
 ## Methodological scope
