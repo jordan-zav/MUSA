@@ -11,6 +11,7 @@ sí sola a publicar un archivo local o experimental.
 | theory.md | Referencia tecnica del algoritmo global, local, zeta y salidas |
 | references.md | Referencias cientificas publicas |
 | DEVELOPMENT_STATUS.md | Alcance neutral del software y estado de desarrollo |
+| QGIS.md | Instalación del plugin, panel en inglés, recetas y Processing |
 
 Los planes de trabajo, bitacoras de descarga, borradores, paquetes de redaccion y documentos auxiliares no forman parte de la distribucion publica.
 

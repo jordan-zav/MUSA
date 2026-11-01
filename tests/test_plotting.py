@@ -4,6 +4,27 @@ from musa.core import MUSAResult
 from musa.plotting import export_analysis_plots
 
 
+def test_import_and_render_do_not_switch_host_matplotlib_backend(tmp_path):
+    import importlib
+    import matplotlib
+    import musa.plotting
+    from types import SimpleNamespace
+
+    original = matplotlib.get_backend()
+    try:
+        matplotlib.use("svg")
+        importlib.reload(musa.plotting)
+        assert matplotlib.get_backend().lower() == "svg"
+        axis = musa.plotting.plot_singularity_spectrum(
+            SimpleNamespace(alpha=np.array([1.0, 1.5, 2.0]), f_alpha=np.array([1.0, 1.5, 1.0]))
+        )
+        axis.figure.savefig(tmp_path / "host_backend.png")
+        assert (tmp_path / "host_backend.png").is_file()
+        assert matplotlib.get_backend().lower() == "svg"
+    finally:
+        matplotlib.use(original)
+
+
 def test_export_analysis_plots_writes_q_colored_spectrum(tmp_path):
     result = MUSAResult(
         q=np.array([-2, -1, 0, 1, 2], dtype=float),

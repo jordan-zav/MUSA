@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jordan-zav/MUSA/releases/download/v1.0.1/MUSA-1.0.1-Windows-x64.exe"><strong>Download MUSA for Windows</strong></a>
+  <a href="docs/QGIS.md"><strong>Install MUSA for QGIS</strong></a>
   ·
   <a href="docs/theory.md">Method reference</a>
   ·
@@ -26,14 +26,19 @@
 
 ## Overview
 
-MUSA combines direct Chhabra–Jensen estimation, local mother-cell analysis, multiscale reliability weighting, structural statistics, and reproducible GIS export in one Python framework and desktop application.
+MUSA is a QGIS plugin for direct Chhabra–Jensen estimation, local mother-cell analysis, multiscale reliability weighting, structural statistics, and reproducible GIS export. QGIS and the Python API share one numerical core.
+
+The local 1.1.0 plugin is experimental. The latest public release remains 1.0.1;
+the QGIS conversion has not been published.
+
+![MUSA workbench in a real QGIS runtime with synthetic data](docs/images/qgis_musa_workbench.png)
 
 It is designed for spatial point data and geological lineaments where multifractal complexity must be interpreted separately from structural density and model reliability.
 
 ## Highlights
 
-Experimental overlapping multiscale windows are available in the desktop
-output options and Python API. They export local spectra and unique planar
+Experimental overlapping multiscale windows are available in the QGIS workbench
+and Python API. They export local spectra and unique planar
 fracture junctions with coverage and high-q dominance diagnostics. See
 [moving-window usage and limitations](docs/moving_windows.md). These outputs
 describe structural concentration; they do not estimate permeability.
@@ -44,25 +49,24 @@ describe structural concentration; they do not estimate permeability.
 | Generalized dimensions Dq and tau | Reliable flags by mother cell and q | Structural density and orientation maps |
 | Local D0 and D1 estimates | Bootstrap and jackknife sensitivity | Exact lineament connectivity statistics |
 | Robust Theil–Sen alternatives | Leverage and Cook diagnostics | CSV, PNG, GeoPackage, and ZIP products |
-| Controlled synthetic validation | Negative-q stabilization | Desktop and Python workflows |
+| Controlled synthetic validation | Negative-q stabilization | QGIS workbench, Processing and Python |
 
-## Download
+## Install in QGIS
 
-The standalone Windows build does not require a separate Python installation.
+Build the plugin from this checkout:
 
-<p>
-  <a href="https://github.com/jordan-zav/MUSA/releases/download/v1.0.1/MUSA-1.0.1-Windows-x64.exe">
-    <img alt="Download MUSA.exe" src="https://img.shields.io/badge/Download-MUSA.exe-1F4E79?style=for-the-badge&logo=windows">
-  </a>
-</p>
+    python scripts/build_qgis_plugin.py
 
-| Release | Platform | File | SHA-256 |
-| --- | --- | --- | --- |
-| v1.0.1 | Windows x64 | MUSA-1.0.1-Windows-x64.exe | <code>d10181fd2f34c663dc0b05398f8ab48dfc10cded0fe19b710bb4db8602cfb158</code> |
+In QGIS, open Plugins > Manage and Install Plugins > Install from ZIP and select
+the ZIP generated in dist/qgis. Then open Vector > MUSA > MUSA Workbench.
+See the [QGIS guide](docs/QGIS.md) for dependencies, recipes, Processing and limits.
+The plugin uses the Python packages supplied by your QGIS installation and does
+not install or replace interpreter dependencies.
 
-See the [latest release](https://github.com/jordan-zav/MUSA/releases/latest) for release notes and assets.
+The older standalone build remains in [release history](https://github.com/jordan-zav/MUSA/releases).
+Its launchers are retained as legacy source; QGIS is the primary interface.
 
-## Install from source
+## Python API installation
 
 Requirements: Python 3.10 or newer.
 
@@ -70,13 +74,12 @@ Requirements: Python 3.10 or newer.
     .venv\Scripts\Activate.ps1
     python -m pip install --upgrade pip
     python -m pip install -e .
-    musa-ui
 
 Install the optional GIS stack with:
 
     python -m pip install -e .[gis]
 
-The included launch_musa_ui.bat file can also start the desktop interface from a local checkout.
+In this managed Windows workspace, run development commands through DEVRESOURCES_RUN.cmd.
 
 ## Quick Python example
 
@@ -104,7 +107,7 @@ More complete spatial, GIS, synthetic, and structural examples are available in 
 
 ## Recommended GIS workflow
 
-1. Prepare lineaments and an analysis boundary in a metric CRS, or enable automatic reprojection.
+1. Select QGIS lineament and boundary layers and an explicit projected analysis CRS in metres.
 2. Select a mother-cell size and enough child resolutions for stable regression.
 3. Run the global analysis and inspect the accepted q range.
 4. Export local mother cells with zeta and reliable values.
@@ -128,8 +131,10 @@ This development profile is documented with generic methods and synthetic
 controls. Private project datasets, deliverables, geological rules and production
 metrics are maintained separately and are not distributed as MUSA examples.
 
-The current GUI and folder-runner profile averages 16 grid origins over seven
-internal scales and checks both candidate and background origin banks. Descriptive
+The development API supports 16 grid origins over seven internal scales and
+checks both candidate and background origin banks. The QGIS panel exposes grid
+origin averaging as an explicit option; its default is a single origin and four
+internal scales to keep exploratory runs manageable. Descriptive
 ranks remain separate from supported classes. See [candidate scoring](docs/candidate_scoring.md)
 for v7 configuration, diagnostics, residual boundary bias and map-resolution limits.
 Optional acceleration: <code>pip install -e ".[gis,fast]"</code>; the Python fallback uses the
@@ -145,7 +150,9 @@ Zeta is an operational reliability weight. It should not be interpreted as a dir
 
 | Path | Contents |
 | --- | --- |
-| src/musa | Core package, desktop interface, plotting, GIS export, and validation |
+| src/musa | Shared numerical core, workflow API, plotting, GIS export and validation |
+| qgis_plugin | QGIS dock, Processing, native input and output adapters |
+| scripts/build_qgis_plugin.py | Installable plugin ZIP with private bundled core |
 | examples | Reproducible Python workflows |
 | tests | Automated algorithm and interface tests |
 | docs/theory.md | Detailed methodological reference |
@@ -155,7 +162,9 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 
 ## Project status
 
-MUSA 1.0.1 is the current public release. Automated tests cover the global and
+MUSA 1.0.1 is the current public release; 1.1.0 is the local experimental QGIS
+plugin. See [development status](docs/DEVELOPMENT_STATUS.md) for executed checks.
+Automated tests cover the global and
 local spectra, zeta formula, interface modes, GIS packaging, structural metrics
 and synthetic cases. External geological validation remains dataset-specific:
 a stable numerical fit or high zeta weight is not proof of a geological process.

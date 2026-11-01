@@ -3,10 +3,8 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg", force=True)
-import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FuncFormatter
 import numpy as np
@@ -15,9 +13,20 @@ from .core import MUSAResult
 from .spectrum import fit_quadratic_spectrum
 
 
+def _subplots(**kwargs):
+    """Render without switching the host's Matplotlib backend or creating Qt UI."""
+    figure = Figure(**kwargs)
+    FigureCanvasAgg(figure)
+    return figure, figure.subplots()
+
+
+def _close(figure):
+    figure.clear()
+
+
 def plot_loglog(result: MUSAResult, q: float = 0.0, ax=None):
     if ax is None:
-        _, ax = plt.subplots(figsize=(7, 4.5))
+        _, ax = _subplots(figsize=(7, 4.5))
 
     idx = int(np.argmin(np.abs(result.q - q)))
     y = result.dq[idx] * np.log(1.0 / result.scales)
@@ -32,7 +41,7 @@ def plot_loglog(result: MUSAResult, q: float = 0.0, ax=None):
 
 def plot_singularity_spectrum(result: MUSAResult, ax=None):
     if ax is None:
-        _, ax = plt.subplots(figsize=(7, 4.5))
+        _, ax = _subplots(figsize=(7, 4.5))
 
     order = np.argsort(result.alpha)
     ax.plot(result.alpha[order], result.f_alpha[order], "o-", lw=1.7, color="#1f4f72")
@@ -210,7 +219,7 @@ def export_presentation_maps(
         ax.set_ylim(original_ylim)
 
     def save_map(cells, column: str, cmap, title: str, subtitle: str, color_label: str, filename: str) -> str:
-        fig, ax = plt.subplots(figsize=(7.2, 7.6), facecolor=theme["background"], constrained_layout=True)
+        fig, ax = _subplots(figsize=(7.2, 7.6), facecolor=theme["background"], constrained_layout=True)
         path = output_dir / filename
         try:
             add_context(ax)
@@ -224,7 +233,7 @@ def export_presentation_maps(
             add_scale_bar(ax)
             fig.savefig(path, dpi=dpi, facecolor=theme["background"], bbox_inches="tight", pad_inches=0.09)
         finally:
-            plt.close(fig)
+            _close(fig)
         return str(path)
 
     outputs = {
@@ -244,7 +253,7 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     written: dict[str, str] = {}
 
     r2_path = out_dir / "r2_fit_quality.png"
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = _subplots(figsize=(8, 4.8))
     ax.scatter(result.q, result.r2, color="#1f77b4", label="Accepted Dq", s=42)
     ax.scatter(result.q, result.alpha_r2, color="#2ca02c", label="Accepted alpha", s=36, marker="s")
     ax.scatter(result.q, result.f_alpha_r2, color="#9467bd", label="Accepted f(alpha)", s=36, marker="^")
@@ -275,11 +284,11 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     ax.legend()
     fig.tight_layout()
     fig.savefig(r2_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["r2_fit_quality"] = str(r2_path)
 
     scatter_path = out_dir / "dq_scatterplot.png"
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = _subplots(figsize=(8, 4.8))
     dq_yerr = _asymmetric_errors(result.dq, result.dq_ci_low, result.dq_ci_high)
     if dq_yerr is not None:
         ax.errorbar(
@@ -301,11 +310,11 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     fig.colorbar(points, ax=ax, label="R2")
     fig.tight_layout()
     fig.savefig(scatter_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["dq_scatterplot"] = str(scatter_path)
 
     spectrum_path = out_dir / "multifractal_singularity_spectrum.png"
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = _subplots(figsize=(8, 4.8))
     order = np.argsort(result.alpha)
     alpha_xerr = _asymmetric_errors(result.alpha, result.alpha_ci_low, result.alpha_ci_high)
     f_yerr = _asymmetric_errors(result.f_alpha, result.f_alpha_ci_low, result.f_alpha_ci_high)
@@ -346,11 +355,11 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     ax.grid(alpha=0.3)
     fig.tight_layout()
     fig.savefig(spectrum_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["multifractal_singularity_spectrum"] = str(spectrum_path)
 
     spectrum_q_path = out_dir / "multifractal_singularity_spectrum_by_q.png"
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = _subplots(figsize=(8, 4.8))
     order_q = np.argsort(result.q)
     ax.plot(result.alpha[order_q], result.f_alpha[order_q], "-", linewidth=1.1, color="#8b7d6b", alpha=0.75)
     points = ax.scatter(
@@ -379,7 +388,7 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     fig.colorbar(points, ax=ax, label="q")
     fig.tight_layout()
     fig.savefig(spectrum_q_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["multifractal_singularity_spectrum_by_q"] = str(spectrum_q_path)
 
     return written
@@ -428,7 +437,7 @@ def export_mother_plots(
     global_point = _global_spectrum_at_q(result, q_value)
 
     spectrum_path = out_dir / f"mother_weighted_spectrum_q{q_label}.png"
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = _subplots(figsize=(8.5, 5.2))
     if result.q.size >= 2:
         order = np.argsort(result.alpha)
         ax.plot(
@@ -469,11 +478,11 @@ def export_mother_plots(
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(spectrum_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_weighted_spectrum"] = str(spectrum_path)
 
     spatial_alpha_path = out_dir / f"mother_spatial_alpha_w_q{q_label}.png"
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = _subplots(figsize=(8.5, 5.2))
     points = ax.scatter(cx, cy, c=alpha_w, s=34, cmap="viridis", alpha=0.85, edgecolors="none")
     ax.set_title(f"Mother Cells: alpha_w (q={q_label})")
     ax.set_xlabel("X")
@@ -484,7 +493,7 @@ def export_mother_plots(
     cbar.set_label("alpha_w")
     fig.tight_layout()
     fig.savefig(spatial_alpha_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_spatial_alpha_w"] = str(spatial_alpha_path)
 
     zeta_rows = _unique_mother_zeta_rows(rows)
@@ -493,7 +502,7 @@ def export_mother_plots(
     zeta_vals = np.array([_to_float(r["zeta_mean"]) for r in zeta_rows], dtype=float)
 
     spatial_zeta_path = out_dir / "mother_spatial_zeta.png"
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = _subplots(figsize=(8.5, 5.2))
     points = ax.scatter(zeta_x, zeta_y, c=zeta_vals, s=34, cmap="cividis", alpha=0.85, edgecolors="none")
     ax.set_title("Mother Cells: zeta Mean Reliability")
     ax.set_xlabel("X")
@@ -504,11 +513,11 @@ def export_mother_plots(
     cbar.set_label("zeta_mean")
     fig.tight_layout()
     fig.savefig(spatial_zeta_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_spatial_zeta"] = str(spatial_zeta_path)
 
     compare_path = out_dir / f"mother_ols_vs_weighted_q{q_label}.png"
-    fig, ax = plt.subplots(figsize=(6.8, 6.2))
+    fig, ax = _subplots(figsize=(6.8, 6.2))
     ax.scatter(alpha_ols, alpha_w, c=zeta_mean, cmap="plasma", s=42, alpha=0.8, edgecolors="none")
     finite_alpha = np.concatenate([alpha_ols, alpha_w])
     finite_alpha = finite_alpha[np.isfinite(finite_alpha)]
@@ -527,7 +536,7 @@ def export_mother_plots(
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(compare_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_ols_vs_weighted"] = str(compare_path)
 
     if plot_all_q:
@@ -554,7 +563,7 @@ def export_mother_plots(
             extra_global_point = _global_spectrum_at_q(result, q_item)
 
             extra_spectrum_path = out_dir / f"mother_weighted_spectrum_q{extra_label}.png"
-            fig, ax = plt.subplots(figsize=(8.5, 5.2))
+            fig, ax = _subplots(figsize=(8.5, 5.2))
             if result.q.size >= 2:
                 order = np.argsort(result.alpha)
                 ax.plot(
@@ -598,11 +607,11 @@ def export_mother_plots(
             ax.legend(loc="best")
             fig.tight_layout()
             fig.savefig(extra_spectrum_path, dpi=160)
-            plt.close(fig)
+            _close(fig)
             written[f"mother_weighted_spectrum_q{extra_label}"] = str(extra_spectrum_path)
 
             extra_spatial_alpha_path = out_dir / f"mother_spatial_alpha_w_q{extra_label}.png"
-            fig, ax = plt.subplots(figsize=(8.5, 5.2))
+            fig, ax = _subplots(figsize=(8.5, 5.2))
             points = ax.scatter(
                 extra_cx,
                 extra_cy,
@@ -621,11 +630,11 @@ def export_mother_plots(
             cbar.set_label("alpha_w")
             fig.tight_layout()
             fig.savefig(extra_spatial_alpha_path, dpi=160)
-            plt.close(fig)
+            _close(fig)
             written[f"mother_spatial_alpha_w_q{extra_label}"] = str(extra_spatial_alpha_path)
 
             extra_compare_path = out_dir / f"mother_ols_vs_weighted_q{extra_label}.png"
-            fig, ax = plt.subplots(figsize=(6.8, 6.2))
+            fig, ax = _subplots(figsize=(6.8, 6.2))
             ax.scatter(
                 extra_alpha_ols,
                 extra_alpha_w,
@@ -659,11 +668,11 @@ def export_mother_plots(
             ax.legend(loc="best")
             fig.tight_layout()
             fig.savefig(extra_compare_path, dpi=160)
-            plt.close(fig)
+            _close(fig)
             written[f"mother_ols_vs_weighted_q{extra_label}"] = str(extra_compare_path)
 
     hist_path = out_dir / "mother_zeta_histogram.png"
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = _subplots(figsize=(8, 4.8))
     ax.hist(zeta_vals, bins=min(30, max(10, zeta_vals.size // 20)), color="#5b8fa8", edgecolor="white")
     ax.set_title("Distribution of zeta_mean Across Mother Cells")
     ax.set_xlabel("zeta_mean")
@@ -671,11 +680,11 @@ def export_mother_plots(
     ax.grid(alpha=0.3, axis="y")
     fig.tight_layout()
     fig.savefig(hist_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_zeta_histogram"] = str(hist_path)
 
     envelope_path = out_dir / "mother_local_spectrum_envelope.png"
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = _subplots(figsize=(8.5, 5.2))
     all_alpha_w: list[float] = []
     all_f_alpha_w: list[float] = []
     all_q: list[float] = []
@@ -729,11 +738,11 @@ def export_mother_plots(
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(envelope_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_local_spectrum_envelope"] = str(envelope_path)
 
     measure_path = out_dir / "mother_spatial_measure_sum_m.png"
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
+    fig, ax = _subplots(figsize=(8.5, 5.2))
     measure_rows = _unique_mother_zeta_rows(rows)
     mx = np.array([_to_float(r["mother_centroid_x"]) for r in measure_rows], dtype=float)
     my = np.array([_to_float(r["mother_centroid_y"]) for r in measure_rows], dtype=float)
@@ -748,7 +757,7 @@ def export_mother_plots(
     cbar.set_label("measure_sum_m")
     fig.tight_layout()
     fig.savefig(measure_path, dpi=160)
-    plt.close(fig)
+    _close(fig)
     written["mother_spatial_measure_sum_m"] = str(measure_path)
 
     structural_path = out_dir / "lineament_mother_structural_stats.csv"
@@ -760,7 +769,7 @@ def export_mother_plots(
         finite_density = np.isfinite(sx) & np.isfinite(sy) & np.isfinite(density)
         if np.any(finite_density):
             density_path = out_dir / "mother_spatial_density.png"
-            fig, ax = plt.subplots(figsize=(8.5, 5.2))
+            fig, ax = _subplots(figsize=(8.5, 5.2))
             points = ax.scatter(
                 sx[finite_density],
                 sy[finite_density],
@@ -779,14 +788,14 @@ def export_mother_plots(
             cbar.set_label("density_m_per_km2")
             fig.tight_layout()
             fig.savefig(density_path, dpi=160)
-            plt.close(fig)
+            _close(fig)
             written["mother_spatial_density"] = str(density_path)
 
         azimuth = np.array([_to_float(r["dominant_azimuth_deg"]) for r in structural_rows], dtype=float)
         finite_azimuth = np.isfinite(sx) & np.isfinite(sy) & np.isfinite(azimuth)
         if np.any(finite_azimuth):
             azimuth_path = out_dir / "mother_spatial_dominant_azimuth.png"
-            fig, ax = plt.subplots(figsize=(8.5, 5.2))
+            fig, ax = _subplots(figsize=(8.5, 5.2))
             points = ax.scatter(
                 sx[finite_azimuth],
                 sy[finite_azimuth],
@@ -807,7 +816,7 @@ def export_mother_plots(
             cbar.set_label("dominant_azimuth_deg")
             fig.tight_layout()
             fig.savefig(azimuth_path, dpi=160)
-            plt.close(fig)
+            _close(fig)
             written["mother_spatial_dominant_azimuth"] = str(azimuth_path)
 
     return written

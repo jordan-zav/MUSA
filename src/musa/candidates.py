@@ -305,13 +305,16 @@ def evaluate_candidates(analyzer, nodes, background, relations, config, settings
     alternate_phase=(base_phase+(.125 if ensemble else .5))%1
     shifted_background=None
     if ensemble:
-        if progress: progress('Fondo: segundo conjunto de origenes.')
+        if progress:
+            progress('Background: second set of grid origins.')
         reference_args=dict(args,centers=config['centers'])
         shifted_background,_,_=analyze_moving_windows(analyzer,config['window_sizes_m'],config['step_m'],
             grid_phase=alternate_phase,**reference_args)
-    if progress: progress('Candidatos: primer conjunto de origenes.')
+    if progress:
+        progress('Candidates: first set of grid origins.')
     primary, _, _ = analyze_moving_windows(analyzer, config['window_sizes_m'], config['step_m'],grid_phase=base_phase, **args)
-    if progress: progress('Candidatos: segundo conjunto de origenes.')
+    if progress:
+        progress('Candidates: second set of grid origins.')
     shifted, _, _ = analyze_moving_windows(analyzer, config['window_sizes_m'], config['step_m'], grid_phase=alternate_phase, **args)
     result = compare_zeta_candidates(seeds, background, primary, shifted, config['window_sizes_m'], settings, shifted_background)
     result[2]['grid_phases']=[base_phase.tolist(),alternate_phase.tolist()]

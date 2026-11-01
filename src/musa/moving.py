@@ -302,7 +302,8 @@ def _window_chunk(task):
 
 
 def export_moving_windows(analyzer, output_dir, window_sizes_m, step_m, *, export_gis=True, proximity_radii_m=None, evidence_settings=None, progress=None, **kwargs):
-    if progress: progress('Fondo: primer conjunto de origenes.')
+    if progress:
+        progress('Background: first set of grid origins.')
     windows, nodes, config = analyze_moving_windows(analyzer, window_sizes_m, step_m, **kwargs)
     nodes["role"] = np.where(nodes.boundary_node, "boundary_control", np.where(nodes.degree >= 3, "structural_candidate", "endpoint_control"))
     nodes["interpretation"] = "planar_geometry_not_validated_prospectivity"

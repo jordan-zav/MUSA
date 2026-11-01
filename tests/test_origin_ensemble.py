@@ -59,7 +59,9 @@ def test_uniform_line_dimension_improves_without_clamping_spectrum():
 
 
 def test_known_binomial_cantor_spectrum_is_not_flattened():
-    p=.7; levels=7; lines=[]
+    p=.7
+    levels=7
+    lines=[]
     for bits in itertools.product((0,1),repeat=levels):
         start=1000*sum(2*b*3.**(-k-1) for k,b in enumerate(bits))
         length=1000*3.**(-levels)*np.prod([p if b==0 else 1-p for b in bits])/p**levels
@@ -68,7 +70,8 @@ def test_known_binomial_cantor_spectrum_is_not_flattened():
     for phase in ((0,0),(.125,.125)):
         w=ensemble(lines,phase)
         for q in (0,2):
-            weights=np.array([p,1-p])**q; weights/=weights.sum()
+            weights=np.array([p,1-p])**q
+            weights/=weights.sum()
             expected_alpha=-float(weights@np.log([p,1-p]))/math.log(3)
             expected_d=math.log(p**q+(1-p)**q)/((1-q)*math.log(3))
             assert w.loc[q,'alpha']==pytest.approx(expected_alpha,abs=.05)
@@ -105,8 +108,10 @@ def test_negative_width_is_distinguished_from_missing_coverage():
     seeds,bg,primary,shifted,sizes=evidence_fixture(widths=(-.02,-.02,-.02))
     _,details,_=classify_candidate_evidence(seeds,bg,primary,shifted,sizes)
     assert all(d['reason']=='negative_spectral_width' for d in details)
-    primary['reason']='low_coverage'; primary['accepted']=False
-    shifted['reason']='low_coverage'; shifted['accepted']=False
+    primary['reason']='low_coverage'
+    primary['accepted']=False
+    shifted['reason']='low_coverage'
+    shifted['accepted']=False
     _,details,_=classify_candidate_evidence(seeds,bg,primary,shifted,sizes)
     assert all(d['reason']=='low_coverage' for d in details)
 

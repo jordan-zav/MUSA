@@ -9,29 +9,35 @@ ponderación multiescala zeta, estadística estructural y exportación reproduci
 Permite examinar complejidad multifractal separadamente de densidad estructural
 y confiabilidad numérica.
 
-## Descarga e instalación
+## Instalación en QGIS
 
-La aplicación Windows independiente no requiere instalar Python:
-[descargar MUSA 1.0.1 para Windows x64](https://github.com/jordan-zav/MUSA/releases/download/v1.0.1/MUSA-1.0.1-Windows-x64.exe).
-Consulta [Releases](https://github.com/jordan-zav/MUSA/releases/latest) para
-notas y archivos. SHA-256 del ejecutable citado:
+QGIS es la interfaz principal de MUSA. El plugin local 1.1.0 es experimental
+y todavía no está publicado; la release pública anterior sigue siendo 1.0.1.
+El panel está en inglés y sigue el flujo acoplable de GeoMorphX y TerraWorkbench.
 
-    d10181fd2f34c663dc0b05398f8ab48dfc10cded0fe19b710bb4db8602cfb158
+![Panel MUSA en QGIS con datos sintéticos](docs/images/qgis_musa_workbench.png)
 
-Desde fuente requiere Python 3.10 o superior. En un entorno aislado:
+Genera el paquete desde el repositorio:
 
-~~~powershell
-python -m pip install -e .
-python -m pip install -e .[gis]
-musa-ui
-~~~
+    python scripts/build_qgis_plugin.py
 
-También puedes utilizar launch_musa_ui.bat en Windows. GIS es una dependencia
-opcional para las funciones correspondientes.
+En este workspace Windows usa DEVRESOURCES_RUN.cmd antes del comando.
+En QGIS abre Complementos > Administrar e instalar complementos > Instalar
+a partir de ZIP y selecciona el paquete de dist/qgis. Abre después
+Vector > MUSA > MUSA Workbench.
+
+La [guía de QGIS en inglés](docs/QGIS.md) explica dependencias, recetas,
+Processing y límites. El núcleo se comparte con la API Python; no se instala
+automáticamente ninguna dependencia dentro de QGIS. Los lanzadores anteriores
+se conservan como código legado y no se incluyen en el plugin.
+
+Para la API desde fuente, con Python 3.10 o superior:
+
+    python -m pip install -e .[gis]
 
 ## Flujo recomendado
 
-1. Prepara lineamientos y límite de análisis en un CRS métrico o activa reproyección.
+1. Selecciona capas de lineamientos y límite en QGIS y elige un CRS de análisis proyectado en metros.
 2. Define tamaño de celda madre y suficientes resoluciones internas.
 3. Ejecuta el análisis global y revisa el intervalo de q aceptado.
 4. Exporta celdas locales con zeta y las marcas reliable.
@@ -67,9 +73,10 @@ Las ventanas multiescala superpuestas son experimentales. Exportan espectros y
 uniones planares únicas con diagnósticos de cobertura y dominancia de q alto;
 describen concentración estructural, no permeabilidad.
 
-El perfil de desarrollo promedia 16 orígenes y siete escalas internas y mantiene
+El perfil de desarrollo admite 16 orígenes y siete escalas internas y mantiene
 separados rangos descriptivos y clases sustentadas. Usa métodos genéricos y
-controles sintéticos; los datos, reglas y entregas privadas no son ejemplos del
+controles sintéticos. El panel QGIS ofrece los 16 orígenes como opción explícita;
+por defecto usa un origen y cuatro escalas internas para exploración. Los datos, reglas y entregas privadas no son ejemplos del
 software. La aceleración opcional conserva una alternativa Python:
 
 ~~~powershell
@@ -82,7 +89,9 @@ pip install -e ".[gis,fast]"
 
 ## Estado y límites
 
-La release pública es 1.0.1. Las pruebas cubren espectros, zeta, modos de
+La release pública es 1.0.1; el plugin QGIS local experimental es 1.1.0.
+Consulta el [estado de desarrollo](docs/DEVELOPMENT_STATUS.md) para las verificaciones ejecutadas.
+Las pruebas cubren espectros, zeta, modos de
 interfaz, empaquetado GIS y casos sintéticos. La contribución es integrar estos
 métodos y sus diagnósticos, no inventar el análisis multifractal de lineamientos.
 Zeta es un peso operativo de confiabilidad, no una propiedad física medida.

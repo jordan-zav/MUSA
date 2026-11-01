@@ -87,6 +87,44 @@ class MUSA:
         self._active_crs = prepared.get("crs")
         self._source_gdf = prepared.get("source_gdf")
 
+    @classmethod
+    def from_line_geometries(cls, lines, boundary, crs, q_values=None):
+        """Construct from already projected Shapely geometry, without CRS transforms.
+
+        Coordinates must be in a projected CRS in metres. GIS hosts validate
+        and transform coordinates before calling this adapter.
+        """
+        from shapely.geometry import LineString
+        from .network import _iter_line_parts
+
+        if boundary is None or boundary.is_empty or boundary.geom_type not in ("Polygon", "MultiPolygon") or not boundary.is_valid:
+            raise ValueError("A valid, nonempty polygon boundary is required.")
+        if not crs:
+            raise ValueError("A projected CRS in metres is required.")
+        clipped = []
+        for geometry in lines:
+            if geometry is None or geometry.is_empty:
+                continue
+            if geometry.geom_type not in ("LineString", "MultiLineString") or not geometry.is_valid:
+                raise ValueError("Input must contain valid line geometry only.")
+            for part in _iter_line_parts(geometry.intersection(boundary)):
+                if isinstance(part, LineString) and part.length > 0:
+                    clipped.append(part)
+        if not clipped:
+            raise ValueError("No line length intersects the analysis boundary.")
+        instance = cls.__new__(cls)
+        instance.q_values = np.asarray(list(q_values) if q_values is not None else np.linspace(-10, 10, 41), dtype=float)
+        if instance.q_values.ndim != 1 or not instance.q_values.size or not np.isfinite(instance.q_values).all():
+            raise ValueError("q values must be finite and nonempty.")
+        instance._kind = "lines"
+        instance.points = None
+        instance._origin = np.array(boundary.bounds[:2], dtype=float)
+        instance._line_geometries = clipped
+        instance._boundary_geom = boundary
+        instance._active_crs = crs
+        instance._source_gdf = None
+        return instance
+
     def run_analysis(
         self,
         min_scale: float = 0.01,
@@ -99,7 +137,9 @@ class MUSA:
         bootstrap_ci: float = 0.95,
         bootstrap_seed: int | None = None,
         negative_q_floor_fraction: float = 0.0,
+        cancelled=None,
     ) -> MUSAResult:
+        from .control import check_cancelled
         if cell_length_threshold_m < 0:
             raise ValueError("cell_length_threshold_m debe ser >= 0.")
         if not np.isfinite(min_r2) or min_r2 < 0.0 or min_r2 >= 1.0:
@@ -126,6 +166,7 @@ class MUSA:
         f_features_by_q = np.zeros((len(self.q_values), len(scales)), dtype=float)
 
         for i, eps in enumerate(scales):
+            check_cancelled(cancelled)
             probs = self._probabilities_for_scale(
                 eps,
                 cell_length_threshold_m=cell_length_threshold_m,
@@ -310,6 +351,7 @@ class MUSA:
         orientation_bin_degrees: int = 10,
         export_network_stats: bool = False,
         export_gis_package: bool = True,
+        cancelled=None,
     ) -> dict[str, str]:
         """
         Export cell-level spatial outputs for monofractal and multifractal workflows.
@@ -329,6 +371,8 @@ class MUSA:
         - multifractal_mother_agg.csv (optional)
         - musa_mother_cells.gpkg (GIS inputs only, optional)
         """
+        from .control import check_cancelled
+
         out_dir = Path(output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -373,6 +417,7 @@ class MUSA:
         )
 
         for eps in scales:
+            check_cancelled(cancelled)
             cell_measures = self._cell_measure_for_scale(
                 eps=eps,
                 cell_length_threshold_m=cell_length_threshold_m,
@@ -392,6 +437,7 @@ class MUSA:
             local_denom = np.log(mother_scale / eps) if eps < mother_scale - 1e-9 * max(mother_scale, 1.0) else np.nan
 
             for mother_key, indices in groups.items():
+                check_cancelled(cancelled)
                 mkx, mky = mother_key
                 m_measures = measures[indices]
                 m_total = float(np.sum(m_measures))
@@ -549,6 +595,7 @@ class MUSA:
         if aggregate_to_mother:
             mono_mother_rows: list[dict[str, float | int]] = []
             for mother_key, integrands in mono_mother_integrands.items():
+                check_cancelled(cancelled)
                 meta = mother_meta.get(mother_key)
                 if meta is None:
                     continue
@@ -661,6 +708,7 @@ class MUSA:
 
             multi_mother_rows: list[dict[str, float | int]] = []
             for mother_key, q_map in multi_mother_integrands.items():
+                check_cancelled(cancelled)
                 meta = mother_meta.get(mother_key)
                 if meta is None:
                     continue

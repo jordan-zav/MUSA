@@ -15,6 +15,7 @@ from .synthetic import run_synthetic_validation
 from .spectrum import fit_quadratic_spectrum, spectrum_shape_diagnostics, write_spectrum_fit_summary
 
 resolutions_from_mother_cell = MUSA.resolutions_from_mother_cell
+__version__ = "1.1.0"
 
 
 def launch_interface() -> None:

@@ -1,0 +1,98 @@
+# MUSA for QGIS
+
+QGIS is the primary MUSA interface. The English dock follows the workflow
+structure used by GeoMorphX and TerraWorkbench: project inputs, analysis
+parameters, reproducible recipes, background execution and mapped results.
+The numerical implementation remains in src/musa and is shared with Python.
+
+## Installation
+
+Build with DEVRESOURCES_RUN.cmd python scripts/build_qgis_plugin.py on this
+Windows development workspace. In QGIS, open Plugins > Manage and Install
+Plugins > Install from ZIP and select the archive in dist/qgis. Open
+Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
+
+The local 1.1.0 plugin is experimental; it is not a published release.
+Metadata targets QGIS 3.34–3.99. Actual runtime validation is recorded in the
+development status; metadata does not imply all versions have been tested.
+The plugin bundles its own core, without changing global Python import paths.
+
+NumPy, SciPy, Shapely and Matplotlib must be available in QGIS's Python runtime.
+Mother-cell GeoPackage export uses QGIS's GDAL directly. Experimental moving
+windows additionally require GeoPandas, Pandas, PyProj and a supported file
+writer. The plugin does not install dependencies into the host automatically.
+
+## Workflow
+
+1. Load lineaments and a polygon boundary into QGIS, including temporary layers.
+2. Choose both layers in Analysis and select a projected analysis CRS in metres.
+   All boundary features are used. Line selection is optional and explicit.
+3. Set mother-cell size, internal divisors and q range. At least four distinct
+   divisors of two or greater are required; internal sizes are mother/divisor.
+4. Choose products, an existing output parent folder and optional quality
+   settings. Global spectra are always computed; other products are independent.
+5. Run MUSA. Each run reserves a new subfolder. Results appear as a QGIS layer
+   group, with figures and an execution log in Results.
+
+Quality exposes fit R2, length threshold, bootstrap, negative-q stabilization,
+zeta weights and sensitivity comparisons. Moving windows are experimental and
+can be expensive, especially with sixteen grid origins. Estimates and geometry
+describe numerical/structural support, not permeability or geological success.
+
+Input layers are copied to WKB and transformed through QGIS before the worker
+starts. The worker receives no project layers or GUI objects. Memory layers,
+unsaved edits and explicit line selection are therefore included in the snapshot.
+Invalid features are rejected with their feature IDs rather than silently fixed.
+No automatic UTM choice is made: the analysis CRS is an explicit user decision.
+
+## Outputs and reproducibility
+
+CSV reports preserve accepted and rejected q, fit quality and scale diagnostics.
+Mother-cell products preserve canonical and zeta-weighted estimates separately.
+GeoPackages include all-q spectra, a display q nearest two, a reliable subset,
+monofractal cells and selected structural statistics. Reliability and density use
+separate layers; no geological favorability score is introduced.
+
+The run manifest records software version, timestamps, recipe, transformed input geometry hashes, CRS,
+feature counts, completion status and output SHA-256 hashes. It does not store
+source passwords or provider connection strings. Fault IDs and interpreted
+structural orders, when present, are copied for the existing experimental
+structural context and receive their own input hash. Other attributes are not
+copied; this is not an archival copy of the complete inputs.
+
+Existing run directories are rejected. Failed and cancelled runs retain partial
+outputs with a failed/cancelled manifest; they are not loaded as completed runs.
+Cancellation is cooperative between scales, mother cells and stages. Structural
+statistics, bootstrap and experimental window stages may take time to return.
+Closing the dock hides it; unloading cancels the task and detaches GUI callbacks.
+
+Matplotlib output uses standalone Agg figures without switching QGIS's backend.
+One MUSA workflow executes at a time per loaded plugin core.
+
+## Automation
+
+Save/load recipes in the panel. A recipe contains analysis parameters, not input
+paths, so it can be applied to another explicit pair of layers.
+
+Processing tools:
+
+- musa:analyze — common parameters for Processing, batch and Model Designer.
+- musa:run_recipe — all options from a musa-analysis version 1 JSON recipe.
+
+Both accept lineaments, polygon boundary, explicit metric analysis CRS and a new
+output folder. Processing's selected-feature source is supported. Both use the
+same execution function as the dock. The public Python API additionally provides
+RunConfig and execute_analysis in musa.workflow, and MUSA.from_line_geometries
+for already projected Shapely inputs. This adapter trusts the host to validate
+metric units; the QGIS adapter performs that validation.
+
+The former Tk interface and standalone launchers remain as legacy source for
+compatibility and are excluded from the QGIS bundle. They are no longer the
+recommended installation path.
+
+## Validation sources
+
+Runtime tests use synthetic lineaments and an isolated QGIS profile, never
+private project inputs or a user's installed plugin directory. Threading and
+Processing follow the official [QGIS task guide](https://docs.qgis.org/3.40/en/docs/pyqgis_developer_cookbook/tasks.html)
+and [Processing plugin guide](https://docs.qgis.org/3.40/en/docs/pyqgis_developer_cookbook/processing.html).
