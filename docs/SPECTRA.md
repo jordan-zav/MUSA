@@ -3,6 +3,11 @@
 Experimental local QGIS 1.0.0. Results now provides a spectrum selector for the
 global domain or each moving-window center and size. Choose the calculation
 source and available estimator. Results separates Spectra, Figures and Run details.
+
+Results scrolls when the panel is small. Mouse-wheel gestures over inline charts
+and selectors scroll the page without changing the selected support. The values
+table and Run details also have their own scrolling areas. Reopened runs recover
+details from the saved manifest; an unavailable historical progress log is not invented.
 The Chart selector offers one readable chart or a four-chart overview, rendered
 directly on a resizing Qt canvas. Click a spectrum to open an enlarged view with
 zoom, pan and export controls; click a Figures preview for a zoomable original.

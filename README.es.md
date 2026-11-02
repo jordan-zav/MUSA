@@ -30,6 +30,9 @@ QGIS es la interfaz principal de MUSA. El plugin local 1.0.0 es experimental
 y todavía no está publicado; la release pública anterior sigue siendo 1.0.1.
 El panel actual está en inglés y se acopla a la ventana de QGIS.
 
+Empieza por el [manual ilustrado en español](docs/USER_GUIDE.es.md), con capturas,
+un ejemplo guiado y soluciones para ventanas sin valores o problemas de desplazamiento.
+
 Incluye una [evaluación experimental de soporte de escalamiento de Rényi](docs/SCALING_SUPPORT.md):
 compara ajustes log–log, estabilidad entre escalas y orígenes de malla, y un
 modelo nulo opcional de traslación de trazas. Se activa en Quality, en recetas

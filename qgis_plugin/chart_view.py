@@ -2,7 +2,7 @@
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
-    QDialog, QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel,
+    QApplication, QComboBox, QDialog, QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel, QScrollArea,
     QPushButton, QSizePolicy, QVBoxLayout, QWidget,
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
@@ -17,8 +17,22 @@ def _dialog(parent, title):
     return dialog
 
 
+def _scroll_page(widget, event):
+    parent = widget.parentWidget()
+    while parent is not None:
+        if isinstance(parent, QScrollArea):
+            QApplication.sendEvent(parent.viewport(), event)
+            return
+        parent = parent.parentWidget()
+    event.ignore()
+
+
 class ClickCanvas(FigureCanvasQTAgg):
     clicked = pyqtSignal()
+
+    def wheelEvent(self, event):
+        # Inline charts must let the containing Results page scroll.
+        _scroll_page(self, event)
 
     def mousePressEvent(self, event):
         self._press = event.pos()
@@ -28,6 +42,12 @@ class ClickCanvas(FigureCanvasQTAgg):
         super().mouseReleaseEvent(event)
         if event.button() == Qt.LeftButton and (event.pos() - getattr(self, '_press', event.pos())).manhattanLength() < 5:
             self.clicked.emit()
+
+
+class ScrollSafeComboBox(QComboBox):
+    def wheelEvent(self, event):
+        # The open popup still scrolls normally; hovering must not change data.
+        _scroll_page(self, event)
 
 
 class ChartView(QWidget):

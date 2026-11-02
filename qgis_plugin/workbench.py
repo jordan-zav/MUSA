@@ -51,7 +51,7 @@ from qgis.gui import QgsMapLayerComboBox, QgsProjectionSelectionWidget
 from .inputs import make_analyzer, snapshot_sources, validate_metric_crs
 from .native_gis import export_mother_layers
 from .runtime import core, icon_path
-from .chart_view import ChartView, ImagePreview
+from .chart_view import ChartView, ImagePreview, ScrollSafeComboBox
 
 
 class AnalysisTask(QgsTask):
@@ -255,7 +255,7 @@ class MusaDock(QDockWidget):
         note.setWordWrap(True)
         moving.addWidget(note)
         moving.addStretch()
-        self.results_page, results = self._tab("Results", scrollable=False)
+        self.results_page, results = self._tab("Results")
         self.summary = QLabel("No analysis yet.")
         self.summary.setWordWrap(True)
         self.summary.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
@@ -269,7 +269,7 @@ class MusaDock(QDockWidget):
         spectrum_layout = QVBoxLayout(spectrum_page)
         self.result_tabs.addTab(spectrum_page, "Spectra")
         spectra = self._group(spectrum_layout, "Choose domain or window")
-        self.spectrum_domain, self.spectrum_center, self.spectrum_size, self.spectrum_estimator = (QComboBox() for _ in range(4))
+        self.spectrum_domain, self.spectrum_center, self.spectrum_size, self.spectrum_estimator = (ScrollSafeComboBox() for _ in range(4))
         for combo in (self.spectrum_domain, self.spectrum_center, self.spectrum_size, self.spectrum_estimator):
             combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(12)
@@ -283,7 +283,7 @@ class MusaDock(QDockWidget):
         self.spectrum_note.setWordWrap(True)
         self.spectrum_note.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         spectra.addRow(self.spectrum_note)
-        self.spectrum_panel = QComboBox()
+        self.spectrum_panel = ScrollSafeComboBox()
         self.spectrum_panel.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.spectrum_panel.setMinimumContentsLength(12)
         for label, name in (("Singularity spectrum · f(alpha)", "f_alpha"), ("Renyi dimensions · Dq", "dq"),
@@ -468,6 +468,8 @@ class MusaDock(QDockWidget):
             # Shortest round-trip representation: general :g formatting drops
             # scale precision and changes a loaded recipe before its next run.
             widget.setText(",".join(str(float(v)) for v in values))
+            widget.setCursorPosition(0)
+            widget.setToolTip(widget.text())
         for key, box in self.options.items():
             box.setChecked(getattr(config, key))
         self.moving.setChecked(config.moving)
@@ -522,6 +524,7 @@ class MusaDock(QDockWidget):
     def start_snapshot(self, snapshot, config, output):
         if self.task is not None:
             raise RuntimeError("An analysis is already running.")
+        self.log.clear()
         for widget in self._spectrum_controls():
             widget.setEnabled(False)
         self.task = AnalysisTask(snapshot, config, str(output), self)
@@ -575,6 +578,7 @@ class MusaDock(QDockWidget):
         self.progress.setValue(100)
         self.on_message("Analysis complete")
         self.set_run_summary(self.last_output, manifest)
+        self.show_run_details(self.last_output, manifest, self.log.toPlainText())
         self.figure_list.clear()
         self.figure_list.addItems([file.name for file in sorted(self.last_output.glob("*.png"))])
         if self.figure_list.count():
@@ -604,6 +608,22 @@ class MusaDock(QDockWidget):
         if self.last_output and filename:
             self.preview.load(self.last_output / filename)
 
+    def show_run_details(self, folder, manifest, messages=""):
+        lines = ["Saved analysis", f"Status: {manifest.get('status', 'unknown')}",
+                 f"MUSA version: {manifest.get('software_version', 'unknown')}", f"Output folder: {folder}",
+                 f"Started (UTC): {manifest.get('started_at_utc', 'not recorded')}",
+                 f"Finished (UTC): {manifest.get('finished_at_utc', 'not recorded')}"]
+        if "accepted_q" in manifest:
+            lines.append(f"Global fit q: {manifest['accepted_q']} accepted, {manifest['rejected_q']} rejected")
+        for title, data in (("Inputs and provenance", manifest.get('source', {})),
+                            ("Analysis settings", manifest.get('recipe', {}).get('parameters', {})),
+                            ("Output files", manifest.get('outputs', {}))):
+            lines.extend(["", title, json.dumps(data, indent=2, ensure_ascii=False)])
+        if messages:
+            lines.extend(["", "Processing messages for this execution", messages])
+        self.log.setPlainText("\n".join(lines))
+        self.log.verticalScrollBar().setValue(0)
+
     def open_output(self):
         if self.last_output:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.last_output)))
@@ -621,6 +641,7 @@ class MusaDock(QDockWidget):
             raise ValueError("Only completed runs can be opened in the spectrum viewer.")
         self.last_output = folder
         self.set_run_summary(folder, manifest)
+        self.show_run_details(folder, manifest)
         self.figure_list.clear()
         self.preview.load(None)
         self.figure_list.addItems([file.name for file in sorted(folder.glob("*.png"))])

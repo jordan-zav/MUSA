@@ -375,6 +375,29 @@ assert {s["source"] for s in dock._spectrum_index} == {"assessment"}
 assert dock._spectrum_figure is not None
 dock.open_completed_run(moving_output)
 assert {s["source"] for s in dock._spectrum_index} == {"analysis", "assessment"}
+assert "Saved analysis" in dock.log.toPlainText()
+assert "Analysis settings" in dock.log.toPlainText()
+assert "Output files" in dock.log.toPlainText()
+iface.window.resize(760, 600)
+app.processEvents()
+assert dock.results_page.verticalScrollBar().maximum() > 0
+from qgis.PyQt.QtCore import QPoint, QPointF
+from qgis.PyQt.QtGui import QWheelEvent
+wheel_position = QPointF(dock.spectrum_preview.canvas.rect().center())
+wheel = QWheelEvent(wheel_position, wheel_position, QPoint(), QPoint(0, -120),
+                    Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False)
+dock.results_page.verticalScrollBar().setValue(0)
+app.sendEvent(dock.spectrum_preview.canvas, wheel)
+assert dock.results_page.verticalScrollBar().value() > 0
+selected_center = dock.spectrum_center.currentIndex()
+wheel = QWheelEvent(wheel_position, wheel_position, QPoint(), QPoint(0, -120),
+                    Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, False)
+app.sendEvent(dock.spectrum_center, wheel)
+assert dock.spectrum_center.currentIndex() == selected_center
+dock.results_page.verticalScrollBar().setValue(dock.results_page.verticalScrollBar().maximum())
+app.processEvents()
+assert dock.results_page.verticalScrollBar().value() > 0
+iface.window.resize(1800, 1150)
 failed_view = session / "failed_view"
 failed_view.mkdir()
 (failed_view / "run_manifest.json").write_text(json.dumps({"status": "failed"}))

@@ -10,6 +10,8 @@ release GitHub y publicación PyPI son estados distintos.
 
 | Archivo | Rol |
 | --- | --- |
+| [USER_GUIDE.es.md](USER_GUIDE.es.md) | Manual ilustrado en español: instalación, ejemplo, resultados, scroll y exportación |
+| [UI_VALIDATION.md](UI_VALIDATION.md) | Comprobaciones de uso habitual y límites de la revisión de interfaz |
 | [INSTALLATION.md](INSTALLATION.md) | Instalación desde Git, ZIP QGIS, dependencias y estado de PyPI/terminal |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Responsabilidades del núcleo, flujo común e instantánea privada del plugin |
 | [PYTHON_API.md](PYTHON_API.md) | Puntos, líneas, recetas, diagnóstico independiente y lectores de resultados |
