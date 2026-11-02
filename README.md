@@ -26,7 +26,19 @@
 
 ## Overview
 
-MUSA is a QGIS plugin for direct Chhabra–Jensen estimation, local mother-cell analysis, multiscale reliability weighting, structural statistics, and reproducible GIS export. QGIS and the Python API share one numerical core.
+MUSA provides a Python numerical engine and a QGIS workbench for direct Chhabra–Jensen estimation, local mother-cell analysis, multiscale reliability weighting, structural statistics, and reproducible GIS export. The engine can run without QGIS. The plugin bundles a private snapshot of the same core; installing the Python package does not install or update the QGIS plugin.
+
+| Start here | Guide |
+| --- | --- |
+| Install and check distribution availability | [Installation](docs/INSTALLATION.md) |
+| Understand engine, QGIS adapter and recipes | [Architecture](docs/ARCHITECTURE.md) |
+| Run without QGIS | [Python API](docs/PYTHON_API.md) |
+| Read formulas and result fields | [Theory](docs/theory.md) and [outputs](docs/OUTPUTS.md) |
+| Browse all documentation | [Documentation index](docs/README.md) |
+
+Installation with pip from GitHub is available. PyPI publication and a general
+installed recipe-running CLI remain pending. The existing musa-ui entry point
+opens the legacy Tk interface; it is not the QGIS workbench or a headless runner.
 
 The local QGIS plugin is experimental and now uses version 1.0.0 at the maintainer's request. The latest public release remains 1.0.1;
 the conversion source is on GitHub, while this new QGIS package is not a published release.
@@ -60,7 +72,7 @@ describe structural concentration; they do not estimate permeability.
 | Global and local multifractal spectra | Multiscale zeta weighting | GeoPackage mother-cell export |
 | Generalized dimensions Dq and tau | Reliable flags by mother cell and q | Structural density and orientation maps |
 | Local D0 and D1 estimates | Bootstrap and jackknife sensitivity | Exact lineament connectivity statistics |
-| Robust Theil–Sen alternatives | Leverage and Cook diagnostics | CSV, PNG, GeoPackage, and ZIP products |
+| Robust Theil–Sen alternatives | Leverage and Cook diagnostics | CSV, PNG and GeoPackage products |
 | Controlled synthetic validation | Negative-q stabilization | QGIS workbench, Processing and Python |
 
 ## Install in QGIS
@@ -82,6 +94,8 @@ Its launchers are retained as legacy source; QGIS is the primary interface.
 
 Requirements: Python 3.10 or newer.
 
+    git clone https://github.com/jordan-zav/MUSA.git
+    cd MUSA
     python -m venv .venv
     .venv\Scripts\Activate.ps1
     python -m pip install --upgrade pip
@@ -89,7 +103,14 @@ Requirements: Python 3.10 or newer.
 
 Install the optional GIS stack with:
 
-    python -m pip install -e .[gis]
+    python -m pip install -e ".[gis]"
+
+Use a new output directory to run the complete synthetic workflow without QGIS:
+
+    python examples/headless_workflow.py --output outputs/headless_demo
+
+See the installation guide for activation on Linux/macOS and direct installation
+from Git without cloning. The example uses synthetic, unlocated model coordinates.
 
 In this managed Windows workspace, run development commands through DEVRESOURCES_RUN.cmd.
 

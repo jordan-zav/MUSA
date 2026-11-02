@@ -33,5 +33,8 @@ jobs:
       - name: Run tests with a virtual display
         run: xvfb-run --auto-servernum python -B -m pytest
 
+      - name: Check documentation links and Python examples
+        run: python scripts/check_documentation.py
+
       - name: Build QGIS plugin bundle
         run: python scripts/build_qgis_plugin.py

@@ -4,11 +4,17 @@ QGIS is the primary MUSA interface. The English dock follows the workflow
 structure used by GeoMorphX and TerraWorkbench: project inputs, analysis
 parameters, reproducible recipes, background execution and mapped results.
 The numerical implementation remains in src/musa and is shared with Python.
+Start with [installation and distribution status](https://github.com/jordan-zav/MUSA/blob/main/docs/INSTALLATION.md) and
+[architecture](https://github.com/jordan-zav/MUSA/blob/main/docs/ARCHITECTURE.md) to distinguish the Python package from the
+plugin's private core snapshot. Installing the package with pip does not
+register the QGIS plugin or update an already installed ZIP.
 
 ## Installation
 
-Build with DEVRESOURCES_RUN.cmd python scripts/build_qgis_plugin.py on this
-Windows development workspace. In QGIS, open Plugins > Manage and Install
+Build with python scripts/build_qgis_plugin.py from the source checkout.
+The maintainer's managed Windows workspace prefixes development commands
+with DEVRESOURCES_RUN.cmd; end users do not need that launcher.
+In QGIS, open Plugins > Manage and Install
 Plugins > Install from ZIP and select the archive in dist/qgis. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 

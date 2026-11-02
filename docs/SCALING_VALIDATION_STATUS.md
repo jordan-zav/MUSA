@@ -1,6 +1,6 @@
 # Alcance de la validación matemática de MUSA
 
-Revisión de código del 1 de noviembre de 2026. Versión de desarrollo solicitada:
+Revisión actualizada el 2 de noviembre de 2026. Versión de desarrollo solicitada:
 1.0.0. No constituye una revisión por pares ni una certificación matemática.
 
 ## Qué calcula y comprueba actualmente
@@ -44,7 +44,7 @@ perfiles prefijados y una tabla ilustrativa. No crea geometrías ni llama al mot
 Sus campos pass/fail y el test de esa tabla no validan el cálculo multifractal.
 Se ha aclarado expresamente su alcance en la documentación de la función.
 
-## Lo que falta para una prueba de soporte de escalamiento
+## Diagnóstico implementado y validación científica pendiente
 
 Ahora existe un diagnóstico experimental integrado, descrito en
 [SCALING_SUPPORT.md](SCALING_SUPPORT.md). Evalúa dimensiones generalizadas de
@@ -80,6 +80,22 @@ muestreo. El usuario debe justificar la resolución cartográfica, el intervalo 
 la adecuación del modelo nulo. No se ha implementado multifractal conjunto de
 varias variables. Las dimensiones de Rényi sí están implementadas; no se
 confunden con dimensiones espaciales adicionales.
+
+## Evidencia ampliada del 2 de noviembre
+
+La comprobación del núcleo geométrico con una cascada diádica de 65.536
+segmentos obtuvo error máximo Dq/tau/alpha/f(alpha) de aproximadamente
+2,09 × 10⁻¹⁴ para un origen alineado y escalas finitas. La suite ampliada
+completó 67 casos procesables y 450 soportes, conservando insuficiencias y
+rechazos. No equivale a 67 afloramientos independientes ni certifica precisión
+geológica general. Cuatro máscaras seleccionadas estaban vacías; GeoCrack y
+las coordenadas de Zhu no se contabilizan como datos analizados.
+
+El control de malla periódica dio compatibilidad en un intervalo inicial y fue
+rechazado en un seguimiento exploratorio ampliado, sin cambiar los criterios.
+Esto documenta una limitación real de interpretar pendientes finitas como
+fractalidad. Ver [validación ampliada](EXTENDED_BENCHMARKS.md),
+[teoría](theory.md) y [fuentes de espectros](SPECTRA.md).
 
 ## Referencias
 

@@ -1,4 +1,10 @@
-# Revision de logica espacial y propuesta multiescala
+# Revisión histórica de lógica espacial y propuesta multiescala
+
+Documento histórico del diagnóstico y diseño inicial de septiembre de 2026.
+Las secciones «Implementación actual» y «Diseño propuesto» se refieren a ese
+momento, no al estado actual del plugin. Para uso vigente consultar
+[arquitectura](ARCHITECTURE.md), [ventanas](moving_windows.md) y
+[teoría](theory.md). Las notas se conservan como trazabilidad del desarrollo.
 
 Revision inicial: 2026-09-24. Los hallazgos siguientes describen el estado
 anterior al desarrollo. Ya se implemento un modo experimental documentado en

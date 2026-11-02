@@ -1,10 +1,10 @@
 # Ventanas moviles multiescala (experimental)
 
-El backend tambien genera la capa `trap_candidates` con componentes,
+El backend tambien genera la capa trap_candidates con componentes,
 puntaje exploratorio, calidad separada y simbologia. Ver
 [formula y angulos de interseccion](candidate_scoring.md).
 
-En Opciones de salida, activar **Ventanas moviles (experimental)**. Introducir
+En el panel QGIS, abrir **Moving windows** y activar las ventanas. Introducir
 los lados de ventana en metros, el paso entre centros y al menos cuatro
 divisores internos enteros. El modo anterior sigue disponible y se ejecuta
 tambien para facilitar comparaciones. Los q son los elegidos en la interfaz;
@@ -16,6 +16,12 @@ ventana L utiliza cajas de lado L/divisor: verificar que la escala mas fina
 sea compatible con la resolucion cartografica. Reducir el paso no agrega
 detalle a los datos. No combinar capas que repiten las mismas fallas sin
 armonizar primero su procedencia y geometria.
+
+El valor predeterminado es un origen por escala. La opción de conjunto de
+orígenes habilita 16; no sustituye automáticamente los divisores elegidos por
+los siete del perfil de investigación. Para el diagnóstico independiente de
+escalamiento, cuatro escalas no alcanzan el mínimo de ocho: declarar otra lista
+resoluble y revisar su amplitud. Ver [teoría](theory.md).
 
 ## Metodo y controles
 
@@ -56,7 +62,8 @@ son dependientes y no deben repartirse al azar entre entrenamiento y prueba.
 - moving_windows_config.json: parametros, centros, CRS y limitaciones.
 - musa_moving_windows.gpkg, al activar GIS: poligonos window_spectra,
   structural_candidates (cruces interiores) y topology_controls (extremos y
-  cortes del limite). Los resultados entran en el ZIP de la corrida.
+  cortes del limite). El workflow guarda una carpeta de resultados; no crea
+  automáticamente un ZIP. Consultar OUTPUTS.md antes de empaquetar esa carpeta.
 
 El GeoPackage incluye estilos predeterminados de QGIS en layer_styles:
 Y triangulo naranja, X rombo azul, complejo estrella violeta. Los controles
@@ -78,7 +85,7 @@ interpretation recuerda que la geometria planar no esta validada para prospeccio
 
 ### Interacciones potenciales por radio
 
-En la GUI, activar Ventanas moviles y **Interacciones potenciales por radio**.
+En **Moving windows** de QGIS, habilitar las interacciones potenciales por radio.
 Los radios 100,250,500 m son ejemplos exploratorios editables, no tolerancias
 cartograficas verificadas ni distancias hidraulicas. Al ejecutar, el backend
 genera potential_relations.csv y, con GIS activado, dos capas adicionales con
@@ -103,7 +110,7 @@ salidas desmesuradas se limita a 100000 relaciones, con error explicito.
 
 En Python, pasar proximity_radii_m=[100,250,500] a export_moving_windows.
 
-```python
+~~~python
 from musa import MUSA, export_moving_windows
 
 musa = MUSA('fallas.gpkg', boundary='limite.gpkg', q_values=[0, 1, 2, 4, 8])
@@ -113,10 +120,12 @@ outputs = export_moving_windows(
 )
 # Para evaluar entornos de nodos concretos, pasar centers=[(x1,y1), (x2,y2)].
 # Las coordenadas deben estar en el CRS metrico activo del analizador.
-```
+~~~
 
 La validacion automatica cubre dimension conocida de una linea, eliminacion
 de duplicados exactos, redes con igual densidad y distinta conectividad,
 invariancia por traslacion/segmentacion, bordes, q extremos y exportacion GIS.
-Falta validar con las capas reales del proyecto y evidencia independiente
-antes de interpretar nodos como favorables para flujo.
+La validación ampliada ya incluye datos públicos y derivados identificados;
+ver [EXTENDED_BENCHMARKS.md](EXTENDED_BENCHMARKS.md). Sigue siendo necesaria
+evidencia independiente de cada aplicación antes de interpretar nodos como
+favorables para flujo.

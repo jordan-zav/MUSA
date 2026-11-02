@@ -7,6 +7,12 @@ release. Local changes are not a new release until they are reviewed and package
 
 ## Retained generic capabilities
 
+Current installation, packaging boundaries and runnable Python examples are documented
+in [INSTALLATION.md](INSTALLATION.md), [ARCHITECTURE.md](ARCHITECTURE.md) and
+[PYTHON_API.md](PYTHON_API.md). The source version is 1.0.0; the historical public
+1.0.1 release is unchanged. A new PyPI publication and a general installed analysis
+CLI remain pending. The existing musa-ui entry point launches the legacy Tk UI.
+
 - Global and local multifractal spectra and operational fit diagnostics.
 - Overlapping multiscale windows, conservative line-length partition and
   numerical checks for grid origin, boundaries and sampling support.

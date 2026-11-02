@@ -9,11 +9,26 @@ ponderación multiescala zeta, estadística estructural y exportación reproduci
 Permite examinar complejidad multifractal separadamente de densidad estructural
 y confiabilidad numérica.
 
+MUSA tiene un **motor Python utilizable sin QGIS** y un **plugin QGIS** que
+distribuye una instantánea privada del mismo núcleo. Instalar el paquete con
+pip no instala el complemento ni actualiza su ZIP.
+
+| Necesidad | Guía |
+| --- | --- |
+| Instalar y saber qué está disponible | [Instalación y distribución](docs/INSTALLATION.md) |
+| Entender motor, plugin y recetas | [Arquitectura](docs/ARCHITECTURE.md) |
+| Ejecutar desde Python sin QGIS | [API y ejemplo completo](docs/PYTHON_API.md) |
+| Interpretar fórmulas y resultados | [Teoría](docs/theory.md) y [diccionario de salidas](docs/OUTPUTS.md) |
+| Ver toda la documentación | [Índice](docs/README.md) |
+
+La instalación pip desde GitHub está disponible. **PyPI y un comando general
+de terminal para recetas siguen pendientes**; musa-ui es el lanzador Tk legado.
+
 ## Instalación en QGIS
 
 QGIS es la interfaz principal de MUSA. El plugin local 1.0.0 es experimental
 y todavía no está publicado; la release pública anterior sigue siendo 1.0.1.
-El panel está en inglés y sigue el flujo acoplable de GeoMorphX y TerraWorkbench.
+El panel actual está en inglés y se acopla a la ventana de QGIS.
 
 Incluye una [evaluación experimental de soporte de escalamiento de Rényi](docs/SCALING_SUPPORT.md):
 compara ajustes log–log, estabilidad entre escalas y orígenes de malla, y un
@@ -45,7 +60,13 @@ se conservan como código legado y no se incluyen en el plugin.
 
 Para la API desde fuente, con Python 3.10 o superior:
 
-    python -m pip install -e .[gis]
+    git clone https://github.com/jordan-zav/MUSA.git
+    cd MUSA
+    python -m pip install -e ".[gis]"
+
+Para una prueba sintética completa del flujo sin QGIS, con una carpeta nueva:
+
+    python examples/headless_workflow.py --output outputs/headless_demo
 
 ## Flujo recomendado
 
