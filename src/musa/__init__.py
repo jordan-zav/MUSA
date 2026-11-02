@@ -13,9 +13,11 @@ from .plotting import (
 from .structural import compute_lineament_mother_structural_stats
 from .synthetic import run_synthetic_validation
 from .spectrum import fit_quadratic_spectrum, spectrum_shape_diagnostics, write_spectrum_fit_summary
+from .scaling import ScalingOptions, assess_curve, assess_lineament_scaling, write_scaling_reports
+from .spectrum_products import list_spectra, read_spectrum, spectrum_figure
 
 resolutions_from_mother_cell = MUSA.resolutions_from_mother_cell
-__version__ = "1.1.0"
+__version__ = "1.0.0"
 
 
 def launch_interface() -> None:
@@ -43,4 +45,11 @@ __all__ = [
     "fit_quadratic_spectrum",
     "spectrum_shape_diagnostics",
     "write_spectrum_fit_summary",
+    "ScalingOptions",
+    "assess_curve",
+    "assess_lineament_scaling",
+    "write_scaling_reports",
+    "list_spectra",
+    "read_spectrum",
+    "spectrum_figure",
 ]

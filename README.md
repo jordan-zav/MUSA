@@ -28,14 +28,26 @@
 
 MUSA is a QGIS plugin for direct Chhabra–Jensen estimation, local mother-cell analysis, multiscale reliability weighting, structural statistics, and reproducible GIS export. QGIS and the Python API share one numerical core.
 
-The local 1.1.0 plugin is experimental. The latest public release remains 1.0.1;
-the QGIS conversion has not been published.
+The local QGIS plugin is experimental and now uses version 1.0.0 at the maintainer's request. The latest public release remains 1.0.1;
+the conversion source is on GitHub, while this new QGIS package is not a published release.
 
 ![MUSA workbench in a real QGIS runtime with synthetic data](docs/images/qgis_musa_workbench.png)
 
 It is designed for spatial point data and geological lineaments where multifractal complexity must be interpreted separately from structural density and model reliability.
 
 ## Highlights
+
+The [indexed spectrum viewer](docs/SPECTRA.md) provides Dq, tau(q), alpha(q)
+and f(alpha) for the global domain and each moving window. Select a center,
+size and estimator; export the selected figure to PNG/SVG. Alpha at q=0,
+observed maximum and descriptive fitted peak remain separate.
+
+Experimental [Rényi scaling-support assessment](docs/SCALING_SUPPORT.md) compares
+fixed-interval log–log models, scale/grid stability and an optional conditional
+trace-relocation null. It retains every q and distinguishes compatible,
+unsupported and insufficient finite-range evidence. Available in Workbench
+Quality, recipes and the independent Processing tool musa:scaling_support.
+It does not certify fractality or infer 3D geometry.
 
 Experimental overlapping multiscale windows are available in the QGIS workbench
 and Python API. They export local spectra and unique planar
@@ -162,8 +174,16 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 
 ## Project status
 
-MUSA 1.0.1 is the current public release; 1.1.0 is the local experimental QGIS
-plugin. See [development status](docs/DEVELOPMENT_STATUS.md) for executed checks.
+MUSA 1.0.1 is the current public release; the experimental QGIS development
+version is 1.0.0 by the maintainer's request. Historical release tags are retained.
+The QGIS source is committed and published; a new QGIS release has not been issued.
+See [development status](docs/DEVELOPMENT_STATUS.md) for executed checks and the
+[mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
+current scaling diagnostics can establish.
+The [extended public-data benchmarks](docs/EXTENDED_BENCHMARKS.md) add original
+vectors, author model examples and identified image derivatives, with explicit
+provenance, mathematical controls and interpretation limits. Data and generated
+results remain outside the plugin package.
 Automated tests cover the global and
 local spectra, zeta formula, interface modes, GIS packaging, structural metrics
 and synthetic cases. External geological validation remains dataset-specific:

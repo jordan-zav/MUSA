@@ -149,7 +149,7 @@ def wait_until(predicate, seconds=120):
 
 plugin = classFactory(None)
 plugin.initProcessing()
-assert sorted(a.id() for a in plugin.provider.algorithms()) == ["musa:analyze", "musa:run_recipe"]
+assert sorted(a.id() for a in plugin.provider.algorithms()) == ["musa:analyze", "musa:run_recipe", "musa:scaling_support"]
 context, feedback = QgsProcessingContext(), QgsProcessingFeedback()
 context.setProject(project)
 params = {
@@ -171,6 +171,24 @@ params = {
 result = processing.run("musa:analyze", params, context=context, feedback=feedback)
 manifest = json.loads(Path(result["MANIFEST"]).read_text())
 assert manifest["status"] == "complete"
+scaling_params = {"LINES": lines, "BOUNDARY": boundary, "CRS": crs,
+                  "SCALES": "2,4,6,10,16,25,40,63,100,160,250,400", "RESOLUTION": 1,
+                  "Q_MIN": 0, "Q_MAX": 2, "Q_STEP": 1, "NULL_REPLICATES": 0, "SEED": 42,
+                  "OUTPUT": str(session / "scaling_processing")}
+scaling_result = processing.run("musa:scaling_support", scaling_params, context=context, feedback=feedback)
+scaling_report = json.loads(Path(scaling_result["REPORT"]).read_text())
+assert len(scaling_report["supports"][0]["q_results"]) == 3
+assert (session / "scaling_processing/scaling_support.csv").exists()
+assert json.loads((session / "scaling_processing/run_manifest.json").read_text())["status"] == "complete"
+assert (session / "scaling_processing/spectrum_curves.sqlite").is_file()
+assert all("observables" in row for row in scaling_report["supports"][0]["q_results"])
+try:
+    processing.run("musa:scaling_support", scaling_params, context=context, feedback=feedback)
+except Exception:
+    pass
+else:
+    raise AssertionError("Scaling Processing overwrote an existing output folder")
+print("PASS independent Renyi scaling Processing, all q retained and output collision protection", flush=True)
 for relative, digest in manifest["files"].items():
     assert hashlib.sha256((session / "processing" / relative).read_bytes()).hexdigest() == digest
 ds = ogr.Open(str(session / "processing/musa_mother_cells.gpkg"))
@@ -296,13 +314,88 @@ moving_config = replace(
     window_step_m=4000,
     origin_ensemble=True,
     proximity_radii_m=(100,),
+    scaling_support=True,
+    scaling_resolution_m=1,
+    scaling_scales_m=tuple(np.geomspace(2, 250, 8)),
 )
 moving_output = session / "moving_task"
+original_recipe = json.loads(json.dumps(moving_config.recipe()))
+dock.apply_config(moving_config)
+assert dock.config().recipe() == original_recipe, {
+    key: (value, dock.config().recipe()["parameters"][key])
+    for key, value in original_recipe["parameters"].items()
+    if value != dock.config().recipe()["parameters"][key]
+}
 dock.start_snapshot(snapshot_sources(small, boundary, crs), moving_config, moving_output)
 wait_until(lambda: dock.task is None)
 moving_manifest = json.loads((moving_output / "run_manifest.json").read_text())
 assert moving_manifest["status"] == "complete", moving_manifest
 assert Path(moving_manifest["outputs"]["moving_gis"]).is_file()
+from musa_qgis._core.musa.spectrum_products import list_spectra, read_spectrum
+spectral_index = list_spectra(moving_output / "spectrum_curves.sqlite")
+assert {s["source"] for s in spectral_index} == {"analysis", "assessment"}
+assert {s["estimator"] for s in spectral_index} == {"canonical", "zeta"}
+ds = ogr.Open(str(moving_manifest["outputs"]["moving_gis"]))
+assert ds.GetLayerByName("window_spectrum_summary").GetFeatureCount() == len(spectral_index)
+ds = None
+assert dock.spectrum_domain.isEnabled()
+for domain in range(dock.spectrum_domain.count()):
+    dock.spectrum_domain.setCurrentIndex(domain)
+    for estimator in range(dock.spectrum_estimator.count()):
+        dock.spectrum_estimator.setCurrentIndex(estimator)
+        assert dock._spectrum_figure is not None, dock.spectrum_note.text()
+        assert "alpha(q=0)" in dock.spectrum_note.text()
+        suffix = f"{domain}_{estimator}"
+        dock.export_selected_spectrum(session / f"spectrum_{suffix}.png")
+        dock.export_selected_spectrum(session / f"spectrum_{suffix}.svg")
+assert len(list(session.glob("spectrum_*.svg"))) == len(spectral_index)
+one = next(s for s in spectral_index if s["source"] == "analysis" and s["kind"] == "window" and s["estimator"] == "canonical")
+curve = read_spectrum(moving_output / "spectrum_curves.sqlite", one["series_id"])
+assert all(p["tau"] is None or abs(p["tau"]-(p["q"]-1)*p["dq"]) < 1e-9 for p in curve["points"])
+dock.tabs.setCurrentWidget(dock.results_page)
+app.processEvents()
+assert iface.window.grab().save(str(session / "qgis_window_spectra.png"))
+dock.open_completed_run(session / "scaling_processing")
+assert {s["source"] for s in dock._spectrum_index} == {"assessment"}
+assert dock._spectrum_figure is not None
+dock.open_completed_run(moving_output)
+assert {s["source"] for s in dock._spectrum_index} == {"analysis", "assessment"}
+failed_view = session / "failed_view"
+failed_view.mkdir()
+(failed_view / "run_manifest.json").write_text(json.dumps({"status": "failed"}))
+try:
+    dock.open_completed_run(failed_view)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Incomplete run was loaded as completed spectra")
+assert dock.last_output == moving_output
+older_view = session / "older_view"
+older_view.mkdir()
+(older_view / "run_manifest.json").write_text(json.dumps({"status": "complete"}))
+dock.open_completed_run(older_view)
+assert not dock._spectrum_index and not dock.spectrum_export.isEnabled()
+dock.open_completed_run(moving_output)
+print("PASS indexed global/window spectra, canonical/zeta selectors, singularity summaries and PNG/SVG export", flush=True)
+support_reports = json.loads(Path(moving_manifest["outputs"]["scaling_support_json"]).read_text())
+assert len(support_reports["supports"]) >= 2
+assert all(r["null"]["holm_family_size"] == len(support_reports["supports"]) for r in support_reports["supports"])
+assert any(layer.name() == "Renyi scaling support - diagnostics" for layer in project.mapLayers().values())
+assert "Renyi scaling (support/q)" in dock.summary.text()
+dock.tabs.setCurrentIndex(1)
+app.processEvents()
+dock.tabs.widget(1).verticalScrollBar().setValue(dock.tabs.widget(1).verticalScrollBar().maximum())
+app.processEvents()
+assert iface.window.grab().save(str(session / "qgis_scaling_quality.png"))
+from processing.gui.AlgorithmDialog import AlgorithmDialog
+scaling_dialog = AlgorithmDialog(QgsApplication.processingRegistry().algorithmById("musa:scaling_support").create())
+scaling_dialog.setParameters(scaling_params)
+scaling_dialog.resize(1100, 850)
+scaling_dialog.show()
+app.processEvents()
+assert scaling_dialog.grab().save(str(session / "qgis_scaling_processing.png"))
+scaling_dialog.close()
+scaling_dialog = None
 print("PASS experimental windows, 16 origins and proximity in a background task", flush=True)
 
 # Cancellation/unload while the worker owns copied inputs must not access deleted UI.

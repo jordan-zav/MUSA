@@ -208,11 +208,11 @@ def analyze_moving_windows(
                 scale_details.append(dict(eps_m=float(eps),mass_ratio=average['mass_m']/length,
                                           origin_details=origin_details,**average))
             for q in qs:
-                row = dict(base, q=float(q), dq=np.nan, alpha=np.nan, f_alpha=np.nan,
+                row = dict(base, q=float(q), dq=np.nan, tau=np.nan, alpha=np.nan, f_alpha=np.nan,
                            dq_r2=np.nan, alpha_r2=np.nan, f_alpha_r2=np.nan,
                            min_effective_boxes=np.nan, max_box_weight=np.nan,
                            accepted=False, reason="insufficient_support",
-                           dq_w=np.nan, alpha_w=np.nan, f_alpha_w=np.nan,
+                           dq_w=np.nan, tau_w=np.nan, alpha_w=np.nan, f_alpha_w=np.nan,
                            dq_w_r2=np.nan, alpha_w_r2=np.nan, f_alpha_w_r2=np.nan,
                            zeta_mean=float(np.mean(zeta_values)) if zeta_values else np.nan,
                            zeta_min=float(min(zeta_values)) if zeta_values else np.nan,
@@ -274,6 +274,8 @@ def analyze_moving_windows(
                     row['reason_w'] = ('accepted' if row['accepted_w'] else 'insufficient_weighted_scales'
                                        if row['weighted_scales'] < 3 else 'dominant_box'
                                        if not enough_boxes else 'poor_scaling')
+                    row["tau"] = (float(q) - 1) * row["dq"]
+                    row["tau_w"] = (float(q) - 1) * row["dq_w"]
                 rows.append(row)
     if not rows:
         raise ValueError("No window centers inside the boundary; reduce step or supply centers.")
@@ -301,7 +303,7 @@ def _window_chunk(task):
     return frame,config
 
 
-def export_moving_windows(analyzer, output_dir, window_sizes_m, step_m, *, export_gis=True, proximity_radii_m=None, evidence_settings=None, progress=None, **kwargs):
+def export_moving_windows(analyzer, output_dir, window_sizes_m, step_m, *, export_gis=True, export_spectra=True, proximity_radii_m=None, evidence_settings=None, progress=None, **kwargs):
     if progress:
         progress('Background: first set of grid origins.')
     windows, nodes, config = analyze_moving_windows(analyzer, window_sizes_m, step_m, **kwargs)
@@ -381,4 +383,9 @@ def export_moving_windows(analyzer, output_dir, window_sizes_m, step_m, *, expor
                 pd.DataFrame(diagnostics).to_sql('candidate_evidence', db, index=False, if_exists='replace')
             pd.DataFrame([{'configuration_json': json.dumps(scoring)}]).to_sql('candidate_scoring', db, index=False, if_exists='replace')
         outputs["moving_gis"] = str(path)
+    if export_spectra:
+        from .spectrum_products import write_spectrum_products, export_spectrum_summary_gpkg
+        outputs.update(write_spectrum_products(out, moving_csv=csv))
+        if export_gis:
+            export_spectrum_summary_gpkg(outputs["spectrum_summary"], outputs["moving_gis"])
     return outputs

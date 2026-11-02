@@ -15,20 +15,28 @@ def fit_quadratic_spectrum(alpha: np.ndarray, f_alpha: np.ndarray) -> dict[str, 
     mask = np.isfinite(x) & np.isfinite(y)
     x = x[mask]
     y = y[mask]
-    if x.size < 3:
+    scale = float(np.ptp(x)) if x.size else 0.0
+    if x.size < 3 or np.unique(x).size < 3 or scale <= 64 * np.finfo(float).eps * max(1.0, float(np.max(np.abs(x)))):
         return _blank_fit()
-
-    a, b, c = np.polyfit(x, y, deg=2)
-    y_hat = a * x**2 + b * x + c
+    center = float(x.mean())
+    normalized = (x - center) / scale
+    matrix = np.column_stack([normalized ** 2, normalized, np.ones(len(x))])
+    coefficients, _, rank, _ = np.linalg.lstsq(matrix, y, rcond=None)
+    if rank != 3:
+        return _blank_fit()
+    aa, bb, cc = coefficients
+    a, b, c = aa / scale**2, bb / scale - 2 * aa * center / scale**2, cc - bb * center / scale + aa * center**2 / scale**2
+    y_hat = matrix @ coefficients
     ss_res = float(np.sum((y - y_hat) ** 2))
     ss_tot = float(np.sum((y - np.mean(y)) ** 2))
     r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
-    vertex_alpha = float(-b / (2.0 * a)) if abs(a) > 1e-15 else float("nan")
+    vertex_alpha = float(center - scale * bb / (2.0 * aa)) if abs(aa) > 1e-15 else float("nan")
     min_alpha = float(np.min(x))
     max_alpha = float(np.max(x))
     peak_valid = bool(a < 0 and np.isfinite(vertex_alpha) and min_alpha <= vertex_alpha <= max_alpha)
     alpha_peak = vertex_alpha if peak_valid else ""
-    f_peak = float(a * vertex_alpha**2 + b * vertex_alpha + c) if peak_valid else ""
+    normalized_vertex = (vertex_alpha - center) / scale
+    f_peak = float(aa * normalized_vertex**2 + bb * normalized_vertex + cc) if peak_valid else ""
     left_width = vertex_alpha - min_alpha if peak_valid else ""
     right_width = max_alpha - vertex_alpha if peak_valid else ""
     delta_alpha = float(np.max(x) - np.min(x))

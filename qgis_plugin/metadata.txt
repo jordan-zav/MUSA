@@ -2,7 +2,7 @@
 name=MUSA
 description=Multifractal and structural analysis of lineaments in a dockable QGIS workbench.
 about=Global Chhabra-Jensen spectra, mother-cell analysis, zeta reliability, structural statistics and experimental moving windows. Uses the same numerical core as the Python API.
-version=1.1.0
+version=1.0.0
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 author=Jordan Zavaleta

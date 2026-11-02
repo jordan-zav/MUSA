@@ -45,10 +45,12 @@ def run(output):
                 H_origin_range=float(np.ptp(widths)),accepted=bool(w.accepted.all()))
             results.append(item)
             print(item,flush=True)
-    output=Path(output); output.parent.mkdir(parents=True,exist_ok=True)
+    output=Path(output)
+    output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps({'offsets':OFFSETS,'divisors':DIVISORS,'results':results},indent=2),encoding='utf-8')
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(); parser.add_argument('--output',required=True)
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--output',required=True)
     run(parser.parse_args().output)

@@ -24,6 +24,12 @@ def run_synthetic_validation(
     q_values: Iterable[float] | None = None,
     seed: int = 42,
 ) -> dict[str, str]:
+    """Export illustrative, predefined profiles; this does not run the analyzer.
+
+    Retained under its historical API name for compatibility. A pass in this
+    table checks a profile convention, not numerical or scientific validation
+    of MUSA. Use the geometry-based tests for actual computational controls.
+    """
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     scenario_names = list(scenarios) if scenarios is not None else list(DEFAULT_SCENARIOS)

@@ -46,6 +46,11 @@ class RunConfig:
     moving_divisors: tuple = (2, 4, 8, 16)
     origin_ensemble: bool = False
     proximity_radii_m: tuple = ()
+    scaling_support: bool = False
+    scaling_resolution_m: float = 0.0
+    scaling_scales_m: tuple = ()
+    scaling_null_replicates: int = 0
+    scaling_window_limit: int = 25
 
     def validate(self):
         values = (
@@ -104,9 +109,19 @@ class RunConfig:
                 not np.isfinite(self.proximity_radii_m).all() or min(self.proximity_radii_m) <= 0
             ):
                 raise ValueError("Proximity radii must be positive and finite.")
-        for name in ("local", "structural", "network", "plots", "gis", "zeta_sensitivity", "moving", "origin_ensemble"):
+        for name in ("local", "structural", "network", "plots", "gis", "zeta_sensitivity", "moving", "origin_ensemble", "scaling_support"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name} must be a boolean.")
+        if self.scaling_support:
+            from .scaling import ScalingOptions
+            ScalingOptions(self.scaling_resolution_m, null_replicates=self.scaling_null_replicates, seed=self.seed).validate()
+            if self.scaling_scales_m and (
+                len(self.scaling_scales_m) > 64 or not np.isfinite(self.scaling_scales_m).all()
+                or min(self.scaling_scales_m) <= 0 or len(set(self.scaling_scales_m)) != len(self.scaling_scales_m)
+            ):
+                raise ValueError("Declare up to 64 distinct, positive scaling box sizes.")
+            if type(self.scaling_window_limit) is not int or not 1 <= self.scaling_window_limit <= 1000:
+                raise ValueError("The scaling assessment window limit must be from 1 to 1000.")
         return self
 
     def q_values(self):
@@ -165,6 +180,16 @@ def execute_analysis(
         (out / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         analyzer.q_values = config.q_values()
         scales = MUSA.resolutions_from_mother_cell(config.mother_cell_m, config.divisors, include_mother=True)
+        scaling_reports = []
+        if config.scaling_support:
+            from .scaling import ScalingOptions, assess_lineament_scaling, write_scaling_reports
+            scaling_options = ScalingOptions(config.scaling_resolution_m,
+                                             null_replicates=config.scaling_null_replicates, seed=config.seed)
+            stage(2, "Assessing finite-range Renyi scaling; optional conditional spatial null")
+            scaling_reports.append(assess_lineament_scaling(
+                analyzer, config.scaling_scales_m or scales, scaling_options,
+                cancelled=cancelled, progress=lambda message: stage(2, message)))
+            manifest["outputs"].update(write_scaling_reports(out, scaling_reports))
         stage(5, "Computing global multifractal spectra")
         result = analyzer.run_analysis(
             resolutions_m=scales,
@@ -182,6 +207,8 @@ def execute_analysis(
         from .spectrum import write_spectrum_fit_summary
 
         outputs["spectrum_fit"] = write_spectrum_fit_summary(out, result)
+        from .spectrum_products import write_spectrum_products, export_spectrum_summary_gpkg
+        outputs.update(write_spectrum_products(out, result=result, requested_q=analyzer.q_values, cancelled=cancelled))
         if config.local:
             stage(25, "Computing mother cells and numerical reliability")
             outputs.update(
@@ -252,6 +279,7 @@ def execute_analysis(
                     origin_offsets=ENSEMBLE_OFFSETS if config.origin_ensemble else None,
                     proximity_radii_m=config.proximity_radii_m or None,
                     export_gis=config.gis,
+                    export_spectra=False,
                     min_r2=config.min_r2,
                     reliable_min_zeta=config.reliable_min_zeta,
                     zeta_exponents=config.zeta_exponents,
@@ -259,6 +287,31 @@ def execute_analysis(
                     progress=lambda message: stage(65, message),
                 )
             )
+            if config.scaling_support:
+                # All declared windows, never a selected subset of good fits.
+                import csv
+                from shapely.geometry import box
+                with Path(outputs["moving_windows"]).open(encoding="utf-8") as stream:
+                    windows = {(row["center_id"], float(row["window_m"])):
+                               (float(row["center_x"]), float(row["center_y"]))
+                               for row in csv.DictReader(stream)}
+                if len(windows) > config.scaling_window_limit:
+                    raise ValueError("Scaling window limit exceeded; increase spacing or explicitly raise the assessment limit.")
+                for (center_id, size), (cx, cy) in sorted(windows.items()):
+                    check_cancelled(cancelled)
+                    boundary = box(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2).intersection(analyzer._boundary_geom)
+                    window_scales = config.scaling_scales_m or tuple(size / np.asarray(config.moving_divisors, float))
+                    window_report = assess_lineament_scaling(
+                        analyzer, window_scales, scaling_options,
+                        support_id=f"window_{center_id}_{size:g}m", boundary=boundary, nominal_area=size * size,
+                        cancelled=cancelled, progress=lambda message: stage(75, message))
+                    window_report.update(center_id=int(center_id), center_x=cx, center_y=cy, window_m=size)
+                    scaling_reports.append(window_report)
+                outputs.update(write_scaling_reports(out, scaling_reports))
+            outputs.update(write_spectrum_products(out, result=result, requested_q=analyzer.q_values,
+                                                  moving_csv=outputs["moving_windows"], cancelled=cancelled))
+            if config.gis:
+                export_spectrum_summary_gpkg(outputs["spectrum_summary"], outputs["moving_gis"])
         if config.plots:
             stage(85, "Rendering spectrum and reliability figures")
             from .plotting import export_analysis_plots, export_mother_plots

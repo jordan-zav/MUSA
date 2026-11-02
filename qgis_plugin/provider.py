@@ -35,6 +35,7 @@ class MusaProvider(QgsProcessingProvider):
     def loadAlgorithms(self):
         self.addAlgorithm(AnalyzeAlgorithm())
         self.addAlgorithm(AnalyzeAlgorithm(recipe=True))
+        self.addAlgorithm(ScalingSupportAlgorithm())
 
 
 class AnalyzeAlgorithm(QgsProcessingAlgorithm):
@@ -147,6 +148,7 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
         except Exception as exc:
             raise QgsProcessingException(str(exc)) from exc
 
+
     def processAlgorithm(self, parameters, context, feedback):
         from pathlib import Path
 
@@ -154,14 +156,119 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
             _, _, execute = core()
             output = self.parameterAsString(parameters, "OUTPUT", context)
             execute(
-                make_analyzer(self.snapshot, self.config),
-                self.config,
-                output,
-                source_info=self.snapshot["info"],
-                cancelled=feedback.isCanceled,
+                make_analyzer(self.snapshot, self.config), self.config, output,
+                source_info=self.snapshot["info"], cancelled=feedback.isCanceled,
                 progress=lambda value, message: (feedback.setProgress(value), feedback.pushInfo(message)),
                 gis_exporter=export_mother_layers,
             )
             return {"OUTPUT": output, "MANIFEST": str(Path(output) / "run_manifest.json")}
+        except Exception as exc:
+            raise QgsProcessingException(str(exc)) from exc
+
+
+class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
+    """Independent assessment, including datasets rejected by legacy R2 gates."""
+
+    def name(self):
+        return "scaling_support"
+
+    def displayName(self):
+        return "Assess Renyi scaling support (experimental)"
+
+    def group(self):
+        return "Lineament analysis"
+
+    def groupId(self):
+        return "lineaments"
+
+    def createInstance(self):
+        return ScalingSupportAlgorithm()
+
+    def shortHelpString(self):
+        return (
+            "Assess finite-range generalized Renyi dimensions Dq on fixed box sizes. "
+            "Declare observation resolution in metres. Needs at least eight resolved scales "
+            "spanning one decade; boxes above one quarter of the smaller domain extent are excluded. "
+            "Compares linear, quadratic and segmented log-log fits by leave-one-scale-out prediction, "
+            "reselecting the breakpoint in each training fold. Four shifted origins diagnose grid effects. "
+            "Optional independent trace translations preserve shapes, lengths and orientations inside "
+            "the boundary. Their Monte Carlo test concerns spatial heterogeneity, not proof of "
+            "multifractality. Use zero replicates to disable, or at least 19; the minimum p is 1/(B+1). "
+            "Outputs retain every q, including insufficient/unsupported fits. No best-range search. "
+            "This independent tool does not require legacy spectrum fit acceptance."
+        )
+
+    def initAlgorithm(self, config=None):
+        self.addParameter(QgsProcessingParameterFeatureSource("LINES", "Lineaments", [QgsProcessing.TypeVectorLine]))
+        self.addParameter(QgsProcessingParameterFeatureSource("BOUNDARY", "Analysis boundary", [QgsProcessing.TypeVectorPolygon]))
+        self.addParameter(QgsProcessingParameterCrs("CRS", "Analysis CRS (projected, metres)", defaultValue="ProjectCrs"))
+        self.addParameter(QgsProcessingParameterString("SCALES", "Fixed box sizes (m; review for your data)", defaultValue="25,40,63,100,160,250,400,630"))
+        for key, label, value in (
+            ("RESOLUTION", "Observation resolution (m; must be declared)", 0),
+            ("Q_MIN", "q minimum", 0), ("Q_MAX", "q maximum", 2),
+            ("Q_STEP", "q step", 1),
+        ):
+            self.addParameter(QgsProcessingParameterNumber(key, label, type=QgsProcessingParameterNumber.Double, defaultValue=value))
+        self.addParameter(QgsProcessingParameterNumber("NULL_REPLICATES", "Conditional trace-relocation replicates (0=off; >=19)", type=QgsProcessingParameterNumber.Integer, defaultValue=0, minValue=0, maxValue=9999))
+        self.addParameter(QgsProcessingParameterNumber("SEED", "Random seed", type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
+        self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
+        self.addOutput(QgsProcessingOutputString("REPORT", "Scaling support JSON"))
+
+    def prepareAlgorithm(self, parameters, context, feedback):
+        try:
+            _, RunConfig, _ = core()
+            self.config = RunConfig(
+                q_min=self.parameterAsDouble(parameters, "Q_MIN", context),
+                q_max=self.parameterAsDouble(parameters, "Q_MAX", context),
+                q_step=self.parameterAsDouble(parameters, "Q_STEP", context),
+                scaling_support=True,
+                scaling_resolution_m=self.parameterAsDouble(parameters, "RESOLUTION", context),
+                scaling_scales_m=tuple(float(v.strip()) for v in self.parameterAsString(parameters, "SCALES", context).split(",")),
+                scaling_null_replicates=self.parameterAsInt(parameters, "NULL_REPLICATES", context),
+                seed=self.parameterAsInt(parameters, "SEED", context),
+            ).validate()
+            self.snapshot = snapshot_sources(
+                self.parameterAsSource(parameters, "LINES", context),
+                self.parameterAsSource(parameters, "BOUNDARY", context),
+                self.parameterAsCrs(parameters, "CRS", context), context.transformContext(),
+                cancelled=feedback.isCanceled)
+            return True
+        except Exception as exc:
+            raise QgsProcessingException(str(exc)) from exc
+
+    def processAlgorithm(self, parameters, context, feedback):
+        import hashlib
+        from datetime import datetime, timezone
+        from pathlib import Path
+        # The same private package as the dock, without changing sys.path.
+        try:
+            from ._core.musa import scaling
+            from ._core.musa import __version__
+            from ._core.musa.control import check_cancelled
+            check_cancelled(feedback.isCanceled)
+            output = Path(self.parameterAsString(parameters, "OUTPUT", context))
+            output.mkdir(parents=True, exist_ok=False)
+            manifest = {"format": "musa-scaling-run", "version": 1, "software_version": __version__,
+                        "started_at_utc": datetime.now(timezone.utc).isoformat(), "status": "running",
+                        "source": self.snapshot["info"], "recipe": self.config.recipe()}
+            manifest_path = output / "run_manifest.json"
+            try:
+                report = scaling.assess_lineament_scaling(
+                    make_analyzer(self.snapshot, self.config), self.config.scaling_scales_m,
+                    scaling.ScalingOptions(self.config.scaling_resolution_m,
+                                           null_replicates=self.config.scaling_null_replicates, seed=self.config.seed),
+                    cancelled=feedback.isCanceled, progress=feedback.pushInfo)
+                manifest["outputs"] = scaling.write_scaling_reports(output, [report])
+                check_cancelled(feedback.isCanceled)
+                manifest["status"] = "complete"
+            except Exception as exc:
+                manifest.update(status="cancelled" if feedback.isCanceled() else "failed", error=str(exc))
+                raise
+            finally:
+                manifest["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
+                manifest["files"] = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                                     for path in output.iterdir() if path.is_file() and path.name != "run_manifest.json"}
+                manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False), encoding="utf-8")
+            return {"OUTPUT": str(output), "REPORT": str(output / "scaling_support.json")}
         except Exception as exc:
             raise QgsProcessingException(str(exc)) from exc

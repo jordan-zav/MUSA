@@ -76,6 +76,12 @@ def test_known_binomial_cantor_spectrum_is_not_flattened():
             expected_d=math.log(p**q+(1-p)**q)/((1-q)*math.log(3))
             assert w.loc[q,'alpha']==pytest.approx(expected_alpha,abs=.05)
             assert w.loc[q,'dq']==pytest.approx(expected_d,abs=.025)
+            assert w.loc[q,'tau']==pytest.approx((q-1)*expected_d,abs=.025)
+            assert w.loc[q,'f_alpha']==pytest.approx(q*expected_alpha-(q-1)*expected_d,abs=.08)
+        np.testing.assert_allclose(w.tau, (w.index.to_numpy()-1)*w.dq)
+        np.testing.assert_allclose(w.tau_w, (w.index.to_numpy()-1)*w.dq_w)
+        np.testing.assert_allclose(w.f_alpha, w.index.to_numpy()*w.alpha-w.tau, atol=1e-9)
+        np.testing.assert_allclose(w.f_alpha_w, w.index.to_numpy()*w.alpha_w-w.tau_w, atol=1e-9)
         assert w.loc[0,'alpha']-w.loc[2,'alpha']>.2
 
 

@@ -1,6 +1,7 @@
 """English QGIS workbench: project inputs, recipes, background execution, results."""
 
 from datetime import datetime
+import io
 import json
 from pathlib import Path
 import uuid
@@ -11,6 +12,7 @@ from qgis.PyQt.QtCore import Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QDesktopServices, QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -205,6 +207,24 @@ class MusaDock(QDockWidget):
         )
         note.setWordWrap(True)
         advanced.addWidget(note)
+        scaling = self._group(advanced, "Finite-range Renyi scaling support")
+        self.scaling_support = QCheckBox("Assess scaling support (experimental)")
+        self.scaling_resolution = _spin(0, 0, 1e9, 4)
+        self.scaling_scales = QLineEdit()
+        self.scaling_scales.setPlaceholderText("Blank: analysis scales; need at least 8 resolved scales")
+        self.scaling_null = QSpinBox()
+        self.scaling_null.setRange(0, 9999)
+        self.scaling_limit = QSpinBox()
+        self.scaling_limit.setRange(1, 1000)
+        self.scaling_limit.setValue(25)
+        scaling.addRow(self.scaling_support)
+        scaling.addRow("Observation resolution (m; required)", self.scaling_resolution)
+        scaling.addRow("Box sizes (m)", self.scaling_scales)
+        scaling.addRow("Trace-relocation null replicates (0=off; >=19)", self.scaling_null)
+        scaling.addRow("Maximum windows to assess", self.scaling_limit)
+        note = QLabel("Tests fixed-interval Renyi Dq stability and curvature. The optional null preserves trace shapes, lengths and orientations, but relocates them. It tests spatial heterogeneity, not proof of multifractality. See also Processing: Assess Renyi scaling support, which runs independently of legacy fit acceptance.")
+        note.setWordWrap(True)
+        advanced.addWidget(note)
         advanced.addStretch()
         _, moving = self._tab("Moving windows")
         windows = self._group(moving, "Experimental · overlapping supports")
@@ -234,6 +254,30 @@ class MusaDock(QDockWidget):
         self.summary = QLabel("No analysis yet.")
         self.summary.setWordWrap(True)
         results.addWidget(self.summary)
+        self.spectrum_open = QPushButton("Open completed run")
+        self.spectrum_open.clicked.connect(self.browse_completed_run)
+        results.addWidget(self.spectrum_open)
+        spectra = self._group(results, "Spectrum by domain / window")
+        self.spectrum_domain, self.spectrum_center, self.spectrum_size, self.spectrum_estimator = (QComboBox() for _ in range(4))
+        self._spectrum_index = []
+        self._spectrum_figure = None
+        for label, combo in (("Domain / calculation", self.spectrum_domain), ("Window center", self.spectrum_center),
+                             ("Window size", self.spectrum_size), ("Estimator", self.spectrum_estimator)):
+            spectra.addRow(label, combo)
+        self.spectrum_note = QLabel("No indexed spectra yet.")
+        self.spectrum_note.setWordWrap(True)
+        spectra.addRow(self.spectrum_note)
+        self.spectrum_preview = QLabel()
+        self.spectrum_preview.setAlignment(Qt.AlignCenter)
+        spectra.addRow(self.spectrum_preview)
+        self.spectrum_export = QPushButton("Export selected curves (PNG / SVG)")
+        self.spectrum_export.setEnabled(False)
+        self.spectrum_export.clicked.connect(self.save_spectrum_chart)
+        spectra.addRow(self.spectrum_export)
+        self.spectrum_domain.currentIndexChanged.connect(self.select_spectrum_domain)
+        self.spectrum_center.currentIndexChanged.connect(self.select_spectrum_center)
+        self.spectrum_size.currentIndexChanged.connect(self.select_spectrum_size)
+        self.spectrum_estimator.currentIndexChanged.connect(self.render_selected_spectrum)
         self.figure_list = QListWidget()
         self.figure_list.setMaximumHeight(120)
         self.figure_list.currentTextChanged.connect(self.show_figure)
@@ -339,6 +383,11 @@ class MusaDock(QDockWidget):
             moving_divisors=self._numbers(self.window_divisors),
             origin_ensemble=self.ensemble.isChecked(),
             proximity_radii_m=self._numbers(self.proximity),
+            scaling_support=self.scaling_support.isChecked(),
+            scaling_resolution_m=self.scaling_resolution.value(),
+            scaling_scales_m=self._numbers(self.scaling_scales),
+            scaling_null_replicates=self.scaling_null.value(),
+            scaling_window_limit=self.scaling_limit.value(),
             **{key: box.isChecked() for key, box in self.options.items()},
         ).validate()
 
@@ -358,6 +407,9 @@ class MusaDock(QDockWidget):
             (self.min_zeta, config.reliable_min_zeta),
             (self.zeta_floor, config.zeta_scale_floor),
             (self.window_step, config.window_step_m),
+            (self.scaling_resolution, config.scaling_resolution_m),
+            (self.scaling_null, config.scaling_null_replicates),
+            (self.scaling_limit, config.scaling_window_limit),
         ):
             widget.setValue(value)
         for widget, values in (
@@ -366,13 +418,17 @@ class MusaDock(QDockWidget):
             (self.window_sizes, config.window_sizes_m),
             (self.window_divisors, config.moving_divisors),
             (self.proximity, config.proximity_radii_m),
+            (self.scaling_scales, config.scaling_scales_m),
         ):
-            widget.setText(",".join(f"{v:g}" for v in values))
+            # Shortest round-trip representation: general :g formatting drops
+            # scale precision and changes a loaded recipe before its next run.
+            widget.setText(",".join(str(float(v)) for v in values))
         for key, box in self.options.items():
             box.setChecked(getattr(config, key))
         self.moving.setChecked(config.moving)
         self.ensemble.setChecked(config.origin_ensemble)
         self.sensitivity.setChecked(config.zeta_sensitivity)
+        self.scaling_support.setChecked(config.scaling_support)
 
     def browse_output(self):
         path = QFileDialog.getExistingDirectory(self, "Choose output parent folder", self.output_root.text())
@@ -421,6 +477,8 @@ class MusaDock(QDockWidget):
     def start_snapshot(self, snapshot, config, output):
         if self.task is not None:
             raise RuntimeError("An analysis is already running.")
+        for widget in self._spectrum_controls():
+            widget.setEnabled(False)
         self.task = AnalysisTask(snapshot, config, str(output), self)
         self.task.progressChanged.connect(self.update_progress)
         self.task.message.connect(self.on_message)
@@ -460,24 +518,41 @@ class MusaDock(QDockWidget):
         self.cancel_button.setEnabled(False)
         self.last_output = Path(task.output)
         if not success:
+            self.spectrum_open.setEnabled(True)
+            self._spectrum_index = []
+            self._spectrum_figure = None
+            self.spectrum_preview.clear()
+            self.spectrum_note.setText("Failed/cancelled run: incomplete spectra are not loaded. Partial outputs remain on disk.")
             self.on_message(task.error or "Analysis cancelled. Partial outputs retained.")
             return
         manifest = task.manifest
         self.progress.setValue(100)
         self.on_message("Analysis complete")
-        self.summary.setText(
-            f"Accepted q: {manifest['accepted_q']} · Rejected q: {manifest['rejected_q']}\n{task.output}"
-        )
+        self.set_run_summary(self.last_output, manifest)
         self.figure_list.clear()
         self.figure_list.addItems([file.name for file in sorted(self.last_output.glob("*.png"))])
         if self.figure_list.count():
             self.figure_list.setCurrentRow(0)
+        self.load_spectrum_index()
         if self.load_results:
             try:
                 load_spatial_results(task.output)
             except Exception as exc:
                 self.log.append(f"Analysis saved; layer loading failed: {exc}")
         self.tabs.setCurrentWidget(self.results_page)
+
+    def set_run_summary(self, folder, manifest):
+        prefix = f"Accepted q: {manifest['accepted_q']} · Rejected q: {manifest['rejected_q']}" if "accepted_q" in manifest else "Completed run"
+        self.summary.setText(f"{prefix}\n{Path(folder).name}")
+        self.summary.setToolTip(str(folder))
+        scaling_path = Path(folder) / "scaling_support.json"
+        if scaling_path.is_file():
+            from collections import Counter
+            report = json.loads(Path(scaling_path).read_text(encoding="utf-8"))
+            counts = Counter(row["status"] for support in report["supports"] for row in support["q_results"])
+            self.summary.setText(self.summary.text() + "\nRenyi scaling (support/q): " +
+                                 ", ".join(f"{key}: {value}" for key, value in sorted(counts.items())) +
+                                 "\nFinite-range diagnostics; spatial null is not proof of multifractality.")
 
     def show_figure(self, filename):
         if self.last_output and filename:
@@ -490,6 +565,146 @@ class MusaDock(QDockWidget):
     def open_output(self):
         if self.last_output:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.last_output)))
+
+    def _spectrum_controls(self):
+        return (self.spectrum_domain, self.spectrum_center, self.spectrum_size, self.spectrum_estimator, self.spectrum_export, self.spectrum_open)
+
+    def open_completed_run(self, folder):
+        if self.task is not None:
+            raise RuntimeError("Wait for the current analysis to finish.")
+        folder = Path(folder)
+        manifest = json.loads((folder / "run_manifest.json").read_text(encoding="utf-8"))
+        if manifest.get("status") != "complete":
+            raise ValueError("Only completed runs can be opened in the spectrum viewer.")
+        self.last_output = folder
+        self.set_run_summary(folder, manifest)
+        self.figure_list.clear()
+        self.figure_list.addItems([file.name for file in sorted(folder.glob("*.png"))])
+        self.load_spectrum_index()
+        self.tabs.setCurrentWidget(self.results_page)
+
+    def browse_completed_run(self):
+        folder = QFileDialog.getExistingDirectory(self, "Open a completed MUSA run", str(self.last_output or ""))
+        if folder:
+            try:
+                self.open_completed_run(folder)
+            except Exception as exc:
+                QMessageBox.warning(self, "MUSA", str(exc))
+
+    @staticmethod
+    def _fill_spectrum_combo(combo, entries):
+        blocked = combo.blockSignals(True)
+        try:
+            combo.clear()
+            for label, value in entries:
+                combo.addItem(label, value)
+        finally:
+            combo.blockSignals(blocked)
+
+    def load_spectrum_index(self):
+        from ._core.musa.spectrum_products import list_spectra
+        self._spectrum_index = []
+        self._spectrum_figure = None
+        self.spectrum_export.setEnabled(False)
+        self.spectrum_open.setEnabled(True)
+        path = self.last_output / "spectrum_curves.sqlite"
+        if path.is_file():
+            self._spectrum_index = list_spectra(path)
+        domains = sorted({(s["source"], s["kind"]) for s in self._spectrum_index})
+        entries = [(f"{'Global' if kind == 'global' else 'Moving windows'} — "
+                    f"{'analysis' if source == 'analysis' else 'scaling assessment'}", (source, kind)) for source, kind in domains]
+        self._fill_spectrum_combo(self.spectrum_domain, entries)
+        self.spectrum_domain.setEnabled(bool(entries))
+        self.select_spectrum_domain()
+
+    def _domain_spectra(self):
+        domain = self.spectrum_domain.currentData()
+        return [s for s in self._spectrum_index if domain and (s["source"], s["kind"]) == tuple(domain)]
+
+    def select_spectrum_domain(self):
+        items = self._domain_spectra()
+        centers = sorted({s["center_id"] for s in items if s["kind"] == "window"})
+        self._fill_spectrum_combo(self.spectrum_center, [(f"Center {center}", center) for center in centers])
+        self.spectrum_center.setEnabled(bool(centers))
+        self.select_spectrum_center()
+
+    def select_spectrum_center(self):
+        items = self._domain_spectra()
+        sizes = sorted({s["window_m"] for s in items if s["kind"] == "window" and s["center_id"] == self.spectrum_center.currentData()})
+        self._fill_spectrum_combo(self.spectrum_size, [(f"{size:g} m", size) for size in sizes])
+        self.spectrum_size.setEnabled(bool(sizes))
+        self.select_spectrum_size()
+
+    def select_spectrum_size(self):
+        items = self._selected_support_spectra()
+        previous = self.spectrum_estimator.currentData()
+        estimators = sorted({s["estimator"] for s in items})
+        self._fill_spectrum_combo(self.spectrum_estimator,
+                                  [("Canonical" if name == "canonical" else "Zeta weighted", name) for name in estimators])
+        if previous in estimators:
+            index = self.spectrum_estimator.findData(previous)
+            self.spectrum_estimator.setCurrentIndex(index)
+        self.spectrum_estimator.setEnabled(bool(estimators))
+        self.render_selected_spectrum()
+
+    def _selected_support_spectra(self):
+        return [s for s in self._domain_spectra() if s["kind"] == "global" or
+                (s["center_id"] == self.spectrum_center.currentData() and s["window_m"] == self.spectrum_size.currentData())]
+
+    def render_selected_spectrum(self):
+        from ._core.musa.spectrum_products import read_spectrum, spectrum_figure
+        item = next((s for s in self._selected_support_spectra() if s["estimator"] == self.spectrum_estimator.currentData()), None)
+        self.spectrum_export.setEnabled(False)
+        if self._spectrum_figure is not None:
+            self._spectrum_figure.clear()
+            self._spectrum_figure = None
+        self.spectrum_preview.clear()
+        if item is None:
+            self.spectrum_note.setText("No indexed spectrum for this selection. Older runs remain available as files.")
+            return
+        try:
+            spectrum = read_spectrum(self.last_output / "spectrum_curves.sqlite", item["series_id"])
+            self._spectrum_figure = spectrum_figure(spectrum)
+            buffer = io.BytesIO()
+            self._spectrum_figure.savefig(buffer, format="png", dpi=90)
+            pixmap = QPixmap()
+            pixmap.loadFromData(buffer.getvalue(), "PNG")
+            self.spectrum_preview.setPixmap(pixmap.scaled(max(300, self.width() - 65), 400, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            summary = spectrum["summary"]
+            def value(number):
+                return "unavailable" if number is None else f"{number:.5g}"
+            observed = value(summary["observed_peak_alpha"])
+            if summary["observed_peak_tied"]:
+                observed = observed + " (multiple q)" if summary["observed_peak_alpha"] is not None else "ties: " + ", ".join(value(v) for v in summary["observed_peak_alphas"][:3])
+            self.spectrum_note.setText(
+                f"alpha(q=0): {value(summary['alpha_q0'])} ({summary['alpha_q0_status'].replace('_', ' ')})\n"
+                f"Observed maximum alpha: {observed}; at supported q edge: {summary['observed_peak_at_q_edge']}\n"
+                f"Fitted peak alpha: {value(summary['fit_peak_alpha'])} ({summary['fit_status'].replace('_', ' ')})\n"
+                f"Usable q: {summary['valid_q_count']}/{summary['requested_q_count']}; identities: {summary['identity_status']}\n"
+                f"{spectrum['support_basis'].replace('_', ' ')}. Descriptive peaks; no proof of multifractality.")
+            self.spectrum_export.setEnabled(True)
+        except Exception as exc:
+            self.spectrum_note.setText(f"Could not display spectrum: {exc}")
+            self.log.append(str(exc))
+
+    def export_selected_spectrum(self, path):
+        if self._spectrum_figure is None or self.task is not None:
+            raise ValueError("Select a completed spectrum first.")
+        path = Path(path)
+        if path.suffix.lower() not in (".png", ".svg"):
+            raise ValueError("Choose a PNG or SVG filename.")
+        self._spectrum_figure.savefig(path, dpi=160)
+
+    def save_spectrum_chart(self):
+        if self._spectrum_figure is None:
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Export selected spectrum", str(self.last_output / "selected_spectrum.png"),
+                                             "PNG (*.png);;SVG (*.svg)")
+        if path:
+            try:
+                self.export_selected_spectrum(path)
+            except Exception as exc:
+                QMessageBox.warning(self, "MUSA", str(exc))
 
 
 def load_spatial_results(output):
@@ -538,5 +753,13 @@ def load_spatial_results(output):
             node.setItemVisibilityChecked(
                 name not in ("mother_multifractal_all_q", "mother_monofractal", "window_shifted_spectra")
             )
+            count += 1
+    table_path = Path(output) / "scaling_support.csv"
+    if table_path.is_file():
+        uri = QUrl.fromLocalFile(str(table_path)).toString() + "?type=csv&geomType=none&detectTypes=yes"
+        table = QgsVectorLayer(uri, "Renyi scaling support - diagnostics", "delimitedtext")
+        if table.isValid():
+            project.addMapLayer(table, False)
+            group.addLayer(table)
             count += 1
     return count

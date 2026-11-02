@@ -12,7 +12,9 @@ Windows development workspace. In QGIS, open Plugins > Manage and Install
 Plugins > Install from ZIP and select the archive in dist/qgis. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
-The local 1.1.0 plugin is experimental; it is not a published release.
+The local plugin now uses 1.0.0 at the maintainer's request and remains
+experimental. The QGIS source is published; this is not a new plugin release.
+The historical release tags are unchanged.
 Metadata targets QGIS 3.34–3.99. Actual runtime validation is recorded in the
 development status; metadata does not imply all versions have been tested.
 The plugin bundles its own core, without changing global Python import paths.
@@ -78,10 +80,13 @@ Processing tools:
 
 - musa:analyze — common parameters for Processing, batch and Model Designer.
 - musa:run_recipe — all options from a musa-analysis version 1 JSON recipe.
+- musa:scaling_support — independent finite-range Rényi Dq assessment, including
+  datasets that fail the legacy spectrum-fit gate. See [SCALING_SUPPORT.md](SCALING_SUPPORT.md).
 
-Both accept lineaments, polygon boundary, explicit metric analysis CRS and a new
-output folder. Processing's selected-feature source is supported. Both use the
-same execution function as the dock. The public Python API additionally provides
+All three accept lineaments, polygon boundary, explicit metric analysis CRS and
+a new output folder. Processing's selected-feature source is supported. The
+first two use the same execution function as the dock; the scaling tool runs
+the independent diagnostic from the same bundled core. The public Python API additionally provides
 RunConfig and execute_analysis in musa.workflow, and MUSA.from_line_geometries
 for already projected Shapely inputs. This adapter trusts the host to validate
 metric units; the QGIS adapter performs that validation.
@@ -91,6 +96,11 @@ compatibility and are excluded from the QGIS bundle. They are no longer the
 recommended installation path.
 
 ## Validation sources
+
+Results also provides global/window Dq, tau(q), alpha(q) and f(alpha) curves,
+with separate q=0, observed-maximum and descriptive fitted-peak references.
+Choose a center, size and estimator, then export the selected figure to PNG/SVG.
+See [SPECTRA.md](SPECTRA.md) for sources, quality criteria and output formats.
 
 Runtime tests use synthetic lineaments and an isolated QGIS profile, never
 private project inputs or a user's installed plugin directory. Threading and

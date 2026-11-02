@@ -27,7 +27,13 @@ def build_plugin(repo, output):
             if source.name == "interface.py":
                 continue  # Tk desktop UI is legacy; it does not ship inside QGIS.
             files.append((source, archive_root + "/" + source.relative_to(folder).as_posix()))
-    for source, name in ((repo / "LICENSE", "LICENSE"), (repo / "docs/QGIS.md", "QGIS.md")):
+    for source, name in ((repo / "LICENSE", "LICENSE"), (repo / "docs/QGIS.md", "QGIS.md"),
+                         (repo / "docs/SCALING_SUPPORT.md", "SCALING_SUPPORT.md"),
+                         (repo / "docs/SPECTRA.md", "SPECTRA.md"),
+                         (repo / "docs/images/qgis_scaling_quality.png", "images/qgis_scaling_quality.png"),
+                         (repo / "docs/images/qgis_scaling_processing.png", "images/qgis_scaling_processing.png"),
+                         (repo / "docs/images/scaling_controls.png", "images/scaling_controls.png"),
+                         (repo / "docs/images/qgis_window_spectra.png", "images/qgis_window_spectra.png")):
         files.append((source, "musa_qgis/" + name))
     manifest = {"version": version, "files": {}}
     output.mkdir(parents=True, exist_ok=True)

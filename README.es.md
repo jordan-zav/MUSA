@@ -11,9 +11,21 @@ y confiabilidad numérica.
 
 ## Instalación en QGIS
 
-QGIS es la interfaz principal de MUSA. El plugin local 1.1.0 es experimental
+QGIS es la interfaz principal de MUSA. El plugin local 1.0.0 es experimental
 y todavía no está publicado; la release pública anterior sigue siendo 1.0.1.
 El panel está en inglés y sigue el flujo acoplable de GeoMorphX y TerraWorkbench.
+
+Incluye una [evaluación experimental de soporte de escalamiento de Rényi](docs/SCALING_SUPPORT.md):
+compara ajustes log–log, estabilidad entre escalas y orígenes de malla, y un
+modelo nulo opcional de traslación de trazas. Se activa en Quality, en recetas
+o mediante Processing > Assess Renyi scaling support. Conserva los q que
+fallan y separa evidencia compatible, contraria e insuficiente en el intervalo
+observado. No certifica fractalidad ni constituye un análisis espacial 3D.
+
+En Results puedes elegir centro y tamaño de ventana para consultar Dq, τ(q),
+α(q) y f(α), y exportar la figura a PNG/SVG. Se distinguen α(q=0), el máximo
+observado y el pico ajustado, con sus estados de calidad. Consulta
+[espectros por ventana](docs/SPECTRA.md).
 
 ![Panel MUSA en QGIS con datos sintéticos](docs/images/qgis_musa_workbench.png)
 
@@ -89,8 +101,16 @@ pip install -e ".[gis,fast]"
 
 ## Estado y límites
 
-La release pública es 1.0.1; el plugin QGIS local experimental es 1.1.0.
+La release pública es 1.0.1; el plugin QGIS experimental pasa a 1.0.0 por petición
+del mantenedor. Se conservan los tags históricos. La conversión QGIS ya está
+subida como código, pero aún no se ha publicado una nueva release del plugin.
+Consulta el [alcance de la validación matemática](docs/SCALING_VALIDATION_STATUS.md):
+los filtros actuales no demuestran por sí solos fractalidad ni multifractalidad.
 Consulta el [estado de desarrollo](docs/DEVELOPMENT_STATUS.md) para las verificaciones ejecutadas.
+La [validación ampliada con datos publicados](docs/EXTENDED_BENCHMARKS.md)
+incluye Åland, Loviisa, Bristol, ejemplos de HatchFrac/FracPaQ, derivados de
+Hornelen y una selección FraXet, con procedencia, controles analíticos y límites
+de interpretación explícitos. Los originales y resultados se conservan fuera del plugin.
 Las pruebas cubren espectros, zeta, modos de
 interfaz, empaquetado GIS y casos sintéticos. La contribución es integrar estos
 métodos y sus diagnósticos, no inventar el análisis multifractal de lineamientos.
