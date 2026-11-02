@@ -256,8 +256,8 @@ def export_spectrum_summary_gpkg(summary_csv, geopackage):
 
 def list_spectra(path):
     with _read_db(path) as db:
-        return [{"series_id": row[0], **json.loads(row[1])}
-                for row in db.execute("SELECT series_id,metadata_json FROM spectra ORDER BY source,kind,center_id,window_m,estimator")]
+        return [{"series_id": row[0], **json.loads(row[1]), "summary": json.loads(row[2])}
+                for row in db.execute("SELECT series_id,metadata_json,summary_json FROM spectra ORDER BY source,kind,center_id,window_m,estimator")]
 
 
 def read_spectrum(path, series_id):
@@ -270,26 +270,41 @@ def read_spectrum(path, series_id):
         return {**json.loads(row[0]), "summary": json.loads(row[1]), "points": points}
 
 
-def spectrum_figure(spectrum):
+def spectrum_figure(spectrum, panel="all"):
     """No pyplot/backend switch; connect only consecutive supported q points."""
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
-    figure = Figure(figsize=(10, 7), constrained_layout=True)
+    if panel not in ("all", "dq", "tau", "alpha", "f_alpha"):
+        raise ValueError("Unknown spectrum panel.")
+    figure = Figure(figsize=(10, 7) if panel == "all" else (7, 5), constrained_layout=True)
     FigureCanvasAgg(figure)
-    axes = figure.subplots(2, 2).ravel()
+    names = ("dq", "tau", "alpha", "f_alpha") if panel == "all" else (panel,)
+    axes = dict(zip(names, figure.subplots(2, 2).ravel())) if panel == "all" else {panel: figure.subplots()}
     points = sorted(spectrum["points"], key=lambda p: p["q"])
-    for ax, (name, label) in zip(axes[:3], (("dq", r"$D_q$"), ("tau", r"$\tau(q)$"), ("alpha", r"$\alpha(q)$"))):
+    def supported(name):
+        return np.array([p.get("statuses", {}).get(name) in ("compatible_finite_range", "identity")
+                         if p.get("statuses", {}).get(name) else p["accepted"] for p in points], bool)
+    for name, label in (("dq", r"$D_q$"), ("tau", r"$\tau(q)$"), ("alpha", r"$\alpha(q)$")):
+        if name not in axes:
+            continue
+        ax = axes[name]
         q = np.array([p["q"] for p in points])
         values = np.array([np.nan if p[name] is None else p[name] for p in points])
-        accepted = np.array([p["accepted"] for p in points], bool)
+        accepted = supported(name)
         ax.plot(q, np.where(accepted, values, np.nan), "o-", color="#166c91")
         ax.scatter(q[~accepted], values[~accepted], marker="x", color="#888888", label="unsupported/rejected")
         ax.set(xlabel="q", ylabel=label)
         ax.grid(alpha=.2)
-    ax = axes[3]
+        if not np.isfinite(values).any():
+            ax.set_axis_off()
+            ax.text(.5, .5, f"{label}: no estimates\nSee values and diagnostics for the reason.", ha="center", va="center", transform=ax.transAxes)
+    if "f_alpha" not in axes:
+        figure.suptitle(f"{spectrum['support_id']} · {spectrum['source']} · {spectrum['estimator']}", fontsize=11)
+        return figure
+    ax = axes["f_alpha"]
     alpha = np.array([np.nan if p["alpha"] is None else p["alpha"] for p in points])
     f = np.array([np.nan if p["f_alpha"] is None else p["f_alpha"] for p in points])
-    accepted = np.array([p["accepted"] for p in points], bool)
+    accepted = supported("alpha") & supported("f_alpha")
     q = np.array([p["q"] for p in points])
     ax.plot(np.where(accepted, alpha, np.nan), np.where(accepted, f, np.nan), color="#166c91", alpha=.7)
     good = accepted & np.isfinite(alpha) & np.isfinite(f)
@@ -304,6 +319,10 @@ def spectrum_figure(spectrum):
         ax.legend(fontsize=7)
     ax.set(xlabel=r"$\alpha$", ylabel=r"$f(\alpha)$")
     ax.grid(alpha=.2)
+    if not (np.isfinite(alpha) & np.isfinite(f)).any():
+        ax.set_axis_off()
+        ax.text(.5, .5, "No singularity estimates for this support\nSee values and diagnostics for the reason.",
+                ha="center", va="center", transform=ax.transAxes)
     figure.suptitle(f"{spectrum['support_id']} | {spectrum['source']} | {spectrum['estimator']}\n"
                    f"{spectrum['support_basis'].replace('_', ' ')} | descriptive peaks; not proof of multifractality", fontsize=10)
     return figure

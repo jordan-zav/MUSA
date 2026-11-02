@@ -106,6 +106,9 @@ recommended installation path.
 Results also provides global/window Dq, tau(q), alpha(q) and f(alpha) curves,
 with separate q=0, observed-maximum and descriptive fitted-peak references.
 Choose a center, size and estimator, then export the selected figure to PNG/SVG.
+Results has separate Spectra, Figures and Run details pages. Charts resize with
+the panel; click them to open an enlarged view. A per-q table explains missing
+values and unsupported fits, including boundary coverage for assessment windows.
 See [SPECTRA.md](SPECTRA.md) for sources, quality criteria and output formats.
 
 Runtime tests use synthetic lineaments and an isolated QGIS profile, never

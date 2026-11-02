@@ -349,6 +349,21 @@ for domain in range(dock.spectrum_domain.count()):
         dock.export_selected_spectrum(session / f"spectrum_{suffix}.png")
         dock.export_selected_spectrum(session / f"spectrum_{suffix}.svg")
 assert len(list(session.glob("spectrum_*.svg"))) == len(spectral_index)
+assert dock.result_tabs.count() == 3
+assert dock.spectrum_values.rowCount() == 3
+assert dock.spectrum_panel.isEnabled()
+from qgis.PyQt.QtTest import QTest
+dock.result_tabs.setCurrentIndex(0)
+app.processEvents()
+canvas = dock.spectrum_preview.canvas
+QTest.mouseClick(canvas, Qt.LeftButton, pos=canvas.rect().center())
+app.processEvents()
+assert len(dock.spectrum_preview.dialogs) == 1
+dialog = dock.spectrum_preview.dialogs[0]
+assert dialog.isVisible()
+dialog.close()
+app.processEvents()
+assert not dock.spectrum_preview.dialogs
 one = next(s for s in spectral_index if s["source"] == "analysis" and s["kind"] == "window" and s["estimator"] == "canonical")
 curve = read_spectrum(moving_output / "spectrum_curves.sqlite", one["series_id"])
 assert all(p["tau"] is None or abs(p["tau"]-(p["q"]-1)*p["dq"]) < 1e-9 for p in curve["points"])

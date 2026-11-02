@@ -2,8 +2,11 @@
 
 Experimental local QGIS 1.0.0. Results now provides a spectrum selector for the
 global domain or each moving-window center and size. Choose the calculation
-source and available estimator, inspect four panels and export that selection
-as PNG/SVG. No image is automatically generated for every window.
+source and available estimator. Results separates Spectra, Figures and Run details.
+The Chart selector offers one readable chart or a four-chart overview, rendered
+directly on a resizing Qt canvas. Click a spectrum to open an enlarged view with
+zoom, pan and export controls; click a Figures preview for a zoomable original.
+Export the selected chart as PNG/SVG. No image is automatically generated for every window.
 Use Open completed run to inspect a saved workflow or independent Processing
 run without rerunning the analysis or adding duplicate map layers. Failed or
 cancelled manifests are refused; older completed runs still expose their files.
@@ -23,6 +26,18 @@ quality flag to another source's estimate.
 All requested q remain in the data store. Missing estimates remain missing;
 unsupported computed points are grey. Connections follow q order and break
 at rejected q, so alpha sorting cannot disguise a turn or bridge missing support.
+
+The per-q table retains estimates, status and failure reasons. Individual Dq,
+tau and alpha panels use their own assessment status; a supported Dq does not
+make the full singularity spectrum supported. Full-spectrum q counts and peak
+summaries still require all four quantities and consistent identities.
+
+On changing calculation source, the center selector initially chooses the center
+with the most usable full-spectrum q across its available sizes/estimators. All
+centers remain selectable. Scaling-assessment windows display observed coverage
+and the required minimum. If coverage is too low, the chart explains that no
+estimates exist. For example, 66.7% coverage is insufficient under an 80% minimum;
+this is an observation-support limitation, not a zero dimension or a rendering error.
 
 ## Computation and identities
 

@@ -23,6 +23,31 @@ def lognormal_points(qs=(-1, 0, 1, 2, 3)):
                        "alpha": d + a - 2 * a * q, "f_alpha": d - a * q * q}, True, "accepted") for q in qs]
 
 
+def test_single_chart_keeps_supported_dimension_when_full_spectrum_is_unsupported():
+    points = lognormal_points([0, 1, 2])
+    for point in points:
+        point['accepted'] = False
+        point['statuses'] = {'dq': 'compatible_finite_range', 'alpha': 'not_supported',
+                             'tau': 'compatible_finite_range', 'f_alpha': 'not_supported'}
+    spectrum = dict(support_id='window', source='assessment', estimator='canonical',
+                    support_basis='fixed_range_diagnostics', points=points, summary=summarize_spectrum(points))
+    figure = spectrum_figure(spectrum, panel='dq')
+    assert len(figure.axes) == 1
+    assert np.isfinite(figure.axes[0].lines[0].get_ydata()).all()
+    assert spectrum['summary']['valid_q_count'] == 0
+    with pytest.raises(ValueError):
+        spectrum_figure(spectrum, panel='unknown')
+
+
+def test_window_without_estimates_has_explicit_empty_message_in_each_panel():
+    points = [_point(q, {}, False, 'low_coverage') for q in (0, 1, 2)]
+    spectrum = dict(support_id='window', source='assessment', estimator='canonical',
+                    support_basis='fixed_range_diagnostics', points=points, summary=summarize_spectrum(points))
+    figure = spectrum_figure(spectrum)
+    assert len(figure.axes) == 4
+    assert all(any('estimates' in text.get_text() for text in axis.texts) for axis in figure.axes)
+
+
 def result_from(points):
     return SimpleNamespace(q=np.array([p["q"] for p in points]),
                            **{name: np.array([p[name] for p in points]) for name in ("dq", "tau", "alpha", "f_alpha")})
@@ -122,6 +147,7 @@ def test_readonly_index_preserves_sources_all_q_and_json_nulls(tmp_path):
     paths = write_spectrum_products(tmp_path, result=result_from(points), requested_q=[-1, 0, 1, 2])
     index = list_spectra(paths["spectrum_curves"])
     assert len(index) == 2
+    assert all("valid_q_count" in row["summary"] for row in index)
     selected = read_spectrum(paths["spectrum_curves"], "analysis|global|canonical")
     assert len(selected["points"]) == 4
     assert selected["points"][0]["dq"] is None
