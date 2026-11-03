@@ -73,6 +73,7 @@ class ChartView(QWidget):
         self.clear()
         self.factory = factory
         self.canvas = ClickCanvas(figure)
+        self.canvas.setCursor(Qt.PointingHandCursor)
         self.canvas.setToolTip('Click to enlarge; zoom, pan and export in the enlarged view.')
         self.canvas.clicked.connect(self.open_enlarged)
         self.layout.addWidget(self.canvas)
@@ -110,9 +111,11 @@ class ImagePreview(QLabel):
 
     def _fit(self):
         if self.original.isNull():
+            self.setCursor(Qt.ArrowCursor)
             self.clear()
             self.setText('No figure selected.')
         else:
+            self.setCursor(Qt.PointingHandCursor)
             self.setPixmap(self.original.scaled(self.contentsRect().size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def resizeEvent(self, event):
