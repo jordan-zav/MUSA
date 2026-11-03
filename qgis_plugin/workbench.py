@@ -109,7 +109,7 @@ class MusaDock(QDockWidget):
         layout = QVBoxLayout(body)
         header = QHBoxLayout()
         logo = QLabel()
-        logo.setPixmap(QPixmap(icon_path()).scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setPixmap(QPixmap(icon_path()).scaled(56, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         header.addWidget(logo)
         title = QLabel("<b>MUSA</b><br>Multifractal Spectrum Analyzer")
         header.addWidget(title, 1)

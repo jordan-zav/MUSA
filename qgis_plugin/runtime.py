@@ -17,4 +17,4 @@ def core():
 
 
 def icon_path():
-    return str(Path(__file__).parent / "_core/musa/assets/icon.png")
+    return str(Path(__file__).parent / "_core/musa/assets/icon_no_bg.png")
