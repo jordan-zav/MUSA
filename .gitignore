@@ -39,3 +39,5 @@ temp/
 # Ignore all outputs by default
 outputs/**
 !outputs/README.md
+
+AGENTS.md
