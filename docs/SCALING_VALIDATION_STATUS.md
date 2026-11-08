@@ -97,6 +97,23 @@ Esto documenta una limitación real de interpretar pendientes finitas como
 fractalidad. Ver [validación ampliada](EXTENDED_BENCHMARKS.md),
 [teoría](theory.md) y [fuentes de espectros](SPECTRA.md).
 
+## Sensibilidad a la geometría de la celda (7 de noviembre)
+
+Un experimento exploratorio comparó celdas cuadradas y hexagonales de igual
+área con verdad conocida y en ocho mapas públicos. La forma de la celda resultó
+una fuente de incertidumbre de segundo orden: cambia el RMSE en q >= 0 en pocos
+puntos porcentuales y no corrige el error grande en q negativos, que afecta por
+igual a ambas mallas. El motor no cambió. Ver [geometría de la celda](GRID_GEOMETRY.md).
+
+## q negativos (7 de noviembre)
+
+Con cuatro medidas de verdad conocida y 48 configuraciones de malla, D(q<0)
+mostró errores de hasta 1,33 en D(−4) que no corrigieron ni el piso de
+probabilidad, ni el umbral por celda, ni el recorte de escalas, ni el promedio
+de orígenes, sin cambiar la medida. El piso, además, lleva los q negativos
+hacia D0 por construcción. D(q<0) debe tratarse como indicador de sensibilidad.
+Ver [q negativos](NEGATIVE_Q.md).
+
 ## Referencias
 
 - [Chhabra y Jensen (1989), espectro directo](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.62.1327).

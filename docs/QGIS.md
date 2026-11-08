@@ -43,7 +43,10 @@ writer. The plugin does not install dependencies into the host automatically.
    group, with figures and an execution log in Results.
 
 Quality exposes fit R2, length threshold, bootstrap, negative-q stabilization,
-zeta weights and sensitivity comparisons. Moving windows are experimental and
+zeta weights and sensitivity comparisons. The negative-q stabilization floor
+changes the measure and drives every negative-q dimension towards D0; keep it
+off unless you also report the unmodified run (see [negative q](NEGATIVE_Q.md)).
+Moving windows are experimental and
 can be expensive, especially with sixteen grid origins. Estimates and geometry
 describe numerical/structural support, not permeability or geological success.
 

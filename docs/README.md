@@ -27,6 +27,8 @@ release GitHub y publicación PyPI son estados distintos.
 | [node_products.md](node_products.md) | Postproceso de nodos; no es una regla geológica universal |
 | [SCALING_VALIDATION_STATUS.md](SCALING_VALIDATION_STATUS.md) | Evidencia numérica y validación científica pendiente |
 | [EXTENDED_BENCHMARKS.md](EXTENDED_BENCHMARKS.md) | Fuentes públicas, casos, resultados y límites de la suite ampliada |
+| [NEGATIVE_Q.md](NEGATIVE_Q.md) | Evaluación de q negativos con verdad conocida; el piso lleva los q negativos a D0 |
+| [GRID_GEOMETRY.md](GRID_GEOMETRY.md) | Experimento: celdas cuadradas frente a hexagonales y rotación de la malla; prototipo fuera del motor |
 | [AUTHOR_BENCHMARKS.md](AUTHOR_BENCHMARKS.md) | Primera suite de controles y mapas de autores |
 | [EXTENDED_BENCHMARK_PLAN.md](EXTENDED_BENCHMARK_PLAN.md) | Registro del plan ejecutado, no manual de usuario |
 | [revision_ventanas_moviles.md](revision_ventanas_moviles.md) | Diagnóstico histórico de septiembre; no contrato actual |

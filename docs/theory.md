@@ -193,6 +193,8 @@ $$
 
 Con η=0 no se aplica. Al depender de q, esta regularización no representa estrictamente la misma medida sin modificar en todos los momentos; debe reportarse y compararse con la ruta sin piso. El diagnóstico independiente conserva la medida original y controla dominancia en lugar de aplicar ese piso.
 
+Con cualquier η > 0 y q < 0, Hq(p′) − ln N queda acotada por una constante independiente de la escala. Si existe un régimen de escalamiento, la pendiente regularizada tiende entonces a D0: el piso no puede conservar un espectro negativo distinto de D0. Ver la derivación y la evaluación con verdad conocida en [q negativos](NEGATIVE_Q.md).
+
 Bootstrap de escalas, jackknife, Theil–Sen, leverage y Cook evalúan sensibilidad del ajuste. No representan por sí solos errores de levantamiento, incertidumbre de trazado ni independencia espacial. El valor p de pendiente del ajuste descriptivo tampoco equivale al contraste nulo espacial ni a una probabilidad de fractalidad.
 
 ## 9. Contraste espacial condicional

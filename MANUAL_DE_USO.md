@@ -64,6 +64,8 @@ q-min y q-max definen el intervalo de órdenes multifractales. q-step define el 
 
 Los valores q negativos resaltan zonas de baja densidad y son más sensibles a celdas vacías o poco representadas. Los valores positivos resaltan concentraciones mayores.
 
+En pruebas con verdad conocida, las dimensiones con q negativo tuvieron errores grandes que ningún ajuste corrigió sin alterar la medida. Úselas como indicador de sensibilidad, no como dimensión del mapa. Ver docs/NEGATIVE_Q.md.
+
 ### Umbral de longitud de celda
 
 Longitud mínima considerada durante la medición de lineamientos. Debe expresarse en metros y ser coherente con la escala de los datos.

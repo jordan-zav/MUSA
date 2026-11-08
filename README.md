@@ -74,7 +74,7 @@ describe structural concentration; they do not estimate permeability.
 | Generalized dimensions Dq and tau | Reliable flags by mother cell and q | Structural density and orientation maps |
 | Local D0 and D1 estimates | Bootstrap and jackknife sensitivity | Exact lineament connectivity statistics |
 | Robust Theil–Sen alternatives | Leverage and Cook diagnostics | CSV, PNG and GeoPackage products |
-| Controlled synthetic validation | Negative-q stabilization | QGIS workbench, Processing and Python |
+| Controlled synthetic validation | Optional negative-q floor (alters the measure; see [negative q](docs/NEGATIVE_Q.md)) | QGIS workbench, Processing and Python |
 
 ## Install in QGIS
 

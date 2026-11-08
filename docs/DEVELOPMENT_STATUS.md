@@ -261,3 +261,35 @@ extra needed by the added adapter tests.
 See [extended benchmarks](EXTENDED_BENCHMARKS.md) and the
 [executed plan](EXTENDED_BENCHMARK_PLAN.md). Original data, generated outputs,
 profiles and delivery ZIPs remain outside version control and the plugin.
+
+## Cell-geometry experiment — 7 November 2026
+
+Exploratory sensitivity study, documented in [GRID_GEOMETRY.md](GRID_GEOMETRY.md).
+A prototype length-conserving hexagonal partition and its comparison scripts
+were added under scripts/grid_geometry. The engine, plugin, API and defaults are
+unchanged; square cells remain the only supported geometry.
+
+- Against known Dq (dyadic and isotropic cascades, Koch, honeycomb and Voronoi
+  networks; 64 random rotation/origin configurations), hexagons reduced RMSE by
+  roughly 1–11% for q >= 0. The gain was small compared with scale-range and
+  negative-q bias, which affected both geometries equally.
+- On eight public maps, the rotation/origin standard deviation of D1 with
+  hexagons was 49–65% of the square-grid value; negative-q results were mixed.
+- Hexagons do not nest, so they cannot replace the mother/child design of local
+  analysis. In a same-budget comparison (four partitions), square-grid rotation
+  averaging matched hexagons for D0 stability but not for D1/D2 or D0 accuracy;
+  four-origin hexagons were the most stable estimator for q >= 0. No engine
+  change was made.
+- The prototype is not covered by the repository test suite. No release.
+
+## Negative-q evaluation — 7 November 2026
+
+Documented in [NEGATIVE_Q.md](NEGATIVE_Q.md). No engine or default changed.
+Against four known measures and 48 grid configurations, D(q<0) errors (up to
+1.33 RMSE for D(-4)) were not corrected by the probability floor, per-cell
+length threshold, scale trimming or origin averaging without altering the
+measure. A derived bound shows that any positive floor drives negative-q
+dimensions towards D0. Documentation now warns that D(q<0) is a sensitivity
+indicator, not a dimension of the original length measure. The evaluation ran
+outside the repository; integrity hashes of src, qgis_plugin and tests were
+unchanged.
