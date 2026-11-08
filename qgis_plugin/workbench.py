@@ -222,12 +222,16 @@ class MusaDock(QDockWidget):
         self.scaling_limit = QSpinBox()
         self.scaling_limit.setRange(1, 1000)
         self.scaling_limit.setValue(25)
+        self.scaling_order_policy = QComboBox()
+        self.scaling_order_policy.addItem("Legacy: block on spectrum order", "legacy_block")
+        self.scaling_order_policy.addItem("Inform q=0,2: warning without order veto", "inform_q0_q2")
         scaling.addRow(self.scaling_support)
         scaling.addRow("Observation resolution (m; required)", self.scaling_resolution)
         scaling.addRow("Box sizes (m)", self.scaling_scales)
         scaling.addRow("Trace-relocation null replicates (0=off; >=19)", self.scaling_null)
         scaling.addRow("Maximum windows to assess", self.scaling_limit)
-        note = QLabel("Tests fixed-interval Renyi Dq stability and curvature. The optional null preserves trace shapes, lengths and orientations, but relocates them. It tests spatial heterogeneity, not proof of multifractality. See also Processing: Assess Renyi scaling support, which runs independently of legacy fit acceptance.")
+        scaling.addRow("Renyi order policy", self.scaling_order_policy)
+        note = QLabel("Tests fixed-interval Renyi Dq stability and curvature. Inform q=0,2 reports an order warning without blocking the finite-range slope contrast; all other gates remain. The optional null preserves trace shapes, lengths and orientations, but relocates them. A rejection concerns conditional spatial heterogeneity, not proof of multifractality. See also Processing: Assess Renyi scaling support, which runs independently of legacy fit acceptance.")
         note.setWordWrap(True)
         advanced.addWidget(note)
         advanced.addStretch()
@@ -433,6 +437,7 @@ class MusaDock(QDockWidget):
             scaling_scales_m=self._numbers(self.scaling_scales),
             scaling_null_replicates=self.scaling_null.value(),
             scaling_window_limit=self.scaling_limit.value(),
+            renyi_order_policy=self.scaling_order_policy.currentData(),
             **{key: box.isChecked() for key, box in self.options.items()},
         ).validate()
 
@@ -476,6 +481,7 @@ class MusaDock(QDockWidget):
         self.ensemble.setChecked(config.origin_ensemble)
         self.sensitivity.setChecked(config.zeta_sensitivity)
         self.scaling_support.setChecked(config.scaling_support)
+        self.scaling_order_policy.setCurrentIndex(self.scaling_order_policy.findData(config.renyi_order_policy))
 
     def browse_output(self):
         path = QFileDialog.getExistingDirectory(self, "Choose output parent folder", self.output_root.text())
@@ -603,6 +609,11 @@ class MusaDock(QDockWidget):
             self.summary.setText(self.summary.text() + "\nRenyi scaling (support/q): " +
                                  f"{counts['compatible_finite_range']} compatible · {counts['not_supported']} unsupported · "
                                  f"{counts['insufficient_information']} insufficient. Select a support below.")
+            policies = sorted({support.get("renyi_order_policy", "legacy_block") for support in report["supports"]})
+            warnings = sum(support.get("renyi_pair_order", {}).get("warning") is True
+                           for support in report["supports"])
+            self.summary.setText(self.summary.text() + "\nOrder policy: " + ", ".join(policies) +
+                                 f". q=0,2 order warnings: {warnings}; these describe finite-range slopes.")
 
     def show_figure(self, filename):
         if self.last_output and filename:

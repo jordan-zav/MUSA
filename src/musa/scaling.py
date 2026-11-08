@@ -31,6 +31,7 @@ class ScalingOptions:
     null_replicates: int = 0
     seed: int = 42
     max_placement_attempts: int = 1000
+    renyi_order_policy: str = "legacy_block"
 
     def validate(self):
         numeric = [self.resolution_m, self.min_decades, self.min_effective_boxes,
@@ -54,6 +55,8 @@ class ScalingOptions:
             raise ValueError("Use a nonnegative integer seed.")
         if type(self.max_placement_attempts) is not int or self.max_placement_attempts < 1:
             raise ValueError("Placement attempts must be a positive integer.")
+        if self.renyi_order_policy not in ("legacy_block", "inform_q0_q2"):
+            raise ValueError("Use renyi_order_policy='legacy_block' or 'inform_q0_q2'.")
         return self
 
 
@@ -137,6 +140,17 @@ def assess_curve(scales_m, entropies, options, *, origin_dimensions=(), min_effe
               "span_decades": float(np.log10(max(scales) / min(scales))) if len(scales) else 0,
               "dimension": None, "models": {}, "r2": None,
               "leave_scale_out_range": None, "origin_dimension_range": None}
+    # Signed distances are descriptive only; the native decisions below retain
+    # their original inequalities and numerical tolerances.
+    result["margins"] = {
+        "scale_count": len(scales) - options.min_scales,
+        "span_decades": result["span_decades"] - options.min_decades,
+        "resolution_m": float(min(scales) - options.resolution_m) if len(scales) else None,
+        "min_effective_boxes": float(min_effective - options.min_effective_boxes)
+        if min_effective is not None and np.isfinite(min_effective) else None,
+        "r2": None, "dimension_lower": None, "dimension_upper": None,
+        "leave_scale_out_range": None, "origin_dimension_range": None, "curvature": {},
+    }
     reasons = result["reasons"]
     if len(scales) < options.min_scales:
         reasons.append("too_few_resolved_scales")
@@ -162,17 +176,22 @@ def assess_curve(scales_m, entropies, options, *, origin_dimensions=(), min_effe
     result["dimension"] = dimension
     total = float(np.sum((y - y.mean()) ** 2))
     result["r2"] = 0.0 if total < 1e-20 else max(0.0, 1 - models["linear"]["sse"] / total)
+    result["margins"].update(r2=result["r2"] - options.min_r2,
+                             dimension_lower=dimension + options.slope_tolerance,
+                             dimension_upper=2 + options.slope_tolerance - dimension)
     slopes = []
     for indices in [np.delete(np.arange(len(x)), i) for i in range(len(x))] + [np.arange(1, len(x) - 1)]:
         slopes.append(float(_fit(x[indices], y[indices], "linear")[1][1]))
     spread = max(slopes + [dimension]) - min(slopes + [dimension])
     result["leave_scale_out_range"] = spread
+    result["margins"]["leave_scale_out_range"] = options.slope_tolerance - spread
     origins = np.asarray(origin_dimensions, float)
     if origins.size and not np.isfinite(origins).all():
         result["reasons"].append("invalid_origin_estimate")
         return result
     origin_range = float(np.ptp(origins)) if origins.size else 0.0
     result["origin_dimension_range"] = origin_range
+    result["margins"]["origin_dimension_range"] = options.slope_tolerance - origin_range
     failure = result["reasons"]
     if total < 1e-20:
         failure.append("constant_curve")
@@ -189,6 +208,12 @@ def assess_curve(scales_m, entropies, options, *, origin_dimensions=(), min_effe
         if name == "linear":
             continue
         gain = (linear_error - model["cv_rmse"]) / np.ptp(x)
+        ratio = model["cv_rmse"] / linear_error if linear_error else None
+        result["margins"]["curvature"][name] = {
+            "gain_effect": float(gain), "effect": float(options.curvature_effect - gain),
+            "cv_ratio": float(ratio) if ratio is not None else None,
+            "ratio": float(ratio - options.cv_ratio) if ratio is not None else None,
+        }
         if model["cv_rmse"] < options.cv_ratio * linear_error and gain > options.curvature_effect:
             failure.append(name + "_predicts_better")
     result["status"] = "not_supported" if failure else "compatible_finite_range"
@@ -263,6 +288,22 @@ def holm_adjust(p_values):
     return result.tolist()
 
 
+def _pair_order(q_results):
+    """Explicit q=0,2 diagnostic, independent of the requested spectrum grid."""
+    dimensions = {r["q"]: r["dimension"] for r in q_results
+                  if r["q"] in (0, 2) and r["dimension"] is not None
+                  and np.isfinite(r["dimension"])}
+    delta = float(dimensions[2] - dimensions[0]) if len(dimensions) == 2 else None
+    warning = delta > .10 if delta is not None else None
+    return {"q": [0.0, 2.0], "delta02": delta, "tolerance": .10,
+            "margin": .10 - delta if delta is not None else None,
+            "status": "not_evaluated" if delta is None else
+            "violated_beyond_tolerance" if warning else "within_tolerance",
+            "warning": warning,
+            "message": "D2 exceeds D0 by more than 0.10 in this finite range; not an entropy error."
+            if warning else None}
+
+
 def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global",
                              boundary=None, nominal_area=None, cancelled=None, progress=None):
     """Diagnostics for one explicit planar support, all q retained, no q filtering.
@@ -298,6 +339,15 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
     offsets = np.array([(.137, .271), (.637, .271), (.137, .771), (.637, .771)])
     coverage = boundary.area / (nominal_area if nominal_area is not None else boundary.area)
     report = {"support_id": str(support_id), "options": asdict(options), "coverage": coverage,
+              "renyi_order_policy": options.renyi_order_policy,
+              "renyi_spectrum_order": {"status": "not_evaluated", "scope": "requested_q"},
+              "renyi_pair_order": _pair_order([]),
+              "margins": {"coverage": float(coverage - options.min_coverage)},
+              "scale_margins": [{"scale_m": float(scale),
+                                 "resolution_m": float(scale - options.resolution_m),
+                                 "maximum_box_m": float(maximum - scale),
+                                 "used": bool(options.resolution_m <= scale <= maximum)}
+                                for scale in requested],
               "requested_scales_m": requested.tolist(), "used_scales_m": scales.tolist(),
               "excluded_scales_m": sorted(set(requested.tolist()) - set(scales.tolist())),
               "grid_offsets": offsets.tolist(), "measure": "line length; no floor or zeta weighting",
@@ -306,7 +356,8 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
               "interpretation": "finite-range Renyi scaling diagnostics; not proof of fractality"}
     if not lines or coverage < options.min_coverage or not len(scales):
         reason = "no_line_support" if not lines else "low_coverage" if coverage < options.min_coverage else "no_resolved_scales"
-        report["q_results"] = [{"q": float(q), "status": "insufficient_information", "reasons": [reason], "dimension": None} for q in qs]
+        report["q_results"] = [{"q": float(q), "status": "insufficient_information", "reasons": [reason],
+                                "dimension": None, "margins": {}} for q in qs]
         report["null"]["status"] = "insufficient_information"
         return report
     curves, effective, features = _curves(lines, boundary, scales, qs, offsets, cancelled, singularities=True)
@@ -349,9 +400,12 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
         "expectation": "Dq nonincreasing in q; finite-range estimates may deviate",
         "tolerance": options.slope_tolerance,
     }
+    # Keep the historical field and its scope unchanged for legacy consumers.
+    report["renyi_spectrum_order"] = {**report["renyi_dimension_order"], "scope": "requested_q"}
+    report["renyi_pair_order"] = _pair_order(report["q_results"])
     if not options.null_replicates:
         return report
-    if report["renyi_dimension_order"]["status"] == "violated_beyond_tolerance":
+    if options.renyi_order_policy == "legacy_block" and report["renyi_dimension_order"]["status"] == "violated_beyond_tolerance":
         report["null"]["status"] = "inconsistent_renyi_dimension_order"
         return report
     q0, q2 = np.flatnonzero(qs == 0), np.flatnonzero(qs == 2)
@@ -408,7 +462,7 @@ def write_scaling_reports(output_dir, reports):
         null["resolution_sufficient_for_family_at_0_05"] = bool(b and len(reports) / (b + 1) <= .05)
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    payload = {"format": "musa-scaling-support", "version": 1, "supports": reports,
+    payload = {"format": "musa-scaling-support", "version": 2, "supports": reports,
                "selection": "fixed requested scales, resolution/boundary exclusions; no best-range search",
                "inference": "fit criteria are operational; Holm covers this report's support family only"}
     target = out / "scaling_support.json"
@@ -418,6 +472,15 @@ def write_scaling_reports(output_dir, reports):
               "leave_scale_out_range", "origin_dimension_range", "tau", "alpha", "f_alpha",
               "tau_status", "alpha_status", "f_alpha_status", "identity_status", "identity_max_error",
               "null_status", "null_p", "null_p_holm"]
+    margin_keys = ("scale_count", "span_decades", "resolution_m", "min_effective_boxes", "r2",
+                   "dimension_lower", "dimension_upper", "leave_scale_out_range", "origin_dimension_range")
+    fields += ["renyi_order_policy", "renyi_spectrum_order_status", "renyi_pair_order_status",
+               "delta02", "renyi_pair_order_warning", "renyi_pair_order_message",
+               "margin_pair_order", "margin_coverage", "scale_margins_json"]
+    fields += ["margin_" + key for key in margin_keys]
+    for model in ("quadratic", "segmented"):
+        fields += [model + "_gain_effect", "margin_" + model + "_effect",
+                   model + "_cv_ratio", "margin_" + model + "_cv_ratio"]
     with table.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
@@ -432,6 +495,23 @@ def write_scaling_reports(output_dir, reports):
                 row.update(support_id=report["support_id"], reasons=";".join(result["reasons"]),
                            null_status=report["null"]["status"], null_p=report["null"]["p_value"],
                            null_p_holm=report["null"]["p_holm"])
+                pair_order = report.get("renyi_pair_order", {})
+                row.update(renyi_order_policy=report.get("renyi_order_policy", "legacy_block"),
+                           renyi_spectrum_order_status=report.get("renyi_spectrum_order", {}).get("status"),
+                           renyi_pair_order_status=pair_order.get("status"),
+                           delta02=pair_order.get("delta02"), renyi_pair_order_warning=pair_order.get("warning"),
+                           renyi_pair_order_message=pair_order.get("message"),
+                           margin_pair_order=pair_order.get("margin"),
+                           margin_coverage=report.get("margins", {}).get("coverage"),
+                           scale_margins_json=json.dumps(report.get("scale_margins", []), allow_nan=False))
+                margins = result.get("margins", {})
+                row.update({"margin_" + key: margins.get(key) for key in margin_keys})
+                for model in ("quadratic", "segmented"):
+                    values = margins.get("curvature", {}).get(model, {})
+                    row.update({model + "_gain_effect": values.get("gain_effect"),
+                                "margin_" + model + "_effect": values.get("effect"),
+                                model + "_cv_ratio": values.get("cv_ratio"),
+                                "margin_" + model + "_cv_ratio": values.get("ratio")})
                 writer.writerow(row)
     from .spectrum_products import write_spectrum_products
     products = write_spectrum_products(out, assessments=reports, source="assessment")

@@ -8,6 +8,7 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterCrs,
+    QgsProcessingParameterEnum,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterFile,
     QgsProcessingParameterFolderDestination,
@@ -195,6 +196,8 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
             "the boundary. Their Monte Carlo test concerns spatial heterogeneity, not proof of "
             "multifractality. Use zero replicates to disable, or at least 19; the minimum p is 1/(B+1). "
             "Outputs retain every q, including insufficient/unsupported fits. No best-range search. "
+            "Renyi order policy defaults to the legacy spectrum veto. The optional q=0,2 warning "
+            "does not veto the finite-range slope contrast; fit and curvature gates still apply. "
             "This independent tool does not require legacy spectrum fit acceptance."
         )
 
@@ -210,6 +213,9 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         ):
             self.addParameter(QgsProcessingParameterNumber(key, label, type=QgsProcessingParameterNumber.Double, defaultValue=value))
         self.addParameter(QgsProcessingParameterNumber("NULL_REPLICATES", "Conditional trace-relocation replicates (0=off; >=19)", type=QgsProcessingParameterNumber.Integer, defaultValue=0, minValue=0, maxValue=9999))
+        self.addParameter(QgsProcessingParameterEnum(
+            "RENYI_ORDER_POLICY", "Renyi order policy",
+            options=["Legacy: block on spectrum order", "Inform q=0,2: warning without order veto"], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber("SEED", "Random seed", type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
         self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
         self.addOutput(QgsProcessingOutputString("REPORT", "Scaling support JSON"))
@@ -225,6 +231,8 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                 scaling_resolution_m=self.parameterAsDouble(parameters, "RESOLUTION", context),
                 scaling_scales_m=tuple(float(v.strip()) for v in self.parameterAsString(parameters, "SCALES", context).split(",")),
                 scaling_null_replicates=self.parameterAsInt(parameters, "NULL_REPLICATES", context),
+                renyi_order_policy=("legacy_block", "inform_q0_q2")[
+                    self.parameterAsEnum(parameters, "RENYI_ORDER_POLICY", context)],
                 seed=self.parameterAsInt(parameters, "SEED", context),
             ).validate()
             self.snapshot = snapshot_sources(
@@ -256,7 +264,8 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                 report = scaling.assess_lineament_scaling(
                     make_analyzer(self.snapshot, self.config), self.config.scaling_scales_m,
                     scaling.ScalingOptions(self.config.scaling_resolution_m,
-                                           null_replicates=self.config.scaling_null_replicates, seed=self.config.seed),
+                                           null_replicates=self.config.scaling_null_replicates, seed=self.config.seed,
+                                           renyi_order_policy=self.config.renyi_order_policy),
                     cancelled=feedback.isCanceled, progress=feedback.pushInfo)
                 manifest["outputs"] = scaling.write_scaling_reports(output, [report])
                 check_cancelled(feedback.isCanceled)
