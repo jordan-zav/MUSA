@@ -14,9 +14,10 @@ import zipfile
 faulthandler.enable()
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("bundle", type=Path)
+parser.add_argument("--output", type=Path, help="New isolated smoke-test folder, including screenshots")
 args = parser.parse_args()
-session = Path(os.environ["DEVRESOURCES_SESSION"]) / "qgis_smoke"
-session.mkdir()
+session = args.output or Path(os.environ["DEVRESOURCES_SESSION"]) / "qgis_smoke"
+session.mkdir(parents=True, exist_ok=False)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QGIS_CUSTOM_CONFIG_PATH"] = str(session / "profile")
 os.environ["QGIS_AUTH_DB_DIR_PATH"] = str(session / "profile/auth")
@@ -51,8 +52,9 @@ from qgis.gui import QgsMapCanvas
 from osgeo import ogr
 import numpy as np
 
-app = QgsApplication([], True)
+app = QgsApplication([], True, str(session / "profile"))
 app.initQgis()
+assert Path(QgsApplication.qgisSettingsDirPath()).resolve().is_relative_to((session / "profile").resolve())
 font = Path("C:/Windows/Fonts/arial.ttf")
 if font.is_file():
     QFontDatabase.addApplicationFont(str(font))
@@ -178,6 +180,7 @@ scaling_params = {"LINES": lines, "BOUNDARY": boundary, "CRS": crs,
 scaling_result = processing.run("musa:scaling_support", scaling_params, context=context, feedback=feedback)
 scaling_report = json.loads(Path(scaling_result["REPORT"]).read_text())
 assert len(scaling_report["supports"][0]["q_results"]) == 3
+assert scaling_report["supports"][0]["renyi_order_policy"] == "legacy_block"
 assert (session / "scaling_processing/scaling_support.csv").exists()
 assert json.loads((session / "scaling_processing/run_manifest.json").read_text())["status"] == "complete"
 assert (session / "scaling_processing/spectrum_curves.sqlite").is_file()
@@ -189,6 +192,17 @@ except Exception:
 else:
     raise AssertionError("Scaling Processing overwrote an existing output folder")
 print("PASS independent Renyi scaling Processing, all q retained and output collision protection", flush=True)
+inform_params = {**scaling_params, "RENYI_ORDER_POLICY": 1, "OUTPUT": str(session / "scaling_inform_processing")}
+inform_result = processing.run("musa:scaling_support", inform_params, context=context, feedback=feedback)
+inform_payload = json.loads(Path(inform_result["REPORT"]).read_text())
+assert inform_payload["version"] == 2
+inform_support = inform_payload["supports"][0]
+assert inform_support["renyi_order_policy"] == "inform_q0_q2"
+assert "delta02" in inform_support["renyi_pair_order"]
+assert inform_support["renyi_spectrum_order"]["scope"] == "requested_q"
+assert all("margins" in row for row in inform_support["q_results"])
+assert json.loads((session / "scaling_inform_processing/run_manifest.json").read_text())["recipe"]["parameters"]["renyi_order_policy"] == "inform_q0_q2"
+print("PASS explicit q0/q2 policy and schema 2 through real Processing", flush=True)
 for relative, digest in manifest["files"].items():
     assert hashlib.sha256((session / "processing" / relative).read_bytes()).hexdigest() == digest
 ds = ogr.Open(str(session / "processing/musa_mother_cells.gpkg"))
@@ -257,6 +271,7 @@ dock.boundary.setLayer(boundary)
 dock.crs.setCrs(crs)
 dock.output_root.setText(str(session))
 dock.apply_config(config)
+assert dock.scaling_order_policy.currentData() == "legacy_block"
 assert dock.config().recipe() == json.loads(json.dumps(config.recipe()))
 iface.window.resizeDocks([dock], [600], Qt.Horizontal)
 iface.window.show()
@@ -274,7 +289,7 @@ assert (second / "run_manifest.json").is_file()
 assert json.loads((second / "run_manifest.json").read_text())["status"] == "complete"
 print("PASS successive tasks with reprojected source", flush=True)
 
-images = Path(__file__).resolve().parents[1] / "docs/images"
+images = session / "images"
 images.mkdir(exist_ok=True)
 iface.canvas.setLayers([lines, boundary])
 iface.canvas.setDestinationCrs(crs)
@@ -317,6 +332,7 @@ moving_config = replace(
     scaling_support=True,
     scaling_resolution_m=1,
     scaling_scales_m=tuple(np.geomspace(2, 250, 8)),
+    renyi_order_policy="inform_q0_q2",
 )
 moving_output = session / "moving_task"
 original_recipe = json.loads(json.dumps(moving_config.recipe()))
@@ -418,6 +434,8 @@ print("PASS indexed global/window spectra, canonical/zeta selectors, singularity
 support_reports = json.loads(Path(moving_manifest["outputs"]["scaling_support_json"]).read_text())
 assert len(support_reports["supports"]) >= 2
 assert all(r["null"]["holm_family_size"] == len(support_reports["supports"]) for r in support_reports["supports"])
+assert all(r["renyi_order_policy"] == "inform_q0_q2" for r in support_reports["supports"])
+assert "Order policy: inform_q0_q2" in dock.summary.text()
 assert any(layer.name() == "Renyi scaling support - diagnostics" for layer in project.mapLayers().values())
 assert "Renyi scaling (support/q)" in dock.summary.text()
 dock.tabs.setCurrentIndex(1)
@@ -448,7 +466,12 @@ if (detached_output / "run_manifest.json").exists():
     detached = json.loads((detached_output / "run_manifest.json").read_text())
     assert detached["status"] in ("cancelled", "complete"), detached
 print("PASS unload during active task and provider removal", flush=True)
-report = {"qgis_version": Qgis.QGIS_VERSION, "bundle": str(args.bundle), "session": str(session), "status": "passed"}
+from musa_qgis._core.musa import __version__
+assert __version__ == build["version"]
+report = {"qgis_version": Qgis.QGIS_VERSION, "python_version": sys.version,
+          "software_version": __version__, "bundle": str(args.bundle), "session": str(session),
+          "settings_path": QgsApplication.qgisSettingsDirPath(),
+          "qt_platform": os.environ["QT_QPA_PLATFORM"], "status": "passed"}
 (session / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 print("VALIDATION", session / "validation.json", flush=True)
 iface.window.close()

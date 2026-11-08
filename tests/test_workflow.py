@@ -86,13 +86,25 @@ def test_scaling_diagnostics_and_recipe_include_global_and_all_windows(tmp_path)
                        min_r2=0, local=False, structural=False, plots=False, gis=False,
                        moving=True, window_sizes_m=(1000,), window_step_m=1000,
                        scaling_support=True, scaling_resolution_m=1,
+                       renyi_order_policy="inform_q0_q2",
                        scaling_scales_m=tuple(np.geomspace(2, 125, 8)))
     restored = RunConfig.from_recipe(config.recipe())
     manifest = execute_analysis(_analyzer(), restored, tmp_path / "scaling")
     reports = json.loads(open(manifest["outputs"]["scaling_support_json"], encoding="utf-8").read())
     assert [r["support_id"] for r in reports["supports"]] == ["global", "window_0_1000m"]
     assert all(r["null"]["holm_family_size"] == 2 for r in reports["supports"])
+    assert all(r["renyi_order_policy"] == "inform_q0_q2" for r in reports["supports"])
+    assert manifest["recipe"]["parameters"]["renyi_order_policy"] == "inform_q0_q2"
     assert "scaling_support.csv" in manifest["files"]
+
+
+def test_old_recipe_defaults_to_legacy_order_policy_and_invalid_policy_is_rejected():
+    recipe = RunConfig().recipe()
+    del recipe["parameters"]["renyi_order_policy"]
+    assert RunConfig.from_recipe(recipe).renyi_order_policy == "legacy_block"
+    recipe["parameters"]["renyi_order_policy"] = "not_a_policy"
+    with pytest.raises(ValueError, match="renyi_order_policy"):
+        RunConfig.from_recipe(recipe)
 
 
 def test_independent_scaling_report_survives_rejected_legacy_spectrum(tmp_path):
