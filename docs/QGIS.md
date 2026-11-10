@@ -17,8 +17,8 @@ is written to dist/qgis). In QGIS, open Plugins > Manage and Install
 Plugins > Install from ZIP and select the archive. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
-MUSA 1.1.0 is the first QGIS plugin release; the ZIP is attached to the
-v1.1.0 GitHub release.
+MUSA 1.2.0 is the current QGIS plugin release (the first was 1.1.0); the ZIP is
+attached to the v1.2.0 GitHub release.
 Metadata targets QGIS 3.34–3.99. The release was tested on QGIS 3.44.12;
 metadata does not imply all versions have been tested. QGIS 4 is not yet supported.
 The plugin bundles its own core, without changing global Python import paths.

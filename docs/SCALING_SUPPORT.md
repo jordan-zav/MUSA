@@ -1,6 +1,6 @@
 # Finite-range Rényi scaling support
 
-Feature of MUSA 1.1.0; still marked experimental in the interface. Dq denotes
+Feature of MUSA since 1.1.0 (tail and trimming options since 1.2.0); still marked experimental in the interface. Dq denotes
 generalized Rényi dimensions: D0 capacity, D1 information and D2 correlation.
 They are different orders of one planar length measure, not added spatial axes.
 

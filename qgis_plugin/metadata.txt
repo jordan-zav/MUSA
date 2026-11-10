@@ -2,7 +2,7 @@
 name=MUSA
 description=MUSA (Multifractal Spectrum Analyzer): fractal and multifractal analysis of fault, fracture and lineament maps, with finite-range scaling checks, in a dockable QGIS workbench.
 about=MUSA, the Multifractal Spectrum Analyzer, computes Renyi dimensions and Chhabra-Jensen multifractal spectra of line networks from the exact trace length in each grid cell, averaged over several grid origins. Before reporting an estimate, a finite-range scaling diagnostic declares the scale interval in advance, compares linear, quadratic and segmented fits by cross-validation and labels each result as compatible, not supported or insufficient. An optional Monte Carlo test relocates the observed traces uniformly within the mapped area to check whether their spatial heterogeneity differs from random placement. Also includes global and moving-window spectra, structural statistics, Processing algorithms (musa:analyze, musa:run_recipe) and the same numerical core as the MUSA Python API. Requires NumPy, SciPy, Shapely and Matplotlib in the QGIS Python environment; use a projected CRS in metres.
-version=1.1.0
+version=1.2.0
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 author=Jordan Zavaleta
@@ -17,4 +17,4 @@ license=GPL-3.0-or-later
 experimental=False
 deprecated=False
 hasProcessingProvider=yes
-changelog=1.1.0 - First QGIS plugin release: dockable workbench and Processing algorithms, exact length partition over several grid origins, finite-range scaling-support diagnostic, explicit Renyi order policy, conditional trace-relocation null and moving-window spectra. 1.0.1 - Windows desktop release. 1.0.0 - Initial public release.
+changelog=1.2.0 - Scaling-support options: two-sided Monte Carlo tail for the D0-D2 relocation test and coarse-end trimming by effective q=2 boxes, both off by default; Holm resolution check accounts for the two-sided minimum p. 1.1.0 - First QGIS plugin release: dockable workbench and Processing algorithms, exact length partition over several grid origins, finite-range scaling-support diagnostic, explicit Renyi order policy, conditional trace-relocation null and moving-window spectra. 1.0.1 - Windows desktop release. 1.0.0 - Initial public release.

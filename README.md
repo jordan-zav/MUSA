@@ -42,7 +42,7 @@ Installation with pip from GitHub is available. PyPI publication and a general
 installed recipe-running CLI remain pending. The existing musa-ui entry point
 opens the legacy Tk interface; it is not the QGIS workbench or a headless runner.
 
-MUSA 1.1.0 is the first QGIS plugin release. Download musa_qgis-1.1.0.zip from the
+MUSA 1.2.0 is the current QGIS plugin release (the first was 1.1.0). Download musa_qgis-1.2.0.zip from the
 [latest release](https://github.com/jordan-zav/MUSA/releases/latest) and install it with
 Plugins > Manage and Install Plugins > Install from ZIP.
 
@@ -198,7 +198,7 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 
 ## Project status
 
-MUSA 1.1.0 is the current public release and the first QGIS plugin release.
+MUSA 1.2.0 is the current public release; 1.1.0 was the first QGIS plugin release.
 See the [mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
 current scaling diagnostics can establish.
 The [extended public-data benchmarks](docs/EXTENDED_BENCHMARKS.md) add original
@@ -214,7 +214,7 @@ a stable numerical fit or high zeta weight is not proof of a geological process.
 
 If you use MUSA, please cite the version you used:
 
-> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.1.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099091
+> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099090
 
 The concept DOI [10.5281/zenodo.24099090](https://doi.org/10.5281/zenodo.24099090) always points to the latest version. GitHub's "Cite this repository" button uses [CITATION.cff](CITATION.cff).
 

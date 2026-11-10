@@ -3,7 +3,7 @@
 Empieza por la ruta que necesitas: [instalación](INSTALLATION.md),
 [motor y QGIS](ARCHITECTURE.md) o [API Python sin QGIS](PYTHON_API.md).
 La referencia matemática vigente es [theory.md](theory.md).
-Versión actual: MUSA 1.1.0. La publicación en PyPI sigue pendiente.
+Versión actual: MUSA 1.2.0. La publicación en PyPI sigue pendiente.
 
 ## Archivos principales
 

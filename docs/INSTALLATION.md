@@ -1,6 +1,6 @@
 # Instalación y formas de ejecución
 
-Referencia de MUSA 1.1.0, la primera release del plugin de QGIS.
+Referencia de MUSA 1.2.0; la primera release del plugin de QGIS fue 1.1.0.
 
 ## Elegir una ruta
 
@@ -98,7 +98,7 @@ Ver [guía QGIS](QGIS.md) para selección de capas, CRS, tareas, cancelación, r
 | Fuente GitHub / instalación pip desde Git | Disponible |
 | Wheel Python desde pyproject.toml | Construido e instalado en un destino separado; ejemplo de puntos ejecutado sin QGIS |
 | PyPI, nombre musa-multifractal | Consulta pública sin proyecto disponible en esta revisión; publicación pendiente |
-| ZIP del plugin 1.1.0 | Publicado en la release v1.1.0 de GitHub; probado en QGIS 3.44.12 |
+| ZIP del plugin 1.2.0 | Publicado en la release v1.2.0 de GitHub; probado en QGIS 3.44.12 |
 | Catálogo oficial de complementos QGIS para este nuevo paquete | No se afirma una publicación en el catálogo |
 | Comando de análisis musa o python -m musa | No implementado |
 | Comando musa-ui | Lanzador Tk legado; no es la interfaz QGIS ni un ejecutor de recetas |
