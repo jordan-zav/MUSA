@@ -211,8 +211,10 @@ def write_spectrum_products(output_dir, *, result=None, requested_q=(), moving_c
     summary_path = out / "spectrum_summary.csv"
     columns = ["source", "support_id", "center_id", "center_x", "center_y", "window_m", "estimator", "support_basis"]
     summary_columns = list(summarize_spectrum([]))
+    if tuple(columns + summary_columns) != SUMMARY_FIELDS:
+        raise RuntimeError("Spectrum summary schema changed; update SUMMARY_FIELDS and its SQL.")
     with _read_db(target) as db, summary_path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=columns + summary_columns)
+        writer = csv.DictWriter(stream, fieldnames=list(SUMMARY_FIELDS))
         writer.writeheader()
         for metadata, summary in db.execute("SELECT metadata_json,summary_json FROM spectra ORDER BY source,kind,center_id,window_m,estimator"):
             check_cancelled(cancelled)
@@ -227,26 +229,50 @@ def _read_db(path):
     return closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True))
 
 
+# Fixed schema of spectrum_summary.csv; the SQL below is written out literally
+# so that no statement is ever assembled from strings at run time.
+SUMMARY_FIELDS = (
+    "source", "support_id", "center_id", "center_x", "center_y", "window_m", "estimator", "support_basis",
+    "requested_q_count", "valid_q_count", "alpha_q0", "alpha_q0_status", "observed_peak_alpha",
+    "observed_peak_f", "observed_peak_qs", "observed_peak_alphas", "observed_peak_tied",
+    "observed_peak_at_q_edge", "fit_peak_alpha", "fit_peak_f", "fit_status", "peak_fit_r2", "delta_alpha",
+    "fit_coefficients", "identity_status", "identity_max_error",
+)
+_SUMMARY_NUMERIC = {"center_id", "center_x", "center_y", "window_m", "requested_q_count", "valid_q_count",
+                    "alpha_q0", "observed_peak_alpha", "observed_peak_f", "fit_peak_alpha", "fit_peak_f",
+                    "peak_fit_r2", "delta_alpha", "identity_max_error"}
+_CREATE_SUMMARY = """CREATE TABLE IF NOT EXISTS window_spectrum_summary (
+    fid INTEGER PRIMARY KEY AUTOINCREMENT,
+    "source" TEXT, "support_id" TEXT, "center_id" REAL, "center_x" REAL, "center_y" REAL,
+    "window_m" REAL, "estimator" TEXT, "support_basis" TEXT, "requested_q_count" REAL,
+    "valid_q_count" REAL, "alpha_q0" REAL, "alpha_q0_status" TEXT, "observed_peak_alpha" REAL,
+    "observed_peak_f" REAL, "observed_peak_qs" TEXT, "observed_peak_alphas" TEXT,
+    "observed_peak_tied" TEXT, "observed_peak_at_q_edge" TEXT, "fit_peak_alpha" REAL,
+    "fit_peak_f" REAL, "fit_status" TEXT, "peak_fit_r2" REAL, "delta_alpha" REAL,
+    "fit_coefficients" TEXT, "identity_status" TEXT, "identity_max_error" REAL)"""
+_INSERT_SUMMARY = """INSERT INTO window_spectrum_summary (
+    "source", "support_id", "center_id", "center_x", "center_y", "window_m", "estimator",
+    "support_basis", "requested_q_count", "valid_q_count", "alpha_q0", "alpha_q0_status",
+    "observed_peak_alpha", "observed_peak_f", "observed_peak_qs", "observed_peak_alphas",
+    "observed_peak_tied", "observed_peak_at_q_edge", "fit_peak_alpha", "fit_peak_f", "fit_status",
+    "peak_fit_r2", "delta_alpha", "fit_coefficients", "identity_status", "identity_max_error")
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+
+
 def export_spectrum_summary_gpkg(summary_csv, geopackage):
     """Register a nonspatial summary table without changing vector layers."""
     with Path(summary_csv).open(newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
-        fields = reader.fieldnames
+        fields = tuple(reader.fieldnames or ())
         rows = list(reader)
-    numeric = {"center_id", "center_x", "center_y", "window_m", "requested_q_count", "valid_q_count",
-               "alpha_q0", "observed_peak_alpha", "observed_peak_f", "fit_peak_alpha", "fit_peak_f",
-               "peak_fit_r2", "delta_alpha", "identity_max_error"}
-    # Field names are our fixed CSV schema, never SQL supplied by a layer/user.
-    if not fields or any(not name.replace("_", "").isalnum() for name in fields):
+    if fields != SUMMARY_FIELDS:
         raise ValueError("Unexpected spectrum summary fields.")
-    definitions = ",".join('"' + name + '" ' + ("REAL" if name in numeric else "TEXT") for name in fields)
     with closing(sqlite3.connect(geopackage)) as db, db:
-        db.execute(f'CREATE TABLE IF NOT EXISTS window_spectrum_summary (fid INTEGER PRIMARY KEY AUTOINCREMENT,{definitions})')
+        db.execute(_CREATE_SUMMARY)
         db.execute("DELETE FROM window_spectrum_summary")
-        placeholders = ",".join("?" for _ in fields)
-        names = ",".join('"' + name + '"' for name in fields)
-        db.executemany(f"INSERT INTO window_spectrum_summary ({names}) VALUES ({placeholders})",
-                       [tuple(_number(row[name]) if name in numeric else row[name] for name in fields) for row in rows])
+        db.executemany(_INSERT_SUMMARY,
+                       [tuple(_number(row[name]) if name in _SUMMARY_NUMERIC else row[name] for name in SUMMARY_FIELDS)
+                        for row in rows])
         db.execute("""INSERT OR REPLACE INTO gpkg_contents
             (table_name,data_type,identifier,description,last_change,srs_id)
             VALUES ('window_spectrum_summary','attributes','window_spectrum_summary',

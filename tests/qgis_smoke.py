@@ -25,7 +25,9 @@ with zipfile.ZipFile(args.bundle) as archive:
     assert all(name.startswith("musa_qgis/") and ".." not in Path(name).parts for name in archive.namelist())
     assert not any("interface.py" in name or "data/" in name for name in archive.namelist())
     archive.extractall(session / "plugins")
-build = json.loads((session / "plugins/musa_qgis/build_manifest.json").read_text())
+build = json.loads(Path(str(args.bundle) + ".manifest.json").read_text(encoding="utf-8"))
+assert set(build["files"]) | {"musa_qgis/_core/__init__.py"} == {
+    name for name in zipfile.ZipFile(args.bundle).namelist() if not name.endswith("/")}
 for name, digest in build["files"].items():
     assert hashlib.sha256((session / "plugins" / name).read_bytes()).hexdigest() == digest
 sys.path.insert(0, str(session / "plugins"))

@@ -45,7 +45,9 @@ def build_plugin(repo, output):
             data = source.read_bytes()
             archive.writestr(name, data)
             manifest["files"][name] = hashlib.sha256(data).hexdigest()
-        archive.writestr("musa_qgis/build_manifest.json", json.dumps(manifest, indent=2))
+    # The hash manifest stays outside the ZIP: the QGIS repository's secret scanner
+    # reports SHA-256 digests as high-entropy strings and blocks the upload.
+    target.with_name(target.name + ".manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return target
 
 
