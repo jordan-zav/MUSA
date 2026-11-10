@@ -1,6 +1,6 @@
 # Manual de usuario de MUSA para QGIS
 
-MUSA 1.1.1 · QGIS comprobado: 3.44.12 · capturas del 2 de noviembre de 2026.
+MUSA 1.1.0 · QGIS comprobado: 3.44.12 · capturas del 2 de noviembre de 2026.
 
 Este manual acompaña una revisión práctica de la interfaz y una ejecución real con fracturas publicadas de Åland. Las capturas muestran el complemento funcionando en el runtime de QGIS; no son diseños simulados. El ejemplo sirve para aprender el flujo y reconocer sus límites, no como demostración de multifractalidad de todas las redes naturales.
 

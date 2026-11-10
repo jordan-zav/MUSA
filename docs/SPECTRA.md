@@ -1,6 +1,6 @@
 # Dq, tau and singularity spectra by window
 
-MUSA 1.1.1. Results provides a spectrum selector for the
+MUSA 1.1.0. Results provides a spectrum selector for the
 global domain or each moving-window center and size. Choose the calculation
 source and available estimator. Results separates Spectra, Figures and Run details.
 
