@@ -147,7 +147,7 @@ Los resultados generados y experimentos locales se excluyen del control de versi
 
 Si usas MUSA, cita la versión que utilizaste:
 
-> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (versión 1.2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099090
+> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (versión 1.2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24111942
 
 El DOI general [10.5281/zenodo.24099090](https://doi.org/10.5281/zenodo.24099090) apunta siempre a la última versión. El botón "Cite this repository" de GitHub usa [CITATION.cff](CITATION.cff).
 

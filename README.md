@@ -214,7 +214,7 @@ a stable numerical fit or high zeta weight is not proof of a geological process.
 
 If you use MUSA, please cite the version you used:
 
-> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099090
+> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.2.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24111942
 
 The concept DOI [10.5281/zenodo.24099090](https://doi.org/10.5281/zenodo.24099090) always points to the latest version. GitHub's "Cite this repository" button uses [CITATION.cff](CITATION.cff).
 
