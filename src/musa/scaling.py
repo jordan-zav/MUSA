@@ -32,11 +32,19 @@ class ScalingOptions:
     seed: int = 42
     max_placement_attempts: int = 1000
     renyi_order_policy: str = "legacy_block"
+    # Monte Carlo tail of the D0-D2 test: "upper" (legacy) or "two_sided",
+    # p = min(1, 2 min(p_upper, p_lower)) with ties counted against rejection.
+    null_tail: str = "upper"
+    # 0 disables. Otherwise drop scales from the coarse end, on the observed
+    # support only and before any null replicate, until the coarsest kept scale
+    # has at least this many effective q=2 boxes (minimum over the four origins).
+    coarse_trim_min_effective_q2: float = 0.0
 
     def validate(self):
         numeric = [self.resolution_m, self.min_decades, self.min_effective_boxes,
                    self.max_box_fraction, self.min_coverage, self.min_r2,
-                   self.slope_tolerance, self.curvature_effect, self.cv_ratio]
+                   self.slope_tolerance, self.curvature_effect, self.cv_ratio,
+                   self.coarse_trim_min_effective_q2]
         if not np.isfinite(numeric).all() or self.resolution_m <= 0:
             raise ValueError("Declare a positive, finite observation resolution in metres.")
         if type(self.min_scales) is not int or not 8 <= self.min_scales <= 64:
@@ -57,6 +65,10 @@ class ScalingOptions:
             raise ValueError("Placement attempts must be a positive integer.")
         if self.renyi_order_policy not in ("legacy_block", "inform_q0_q2"):
             raise ValueError("Use renyi_order_policy='legacy_block' or 'inform_q0_q2'.")
+        if self.null_tail not in ("upper", "two_sided"):
+            raise ValueError("Use null_tail='upper' or 'two_sided'.")
+        if self.coarse_trim_min_effective_q2 != 0 and self.coarse_trim_min_effective_q2 < 1:
+            raise ValueError("Coarse-end trimming needs 0 (off) or at least one effective q=2 box.")
         return self
 
 
@@ -277,6 +289,36 @@ def monte_carlo_tail(observed, simulations):
     return float((1 + np.count_nonzero(values >= observed - tolerance)) / (len(values) + 1))
 
 
+def monte_carlo_two_sided(observed, simulations):
+    """Two-sided Monte Carlo p with ties against rejection; also reports both tails."""
+    values = np.asarray(simulations, float)
+    upper = monte_carlo_tail(observed, values)
+    tolerance = 1e-12 * max(1.0, abs(observed))
+    lower = float((1 + np.count_nonzero(values <= observed + tolerance)) / (len(values) + 1))
+    return {"p_value": float(min(1.0, 2 * min(upper, lower))), "p_upper": upper, "p_lower": lower}
+
+
+def _direction(observed, simulations):
+    median = float(np.median(simulations))
+    return "above" if observed > median else "below" if observed < median else "equal"
+
+
+def _trim_coarse(lines, boundary, scales, offsets, threshold, cancelled=None):
+    """Coarse-end trimming fixed on the observed support, before any null replicate."""
+    ordered = np.sort(np.asarray(scales, float))[::-1]
+    effective = [float(_curves(lines, boundary, np.array([s]), np.array([2.]), offsets, cancelled)[1][0])
+                 for s in ordered]
+    k = 0
+    while k < len(ordered) and effective[k] < threshold:
+        k += 1
+    kept = ordered[k:]
+    span = float(np.log10(kept.max() / kept.min())) if len(kept) > 1 else 0.0
+    return kept, {"rule": "coarse_end_trim_min_effective_q2_boxes", "threshold": float(threshold),
+                  "effective_q2_by_scale": [[float(s), e] for s, e in zip(ordered, effective)],
+                  "removed": ordered[:k].tolist(), "removed_count": int(k), "kept_count": int(len(kept)),
+                  "kept_span_decades": span, "below_one_decade": span < 1.0}
+
+
 def holm_adjust(p_values):
     """Familywise adjustment valid under dependence, for the declared family."""
     values = np.asarray(p_values, float)
@@ -352,7 +394,8 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
               "excluded_scales_m": sorted(set(requested.tolist()) - set(scales.tolist())),
               "grid_offsets": offsets.tolist(), "measure": "line length; no floor or zeta weighting",
               "curves": [], "q_results": [], "null": {"status": "not_requested", "p_value": None,
-              "statistic": "D0_minus_D2", "values": [], "replicates_requested": options.null_replicates},
+              "statistic": "D0_minus_D2", "values": [], "replicates_requested": options.null_replicates,
+              "tail": options.null_tail},
               "interpretation": "finite-range Renyi scaling diagnostics; not proof of fractality"}
     if not lines or coverage < options.min_coverage or not len(scales):
         reason = "no_line_support" if not lines else "low_coverage" if coverage < options.min_coverage else "no_resolved_scales"
@@ -360,6 +403,23 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
                                 "dimension": None, "margins": {}} for q in qs]
         report["null"]["status"] = "insufficient_information"
         return report
+    trim = None
+    if options.coarse_trim_min_effective_q2 > 0:
+        scales, trim = _trim_coarse(lines, boundary, scales, offsets,
+                                    options.coarse_trim_min_effective_q2, cancelled)
+        report["scale_trimming"] = trim
+        report["used_scales_m"] = scales.tolist()
+        report["excluded_scales_m"] = sorted(set(requested.tolist()) - set(scales.tolist()))
+        removed = set(trim["removed"])
+        for margin in report["scale_margins"]:
+            margin["coarse_trimmed"] = margin["scale_m"] in removed
+            margin["used"] = margin["used"] and not margin["coarse_trimmed"]
+        if not len(scales):
+            report["q_results"] = [{"q": float(q), "status": "insufficient_information",
+                                    "reasons": ["coarse_scale_trimming_below_one_decade"],
+                                    "dimension": None, "margins": {}} for q in qs]
+            report["null"]["status"] = "insufficient_information"
+            return report
     curves, effective, features = _curves(lines, boundary, scales, qs, offsets, cancelled, singularities=True)
     for k, q in enumerate(qs):
         origins = []
@@ -405,6 +465,9 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
     report["renyi_pair_order"] = _pair_order(report["q_results"])
     if not options.null_replicates:
         return report
+    if trim is not None and trim["below_one_decade"]:
+        report["null"]["status"] = "coarse_scale_trimming_below_one_decade"
+        return report
     if options.renyi_order_policy == "legacy_block" and report["renyi_dimension_order"]["status"] == "violated_beyond_tolerance":
         report["null"]["status"] = "inconsistent_renyi_dimension_order"
         return report
@@ -442,9 +505,14 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
         null["values"].append(float(dimensions[0] - dimensions[1]))
     if np.ptp(null["values"]) < 1e-10:
         null["status"] = "degenerate_null_no_p_value"
+    elif options.null_tail == "two_sided":
+        null.update(status="complete", minimum_p=2 / (options.null_replicates + 1),
+                    direction_vs_null_median=_direction(observed, null["values"]),
+                    **monte_carlo_two_sided(observed, null["values"]))
     else:
         null.update(status="complete", p_value=monte_carlo_tail(observed, null["values"]),
-                    minimum_p=1 / (options.null_replicates + 1))
+                    minimum_p=1 / (options.null_replicates + 1),
+                    direction_vs_null_median=_direction(observed, null["values"]))
     return report
 
 
@@ -458,8 +526,9 @@ def write_scaling_reports(output_dir, reports):
         null["p_holm"] = p if null["p_value"] is not None else None
         null["reject_relocation_at_0_05"] = bool(null["p_value"] is not None and p <= .05)
         b = null["replicates_requested"]
-        null["minimum_possible_holm_p"] = min(1.0, len(reports) / (b + 1)) if b else None
-        null["resolution_sufficient_for_family_at_0_05"] = bool(b and len(reports) / (b + 1) <= .05)
+        sides = 2 if null.get("tail", "upper") == "two_sided" else 1
+        null["minimum_possible_holm_p"] = min(1.0, sides * len(reports) / (b + 1)) if b else None
+        null["resolution_sufficient_for_family_at_0_05"] = bool(b and sides * len(reports) / (b + 1) <= .05)
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     payload = {"format": "musa-scaling-support", "version": 2, "supports": reports,

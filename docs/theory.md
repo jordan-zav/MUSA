@@ -209,6 +209,8 @@ $$
 p=\frac{1+\#\{T_{\rm sim}\ge T_{\rm obs}\}}{B+1}.
 $$
 
+Con la opción null_tail="two_sided" se informa p = min(1, 2 min(p_superior, p_inferior)), donde p_inferior cuenta las réplicas con T_sim ≤ T_obs; los empates cuentan en contra del rechazo y el p mínimo es 2/(B+1). La opción coarse_trim_min_effective_q2, desactivada con 0, retira escalas desde el extremo grueso, solo sobre el mapa observado y antes de cualquier réplica, hasta que la escala más gruesa conservada tenga al menos ese número de cajas efectivas con q=2. Si queda menos de una década, no se calcula el contraste.
+
 No se descartan simulaciones incómodas hasta obtener un resultado favorable. Si no se puede colocar una realización o falta respaldo de q0/q2, no se inventa un valor p. Holm corrige la familia de soportes del informe; una familia adicional de benchmarks debe identificarse por separado. Los q correlacionados no se cuentan como pruebas independientes nuevas.
 
 El contraste estudia heterogeneidad condicional bajo ese modelo de traslación. Un rechazo no demuestra multifractalidad y un no rechazo no prueba homogeneidad o ausencia de estructura. La calibración y potencia generales siguen pendientes.

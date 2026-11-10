@@ -198,6 +198,9 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
             "Outputs retain every q, including insufficient/unsupported fits. No best-range search. "
             "Renyi order policy defaults to the legacy spectrum veto. The optional q=0,2 warning "
             "does not veto the finite-range slope contrast; fit and curvature gates still apply. "
+            "The two-sided tail gives p = min(1, 2 min(upper, lower)), minimum 2/(B+1). "
+            "Coarse-end trimming (0=off) drops coarse scales with too few effective q=2 boxes "
+            "on the observed map before any replicate; less than one decade left means abstention. "
             "This independent tool does not require legacy spectrum fit acceptance."
         )
 
@@ -216,6 +219,12 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(
             "RENYI_ORDER_POLICY", "Renyi order policy",
             options=["Legacy: block on spectrum order", "Inform q=0,2: warning without order veto"], defaultValue=0))
+        self.addParameter(QgsProcessingParameterEnum(
+            "NULL_TAIL", "Monte Carlo tail of the D0-D2 test",
+            options=["Upper tail (legacy)", "Two-sided"], defaultValue=0))
+        self.addParameter(QgsProcessingParameterNumber(
+            "COARSE_TRIM", "Coarse-end trimming: minimum effective q=2 boxes (0=off)",
+            type=QgsProcessingParameterNumber.Double, defaultValue=0, minValue=0, maxValue=1e6))
         self.addParameter(QgsProcessingParameterNumber("SEED", "Random seed", type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
         self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
         self.addOutput(QgsProcessingOutputString("REPORT", "Scaling support JSON"))
@@ -233,6 +242,8 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                 scaling_null_replicates=self.parameterAsInt(parameters, "NULL_REPLICATES", context),
                 renyi_order_policy=("legacy_block", "inform_q0_q2")[
                     self.parameterAsEnum(parameters, "RENYI_ORDER_POLICY", context)],
+                scaling_null_tail=("upper", "two_sided")[self.parameterAsEnum(parameters, "NULL_TAIL", context)],
+                scaling_coarse_trim_min_effective_q2=self.parameterAsDouble(parameters, "COARSE_TRIM", context),
                 seed=self.parameterAsInt(parameters, "SEED", context),
             ).validate()
             self.snapshot = snapshot_sources(
@@ -263,9 +274,7 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
             try:
                 report = scaling.assess_lineament_scaling(
                     make_analyzer(self.snapshot, self.config), self.config.scaling_scales_m,
-                    scaling.ScalingOptions(self.config.scaling_resolution_m,
-                                           null_replicates=self.config.scaling_null_replicates, seed=self.config.seed,
-                                           renyi_order_policy=self.config.renyi_order_policy),
+                    self.config.scaling_options(),
                     cancelled=feedback.isCanceled, progress=feedback.pushInfo)
                 manifest["outputs"] = scaling.write_scaling_reports(output, [report])
                 check_cancelled(feedback.isCanceled)

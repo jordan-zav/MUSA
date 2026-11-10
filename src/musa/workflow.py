@@ -52,6 +52,15 @@ class RunConfig:
     scaling_null_replicates: int = 0
     scaling_window_limit: int = 25
     renyi_order_policy: str = "legacy_block"
+    scaling_null_tail: str = "upper"
+    scaling_coarse_trim_min_effective_q2: float = 0.0
+
+    def scaling_options(self):
+        from .scaling import ScalingOptions
+        return ScalingOptions(self.scaling_resolution_m, null_replicates=self.scaling_null_replicates,
+                              seed=self.seed, renyi_order_policy=self.renyi_order_policy,
+                              null_tail=self.scaling_null_tail,
+                              coarse_trim_min_effective_q2=float(self.scaling_coarse_trim_min_effective_q2))
 
     def validate(self):
         values = (
@@ -115,10 +124,10 @@ class RunConfig:
                 raise ValueError(f"{name} must be a boolean.")
         if self.renyi_order_policy not in ("legacy_block", "inform_q0_q2"):
             raise ValueError("Use renyi_order_policy='legacy_block' or 'inform_q0_q2'.")
+        if self.scaling_null_tail not in ("upper", "two_sided"):
+            raise ValueError("Use scaling_null_tail='upper' or 'two_sided'.")
         if self.scaling_support:
-            from .scaling import ScalingOptions
-            ScalingOptions(self.scaling_resolution_m, null_replicates=self.scaling_null_replicates,
-                           seed=self.seed, renyi_order_policy=self.renyi_order_policy).validate()
+            self.scaling_options().validate()
             if self.scaling_scales_m and (
                 len(self.scaling_scales_m) > 64 or not np.isfinite(self.scaling_scales_m).all()
                 or min(self.scaling_scales_m) <= 0 or len(set(self.scaling_scales_m)) != len(self.scaling_scales_m)
@@ -187,9 +196,7 @@ def execute_analysis(
         scaling_reports = []
         if config.scaling_support:
             from .scaling import ScalingOptions, assess_lineament_scaling, write_scaling_reports
-            scaling_options = ScalingOptions(config.scaling_resolution_m,
-                                             null_replicates=config.scaling_null_replicates, seed=config.seed,
-                                             renyi_order_policy=config.renyi_order_policy)
+            scaling_options = config.scaling_options()
             stage(2, "Assessing finite-range Renyi scaling; optional conditional spatial null")
             scaling_reports.append(assess_lineament_scaling(
                 analyzer, config.scaling_scales_m or scales, scaling_options,

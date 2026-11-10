@@ -225,12 +225,18 @@ class MusaDock(QDockWidget):
         self.scaling_order_policy = QComboBox()
         self.scaling_order_policy.addItem("Legacy: block on spectrum order", "legacy_block")
         self.scaling_order_policy.addItem("Inform q=0,2: warning without order veto", "inform_q0_q2")
+        self.scaling_null_tail = QComboBox()
+        self.scaling_null_tail.addItem("Upper tail (legacy)", "upper")
+        self.scaling_null_tail.addItem("Two-sided", "two_sided")
+        self.scaling_coarse_trim = _spin(0, 0, 1e6, 2)
         scaling.addRow(self.scaling_support)
         scaling.addRow("Observation resolution (m; required)", self.scaling_resolution)
         scaling.addRow("Box sizes (m)", self.scaling_scales)
         scaling.addRow("Trace-relocation null replicates (0=off; >=19)", self.scaling_null)
         scaling.addRow("Maximum windows to assess", self.scaling_limit)
         scaling.addRow("Renyi order policy", self.scaling_order_policy)
+        scaling.addRow("Null test tail", self.scaling_null_tail)
+        scaling.addRow("Coarse-end trimming: min effective q=2 boxes (0=off)", self.scaling_coarse_trim)
         note = QLabel("Tests fixed-interval Renyi Dq stability and curvature. Inform q=0,2 reports an order warning without blocking the finite-range slope contrast; all other gates remain. The optional null preserves trace shapes, lengths and orientations, but relocates them. A rejection concerns conditional spatial heterogeneity, not proof of multifractality. See also Processing: Assess Renyi scaling support, which runs independently of legacy fit acceptance.")
         note.setWordWrap(True)
         advanced.addWidget(note)
@@ -438,6 +444,8 @@ class MusaDock(QDockWidget):
             scaling_null_replicates=self.scaling_null.value(),
             scaling_window_limit=self.scaling_limit.value(),
             renyi_order_policy=self.scaling_order_policy.currentData(),
+            scaling_null_tail=self.scaling_null_tail.currentData(),
+            scaling_coarse_trim_min_effective_q2=self.scaling_coarse_trim.value(),
             **{key: box.isChecked() for key, box in self.options.items()},
         ).validate()
 
@@ -460,6 +468,7 @@ class MusaDock(QDockWidget):
             (self.scaling_resolution, config.scaling_resolution_m),
             (self.scaling_null, config.scaling_null_replicates),
             (self.scaling_limit, config.scaling_window_limit),
+            (self.scaling_coarse_trim, config.scaling_coarse_trim_min_effective_q2),
         ):
             widget.setValue(value)
         for widget, values in (
@@ -482,6 +491,7 @@ class MusaDock(QDockWidget):
         self.sensitivity.setChecked(config.zeta_sensitivity)
         self.scaling_support.setChecked(config.scaling_support)
         self.scaling_order_policy.setCurrentIndex(self.scaling_order_policy.findData(config.renyi_order_policy))
+        self.scaling_null_tail.setCurrentIndex(self.scaling_null_tail.findData(config.scaling_null_tail))
 
     def browse_output(self):
         path = QFileDialog.getExistingDirectory(self, "Choose output parent folder", self.output_root.text())

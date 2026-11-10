@@ -43,6 +43,14 @@ Defaults, all recorded in JSON:
 
 - Exclude boxes smaller than the declared observation resolution, or larger than
   one quarter of the smaller bounding-box dimension of the actual support.
+- Optional coarse-end trimming, off by default (coarse_trim_min_effective_q2 = 0).
+  With a positive threshold, scales are removed one by one from the coarse end,
+  on the observed support only and before any null replicate, until the coarsest
+  remaining scale has at least that many effective q = 2 boxes (minimum over the
+  four origins). Removed scales and the effective boxes of every scale are
+  recorded in scale_trimming. If less than one decade remains, the null is not
+  run and its status is coarse_scale_trimming_below_one_decade. The null
+  replicates use the retained scales.
 - Require at least 8 remaining box sizes spanning at least 1 order of magnitude,
   80% of a nominal window's area and at least 2 effective boxes at every scale
   and every tested origin for that q.
@@ -94,18 +102,32 @@ until its fit passes. A failed placement or insufficient simulated support
 prevents a p-value rather than triggering selective resampling. A degenerate
 null distribution also receives no p-value.
 
-The upper-tail Monte Carlo value is (1 + number of simulated contrasts at least
-as large as observed) / (B + 1), including ties. It tests placement-related
+By default the Monte Carlo value is upper-tailed: (1 + number of simulated
+contrasts at least as large as observed) / (B + 1), including ties. The option
+null_tail="two_sided" (Processing: Monte Carlo tail; Workbench: Null test tail)
+reports p = min(1, 2 min(p_upper, p_lower)), where p_lower counts simulated
+contrasts at most as large as observed; ties count against rejection in both
+tails. Both tails, and the side of the null median on which the observed
+contrast lies, are recorded. The minimum raw p is 1/(B+1) for the upper tail and
+2/(B+1) for the two-sided test. Either way the test concerns placement-related
 heterogeneity under this specific null, not the hypothesis that the network is
-multifractal. The minimum raw p is 1/(B+1).
+multifractal. Clustered and periodic alternatives often lower D0 minus D2 relative
+to the null, so the upper tail alone can have little power against them.
 
 Holm adjustment covers every requested support in the final report, including
 untestable supports conservatively counted as p=1. One contrast is tested per
 support, not independently for every q row. CSV repeats the same support p beside
 each q for convenience. Holm allows dependence; it does not correct subsequent
 manual searches across other runs, scale designs or null models. A report with
-m supports requires at least m/(B+1) <= 0.05 even to resolve a first Holm rejection
-at 0.05; JSON flags inadequate Monte Carlo resolution.
+m supports requires at least m/(B+1) <= 0.05 (2m/(B+1) <= 0.05 for the two-sided
+test) even to resolve a first Holm rejection at 0.05; JSON flags inadequate Monte
+Carlo resolution.
+
+The configuration calibrated in the accompanying simulation study uses
+renyi_order_policy="inform_q0_q2", null_tail="two_sided" and
+coarse_trim_min_effective_q2=4, with all other defaults unchanged. Those
+calibration results apply to that configuration and to the inventories studied,
+not to every map or setting.
 
 ## Outputs and reproduction
 
