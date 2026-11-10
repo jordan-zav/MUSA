@@ -143,6 +143,14 @@ requiere validación externa apropiada.
 El paquete está en src/musa, los ejemplos en examples y las pruebas en tests.
 Los resultados generados y experimentos locales se excluyen del control de versiones.
 
+## Cómo citar
+
+Si usas MUSA, cita la versión que utilizaste:
+
+> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (versión 1.1.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099091
+
+El DOI general [10.5281/zenodo.24099090](https://doi.org/10.5281/zenodo.24099090) apunta siempre a la última versión. El botón "Cite this repository" de GitHub usa [CITATION.cff](CITATION.cff).
+
 ## Licencia y contacto
 
 [GNU GPL v3](LICENSE), con fuente de las releases disponible en el repositorio.

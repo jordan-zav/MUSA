@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://doi.org/10.5281/zenodo.24099090"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.24099090.svg"></a>
   <a href="https://github.com/jordan-zav/MUSA/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/jordan-zav/MUSA?display_name=tag&style=flat-square"></a>
   <a href="https://github.com/jordan-zav/MUSA/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/jordan-zav/MUSA/total?style=flat-square"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
@@ -208,6 +209,14 @@ Automated tests cover the global and
 local spectra, zeta formula, interface modes, GIS packaging, structural metrics
 and synthetic cases. External geological validation remains dataset-specific:
 a stable numerical fit or high zeta weight is not proof of a geological process.
+
+## How to cite
+
+If you use MUSA, please cite the version you used:
+
+> Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.1.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24099091
+
+The concept DOI [10.5281/zenodo.24099090](https://doi.org/10.5281/zenodo.24099090) always points to the latest version. GitHub's "Cite this repository" button uses [CITATION.cff](CITATION.cff).
 
 ## License
 

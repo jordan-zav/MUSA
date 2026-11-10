@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use MUSA, please cite the exact version you used, as below."
+type: software
+title: "MUSA: Multifractal Spectrum Analyzer"
+abstract: >-
+  QGIS plugin and Python library for fractal and multifractal analysis of
+  fault, fracture and lineament maps. It computes Renyi dimensions and
+  Chhabra-Jensen spectra from the exact trace length in each grid cell,
+  checks whether a finite-range scaling estimate is supported before reporting
+  it, and offers a Monte Carlo test that relocates the observed traces within
+  the mapped area.
+authors:
+  - family-names: Zavaleta
+    given-names: Jordan
+    affiliation: "Universidad Nacional de Ingeniería"
+version: "1.1.0"
+date-released: "2026-11-10"
+doi: "10.5281/zenodo.24099091"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24099090"
+    description: "Concept DOI: always resolves to the latest version."
+  - type: doi
+    value: "10.5281/zenodo.24099091"
+    description: "DOI of version 1.1.0."
+license: GPL-3.0-or-later
+repository-code: "https://github.com/jordan-zav/MUSA"
+url: "https://github.com/jordan-zav/MUSA"
+keywords:
+  - multifractal analysis
+  - fractal dimension
+  - Renyi dimensions
+  - box counting
+  - lineaments
+  - faults
+  - fractures
+  - structural geology
+  - QGIS
