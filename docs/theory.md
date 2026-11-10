@@ -1,6 +1,6 @@
 # Teoría y metodología de MUSA
 
-Referencia del código experimental 1.0.0, revisada el 2 de noviembre de 2026. El motor Python y el plugin QGIS usan estas operaciones; las rutas descriptiva y de diagnóstico aplican criterios distintos. Esta referencia sustituye las notas antiguas mezcladas con controles de la interfaz Tk.
+Referencia de MUSA 1.1.1, revisada el 2 de noviembre de 2026. El motor Python y el plugin QGIS usan estas operaciones; las rutas descriptiva y de diagnóstico aplican criterios distintos. Esta referencia sustituye las notas antiguas mezcladas con controles de la interfaz Tk.
 
 ## 1. Dominio, medida y escalas
 

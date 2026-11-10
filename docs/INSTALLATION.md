@@ -1,6 +1,6 @@
 # Instalación y formas de ejecución
 
-Referencia de MUSA 1.1.1, la primera release del plugin de QGIS. Las releases de escritorio 1.0.0 y 1.0.1 siguen en el historial de GitHub.
+Referencia de MUSA 1.1.1, la primera release del plugin de QGIS.
 
 ## Elegir una ruta
 

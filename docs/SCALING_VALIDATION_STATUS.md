@@ -1,7 +1,6 @@
 # Alcance de la validación matemática de MUSA
 
-Revisión actualizada el 2 de noviembre de 2026. Versión de desarrollo solicitada:
-1.0.0. No constituye una revisión por pares ni una certificación matemática.
+Revisión del 2 de noviembre de 2026, vigente para MUSA 1.1.1. No constituye una revisión por pares ni una certificación matemática.
 
 ## Qué calcula y comprueba actualmente
 

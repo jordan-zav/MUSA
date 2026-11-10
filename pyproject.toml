@@ -53,6 +53,8 @@ musa = ["assets/*.png", "assets/styles/*.qml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+norecursedirs = ["data", "dist", "build", "outputs", "temp", ".git"]
 
 [tool.ruff]
 target-version = "py310"

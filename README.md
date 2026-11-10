@@ -89,8 +89,8 @@ See the [QGIS guide](docs/QGIS.md) for dependencies, recipes, Processing and lim
 The plugin uses the Python packages supplied by your QGIS installation and does
 not install or replace interpreter dependencies.
 
-The older standalone build remains in [release history](https://github.com/jordan-zav/MUSA/releases).
-Its launchers are retained as legacy source; QGIS is the primary interface.
+The former Tk desktop interface remains in the source (musa-ui) as legacy code;
+it is no longer distributed as an executable. QGIS is the primary interface.
 
 ## Python API installation
 
@@ -198,9 +198,7 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 ## Project status
 
 MUSA 1.1.1 is the current public release and the first QGIS plugin release.
-The 1.0.x desktop releases remain available in the release history.
-See [development status](docs/DEVELOPMENT_STATUS.md) for executed checks and the
-[mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
+See the [mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
 current scaling diagnostics can establish.
 The [extended public-data benchmarks](docs/EXTENDED_BENCHMARKS.md) add original
 vectors, author model examples and identified image derivatives, with explicit

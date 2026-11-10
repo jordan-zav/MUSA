@@ -3,23 +3,20 @@
 Empieza por la ruta que necesitas: [instalación](INSTALLATION.md),
 [motor y QGIS](ARCHITECTURE.md) o [API Python sin QGIS](PYTHON_API.md).
 La referencia matemática vigente es [theory.md](theory.md).
-El código experimental es 1.0.0; fuente publicada, paquete instalado,
-release GitHub y publicación PyPI son estados distintos.
+Versión actual: MUSA 1.1.1. La publicación en PyPI sigue pendiente.
 
 ## Archivos principales
 
 | Archivo | Rol |
 | --- | --- |
 | [USER_GUIDE.es.md](USER_GUIDE.es.md) | Manual ilustrado en español: instalación, ejemplo, resultados, scroll y exportación |
-| [UI_VALIDATION.md](UI_VALIDATION.md) | Comprobaciones de uso habitual y límites de la revisión de interfaz |
 | [INSTALLATION.md](INSTALLATION.md) | Instalación desde Git, ZIP QGIS, dependencias y estado de PyPI/terminal |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Responsabilidades del núcleo, flujo común e instantánea privada del plugin |
 | [PYTHON_API.md](PYTHON_API.md) | Puntos, líneas, recetas, diagnóstico independiente y lectores de resultados |
 | [OUTPUTS.md](OUTPUTS.md) | Archivos, columnas, unidades, estados y uniones de tablas |
-| theory.md | Referencia tecnica del algoritmo global, local, zeta y salidas |
-| references.md | Referencias cientificas publicas |
-| DEVELOPMENT_STATUS.md | Alcance neutral del software y estado de desarrollo |
-| QGIS.md | Instalación del plugin, panel en inglés, recetas y Processing |
+| [theory.md](theory.md) | Referencia técnica del algoritmo global, local, zeta y salidas |
+| [references.md](references.md) | Referencias científicas públicas |
+| [QGIS.md](QGIS.md) | Instalación del plugin, panel en inglés, recetas y Processing |
 | [SCALING_SUPPORT.md](SCALING_SUPPORT.md) | Criterios del diagnóstico independiente de escalamiento |
 | [SPECTRA.md](SPECTRA.md) | Fuentes analysis/assessment y referencias de singularidad |
 | [moving_windows.md](moving_windows.md) | Ventanas solapadas, orígenes y topología |
@@ -30,11 +27,8 @@ release GitHub y publicación PyPI son estados distintos.
 | [NEGATIVE_Q.md](NEGATIVE_Q.md) | Evaluación de q negativos con verdad conocida; el piso lleva los q negativos a D0 |
 | [GRID_GEOMETRY.md](GRID_GEOMETRY.md) | Experimento: celdas cuadradas frente a hexagonales y rotación de la malla; prototipo fuera del motor |
 | [AUTHOR_BENCHMARKS.md](AUTHOR_BENCHMARKS.md) | Primera suite de controles y mapas de autores |
-| [EXTENDED_BENCHMARK_PLAN.md](EXTENDED_BENCHMARK_PLAN.md) | Registro del plan ejecutado, no manual de usuario |
-| [revision_ventanas_moviles.md](revision_ventanas_moviles.md) | Diagnóstico histórico de septiembre; no contrato actual |
 
-Los documentos históricos y planes conservados en Git describen decisiones y
-evidencias; no sustituyen las guías actuales. Los borradores locales, originales
+Los borradores locales, originales
 de autores, bitácoras de descarga y resultados voluminosos permanecen fuera del
 paquete del plugin. La presencia de un archivo en Git no implica que el
 constructor del ZIP lo incluya.

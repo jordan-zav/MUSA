@@ -18,9 +18,9 @@ Plugins > Install from ZIP and select the archive. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
 MUSA 1.1.1 is the first QGIS plugin release; the ZIP is attached to the
-v1.1.1 GitHub release. The historical release tags are unchanged.
-Metadata targets QGIS 3.34–3.99. Actual runtime validation is recorded in the
-development status; metadata does not imply all versions have been tested.
+v1.1.1 GitHub release.
+Metadata targets QGIS 3.34–3.99. The release was tested on QGIS 3.44.12;
+metadata does not imply all versions have been tested. QGIS 4 is not yet supported.
 The plugin bundles its own core, without changing global Python import paths.
 
 NumPy, SciPy, Shapely and Matplotlib must be available in QGIS's Python runtime.

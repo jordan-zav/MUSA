@@ -126,11 +126,9 @@ pip install -e ".[gis,fast]"
 
 ## Estado y límites
 
-La release pública actual es 1.1.1, la primera del plugin de QGIS. Las releases
-de escritorio 1.0.x siguen disponibles en el historial de releases.
+La release pública actual es 1.1.1, la primera del plugin de QGIS.
 Consulta el [alcance de la validación matemática](docs/SCALING_VALIDATION_STATUS.md):
 los filtros actuales no demuestran por sí solos fractalidad ni multifractalidad.
-Consulta el [estado de desarrollo](docs/DEVELOPMENT_STATUS.md) para las verificaciones ejecutadas.
 La [validación ampliada con datos publicados](docs/EXTENDED_BENCHMARKS.md)
 incluye Åland, Loviisa, Bristol, ejemplos de HatchFrac/FracPaQ, derivados de
 Hornelen y una selección FraXet, con procedencia, controles analíticos y límites

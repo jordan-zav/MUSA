@@ -1,6 +1,6 @@
 # Validación ampliada con datos publicados
 
-Trabajo local del 2 de noviembre de 2026. El [plan](EXTENDED_BENCHMARK_PLAN.md) se implementa mediante scripts de descarga, adaptadores, análisis, comprobación nativa en QGIS y consolidación de evidencias. Los originales y resultados permanecen fuera del plugin y del repositorio.
+Trabajo del 2 de noviembre de 2026, implementado mediante scripts de descarga, adaptadores, análisis, comprobación nativa en QGIS y consolidación de evidencias. Los originales y resultados permanecen fuera del plugin y del repositorio.
 
 ## Qué se implementó
 

@@ -1,6 +1,6 @@
 # Finite-range Rényi scaling support
 
-Experimental feature in the local QGIS 1.0.0 development package. Dq denotes
+Feature of MUSA 1.1.1; still marked experimental in the interface. Dq denotes
 generalized Rényi dimensions: D0 capacity, D1 information and D2 correlation.
 They are different orders of one planar length measure, not added spatial axes.
 
