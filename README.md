@@ -41,8 +41,9 @@ Installation with pip from GitHub is available. PyPI publication and a general
 installed recipe-running CLI remain pending. The existing musa-ui entry point
 opens the legacy Tk interface; it is not the QGIS workbench or a headless runner.
 
-The local QGIS plugin is experimental and now uses version 1.0.0 at the maintainer's request. The latest public release remains 1.0.1;
-the conversion source is on GitHub, while this new QGIS package is not a published release.
+MUSA 1.1.0 is the first QGIS plugin release. Download musa_qgis-1.1.0.zip from the
+[latest release](https://github.com/jordan-zav/MUSA/releases/latest) and install it with
+Plugins > Manage and Install Plugins > Install from ZIP.
 
 ![MUSA workbench in a real QGIS runtime with synthetic data](docs/images/qgis_musa_workbench.png)
 
@@ -196,9 +197,8 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 
 ## Project status
 
-MUSA 1.0.1 is the current public release; the experimental QGIS development
-version is 1.0.0 by the maintainer's request. Historical release tags are retained.
-The QGIS source is committed and published; a new QGIS release has not been issued.
+MUSA 1.1.0 is the current public release and the first QGIS plugin release.
+The 1.0.x desktop releases remain available in the release history.
 See [development status](docs/DEVELOPMENT_STATUS.md) for executed checks and the
 [mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
 current scaling diagnostics can establish.
