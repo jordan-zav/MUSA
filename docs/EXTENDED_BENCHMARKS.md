@@ -43,17 +43,17 @@ En redes naturales y figuras, cada observable tiene su propio estado. Que D0 sea
 
 ## Reproducción
 
-Ejecutar los comandos mediante DEVRESOURCES_RUN.cmd. Las descargas usan D:/DevResources/Shared/MUSA-benchmarks. Para repetir el análisis con los originales disponibles, elegir una carpeta nueva:
+Ejecutar los comandos desde la raíz del repositorio. Las descargas usan data/benchmarks, o la carpeta indicada por MUSA_BENCHMARK_DATA. Para repetir el análisis con los originales disponibles, elegir una carpeta nueva:
 
 ~~~text
 python -m pip install -e ".[benchmarks]"
-python scripts/extended_benchmark_inputs.py D:/DevResources/Sessions/NUEVA_SESION
-python scripts/run_extended_benchmarks.py D:/DevResources/Sessions/NUEVA_SESION
-python scripts/add_interior_benchmark_windows.py D:/DevResources/Sessions/NUEVA_SESION
-scripts/run_qgis_python.cmd scripts/qgis_extended_benchmarks.py D:/DevResources/Sessions/NUEVA_SESION dist/qgis/ZIP_VALIDADO.zip
-python scripts/report_extended_benchmarks.py D:/DevResources/Sessions/NUEVA_SESION
+python scripts/extended_benchmark_inputs.py RESULTADOS
+python scripts/run_extended_benchmarks.py RESULTADOS
+python scripts/add_interior_benchmark_windows.py RESULTADOS
+scripts/run_qgis_python.cmd scripts/qgis_extended_benchmarks.py RESULTADOS dist/qgis/ZIP_VALIDADO.zip
+python scripts/report_extended_benchmarks.py RESULTADOS
 ~~~
 
-Definir MUSA_QGIS_ROOT con la instalación existente antes del paso QGIS. La preparación conserva supuestos e inventarios; el ejecutor verifica hashes de entrada y rechaza reanudar con parámetros diferentes. El informe final conserva CSV de soportes, resúmenes espectrales, comparación ráster/vector, manifiestos y evidencias QGIS. La ruta de la ejecución comprobada es D:/DevResources/Sessions/MUSA-extended-benchmarks-20261102_143812.
+Definir MUSA_QGIS_ROOT con la instalación existente antes del paso QGIS. La preparación conserva supuestos e inventarios; el ejecutor verifica hashes de entrada y rechaza reanudar con parámetros diferentes. El informe final conserva CSV de soportes, resúmenes espectrales, comparación ráster/vector, manifiestos y evidencias QGIS. La ejecución comprobada es la sesión MUSA-extended-benchmarks-20261102_143812, archivada por el mantenedor.
 
 Ver fuentes primarias y alcance de cada método en README.md de la entrega. Los algoritmos completos de wavelets de Ouillon y el programa MATLAB de De Souza/Rostirolla no se incorporaron a MUSA; sus artículos orientan las comprobaciones de rango y muestreo. No se publicó una release.

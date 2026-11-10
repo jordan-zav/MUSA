@@ -263,7 +263,7 @@ GeoCrack: se obtuvo metadato de DataCite, con licencia de dataset CC0; Harvard D
 
 ## Reproducir
 
-Usar DEVRESOURCES_RUN.cmd desde el repositorio. Scripts principales: discover_extended_benchmarks.py, fetch_extended_benchmarks.py, resolve_extended_sources.py, fetch_selected_masks.py, fetch_hatchfrac_inputs.py, fetch_hornelen_figures.py, extended_benchmark_inputs.py, run_extended_benchmarks.py, qgis_extended_benchmarks.py y report_extended_benchmarks.py. Cada preparación debe usar una carpeta nueva; el ejecutor permite reanudar casos completados con entradas coincidentes. Los originales se conservan en D:/DevResources/Shared/MUSA-benchmarks. Los datos no se incluyen en el plugin.
+Ejecutar desde la raíz del repositorio. Scripts principales: discover_extended_benchmarks.py, fetch_extended_benchmarks.py, resolve_extended_sources.py, fetch_selected_masks.py, fetch_hatchfrac_inputs.py, fetch_hornelen_figures.py, extended_benchmark_inputs.py, run_extended_benchmarks.py, qgis_extended_benchmarks.py y report_extended_benchmarks.py. Cada preparación debe usar una carpeta nueva; el ejecutor permite reanudar casos completados con entradas coincidentes. Los originales se conservan en data/benchmarks o en MUSA_BENCHMARK_DATA. Los datos no se incluyen en el plugin.
 
 Ejecutar add_interior_benchmark_windows.py después del análisis inicial y antes de QGIS para reproducir la comparación con ventanas interiores. representation_comparison.csv contrasta descripciones ráster y vectoriales de las máscaras/figuras, sin equiparar ambas medidas.
 """
@@ -277,7 +277,7 @@ Ejecutar add_interior_benchmark_windows.py después del análisis inicial y ante
     for name in ("geocrack_datacite.json", "bristol_doi.json", "aland_zenodo.json", "loviisa.json", "fraxet.json"):
         shutil.copy2(RAW / "extended_metadata" / name, sources_out / name)
     shutil.copy2(RAW / "fracpaq/original/LICENSE", sources_out / "FracPaQ_LICENSE.txt")
-    (root / "prior_suite.json").write_text(json.dumps(dict(path="D:/DevResources/Sessions/MUSA-author-benchmarks-20261102_135150", scope="earlier 20 author-map/control cases, not rerun or counted as additional independent sites here"), indent=2), encoding="utf-8")
+    (root / "prior_suite.json").write_text(json.dumps(dict(session="MUSA-author-benchmarks-20261102_135150", scope="earlier 20 author-map/control cases, not rerun or counted as additional independent sites here"), indent=2), encoding="utf-8")
     print("REPORT COMPLETE", evidence, flush=True)
     if args.archive:
         archive_delivery(root)

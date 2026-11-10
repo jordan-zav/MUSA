@@ -1,6 +1,7 @@
 """Explicit adapters for public vectors, MATLAB graphs and mask derivatives."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -19,7 +20,7 @@ from shapely.ops import unary_union
 from musa.network import _iter_line_parts
 from run_author_benchmarks import CRS_WKT, cantor, expected_cantor
 
-RAW = Path("D:/DevResources/Shared/MUSA-benchmarks")
+RAW = Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks"))
 
 
 class EmptyObservedNetwork(ValueError):

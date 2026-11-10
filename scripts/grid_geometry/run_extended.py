@@ -21,7 +21,7 @@ from hex_partition import hex_masses, spacing_from_eps, SQ3  # noqa: E402
 
 # Prepared inputs from scripts/extended_benchmark_inputs.py (see docs/EXTENDED_BENCHMARKS.md).
 BENCH = Path(os.environ.get("MUSA_BENCH_DATASETS",
-                            r"D:\DevResources\Sessions\MUSA-extended-benchmarks-20261102_143812\datasets"))
+                            Path(__file__).resolve().parents[2] / "data/extended_datasets"))
 REAL = ["aland_ahvenanmaa_integrated_lineaments_1_200000_traces", "aland_ahvenanmaa_lidar_lineaments_1_200000_traces",
         "loviisa_kb11", "loviisa_og1", "loviisa_kl5", "fracpaq_map1_edit_converted",
         "hatchfrac_fractures", "hornelen_fig7_map1"]

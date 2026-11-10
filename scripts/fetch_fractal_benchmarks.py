@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import time
 import zipfile
@@ -55,7 +56,7 @@ def extract_verified(archive, target):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, default=Path("D:/DevResources/Shared/MUSA-benchmarks"))
+    parser.add_argument("--root", type=Path, default=Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks")))
     args = parser.parse_args()
     args.root.mkdir(parents=True, exist_ok=True)
     # Fetch independent sources first so a 4TU outage does not prevent the

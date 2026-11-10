@@ -109,4 +109,4 @@ La construcción debe respetar el aislamiento de pip y el requisito setuptools >
 
 ## Entorno local del mantenedor
 
-En el workspace Windows del mantenedor, anteponer DEVRESOURCES_RUN.cmd a las órdenes de desarrollo. Ese lanzador administra recursos y bloqueos de esa PC; no es una dependencia de usuarios de MUSA. Los scripts de comprobación nativa usan scripts/run_qgis_python.cmd y MUSA_QGIS_ROOT, exclusivamente para desarrollo.
+Las órdenes de desarrollo se ejecutan desde la raíz del repositorio. Los scripts de comprobación nativa usan scripts/run_qgis_python.cmd y MUSA_QGIS_ROOT, exclusivamente para desarrollo.

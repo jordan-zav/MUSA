@@ -76,7 +76,7 @@ Executed validation:
   preservation of a host Matplotlib backend.
 - Ruff passed for source, tests, plugin and builder.
 - Installable ZIP exercised with QGIS 3.44.12 and Qt offscreen in a temporary
-  profile under D:/DevResources/Sessions. No real user profile was modified.
+  profile in a temporary session folder. No real user profile was modified.
 - Processing registration/execution, recipes, output hashes, metric GeoPackage
   CRS and global spectrum values checked against the shared core.
 - Memory inputs, selected lines, source reprojection and rejection of geographic
@@ -125,7 +125,7 @@ Validation repeated on this PC for the requested numbering:
 - GDAL emitted informational unsupported TIMESTAMP field-format warnings during
   moving-window export. The output checks passed; exact timestamp-field metadata
   preservation was not assessed by these tests.
-- Evidence: D:/DevResources/Sessions/MUSA-d2fef40d2e/20261101_175006_46717c1baed54740a44dd5418f059779/qgis_smoke/validation.json.
+- Evidence: qgis_smoke/validation.json from the 1 November 2026 smoke run, archived by the maintainer.
 
 The version change, documentation clarifications and new ZIP remain local. No
 commit, push, release or replacement of the historical v1.0.0 tag was performed.
@@ -169,9 +169,9 @@ Validation performed:
   0.0011–0.2112; this pilot does not establish general size or detection power.
 
 Native evidence:
-D:/DevResources/Sessions/MUSA-d2fef40d2e/20261101_180752_304fe920bc784e32a4c3cab4d2c07551/qgis_smoke/validation.json.
+qgis_smoke/validation.json from the 1 November 2026 smoke run, archived by the maintainer.
 Numerical pilot:
-D:/DevResources/Sessions/MUSA-scaling-20261101_180055/validation.json.
+validation.json of session MUSA-scaling-20261101_180055, archived by the maintainer.
 Screenshots and a computed-control figure are in docs/images. A final package
 can include updated documentation/images without changing the validated Python
 runtime; its build manifest allows checking that identity.
@@ -215,7 +215,7 @@ Validation:
   refusing incomplete runs, old-cache absence and unload during an active task.
   The final process returned 0. No normal user profile was changed.
 - Native evidence:
-  D:/DevResources/Sessions/MUSA-d2fef40d2e/20261102_131840_c790f10b7409435a9a795fce561e0d6a/qgis_smoke/validation.json.
+  qgis_smoke/validation.json from the 2 November 2026 smoke run, archived by the maintainer.
 - Runtime-tested package: dist/qgis/musa_qgis_1.0.0_20261102T181840061269Z.zip.
   Final documentation/screenshot package:
   dist/qgis/musa_qgis_1.0.0_20261102T182048621537Z.zip.

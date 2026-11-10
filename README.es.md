@@ -52,7 +52,7 @@ Genera el paquete desde el repositorio:
 
     python scripts/build_qgis_plugin.py
 
-En este workspace Windows usa DEVRESOURCES_RUN.cmd antes del comando.
+Ejecuta las órdenes de desarrollo desde la raíz del repositorio.
 En QGIS abre Complementos > Administrar e instalar complementos > Instalar
 a partir de ZIP y selecciona el paquete de dist/qgis. Abre después
 Vector > MUSA > MUSA Workbench.

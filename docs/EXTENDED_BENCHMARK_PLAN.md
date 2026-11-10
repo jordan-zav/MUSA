@@ -9,7 +9,7 @@ Fecha: 2026-11-02. Trabajo local autorizado por el usuario; conservar cambios ex
 5. QGIS. Crear proyectos portables por familia de coordenadas/datos; verificar capas, tablas, apertura del visor y procesamiento representativo en QGIS 3.44.12. Revisar visualmente mapas y curvas sin modificar el perfil habitual del usuario.
 6. Calidad y entrega. Ejecutar pruebas relevantes y Ruff; corregir defectos demostrados. Preparar informes en español, inventario completo de estados, figuras y ZIP verificado con hashes. Distinguir pruebas completadas, límites científicos y bloqueos externos.
 
-Código y scripts: O:/0. Projects/0. Other Projects/MUSA. Originales públicos: D:/DevResources/Shared/MUSA-benchmarks. Resultados: una sesión nueva dentro de D:/DevResources/Sessions. Utilizar DEVRESOURCES_RUN.cmd para comandos de desarrollo y los lanzadores QGIS existentes.
+Código y scripts: este repositorio. Originales públicos: data/benchmarks o MUSA_BENCHMARK_DATA. Resultados: una carpeta de sesión nueva. Utilizar scripts/run_qgis_python.cmd para los pasos de QGIS.
 
 ## Ejecución
 
@@ -17,4 +17,4 @@ Fases 1–5 completadas: inventario y adaptadores; 67 casos procesados sin error
 
 GeoCrack quedó en metadatos por HTTP403/verificación antibot de Harvard Dataverse; no se afirma descargar sus máscaras. Zhu sigue identificado como coordenadas no descargadas. Se documenta selección FraXet parcial, variantes relacionadas y límites de inferencia en EXTENDED_BENCHMARKS.md. Los artículos orientan comparaciones; no se incorporan algoritmos ajenos enteros que no formen parte del alcance.
 
-Fase 6 completada: 53 pruebas dirigidas y Ruff correctos; informe, inventarios, figuras y archivo ZIP verificado. Se comprobaron hashes de 67 entradas y 498 archivos de resultados, además del CRC del ZIP. Evidencias finales en D:/DevResources/Sessions/MUSA-extended-benchmarks-20261102_143812. ZIP: 34.847.311 bytes; SHA256 f541d903efef30b513c066ac15ea506be55c0e912522f36c30264076b8d4630d. Los resultados no certifican fractalidad universal ni se publican como release.
+Fase 6 completada: 53 pruebas dirigidas y Ruff correctos; informe, inventarios, figuras y archivo ZIP verificado. Se comprobaron hashes de 67 entradas y 498 archivos de resultados, además del CRC del ZIP. Evidencias finales en la sesión MUSA-extended-benchmarks-20261102_143812, archivada por el mantenedor. ZIP: 34.847.311 bytes; SHA256 f541d903efef30b513c066ac15ea506be55c0e912522f36c30264076b8d4630d. Los resultados no certifican fractalidad universal ni se publican como release.

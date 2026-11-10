@@ -10,6 +10,7 @@ import math
 import os
 from pathlib import Path
 import sys
+import tempfile
 import time
 import zipfile
 
@@ -23,7 +24,7 @@ parser.add_argument("output", type=Path)
 args = parser.parse_args()
 root = args.output.resolve()
 root.mkdir(parents=True, exist_ok=False)
-session = Path(os.environ["DEVRESOURCES_SESSION"]) / "fault_demo"
+session = Path(tempfile.mkdtemp(prefix="musa_")) / "fault_demo"
 session.mkdir()
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QGIS_CUSTOM_CONFIG_PATH"] = str(session / "profile")
@@ -247,7 +248,7 @@ assert project.write()
 with zipfile.ZipFile(root / "MUSA_synthetic_faults.qgz") as archive:
     xml = archive.read(next(name for name in archive.namelist() if name.endswith(".qgs"))).decode("utf-8")
     assert "./dataset/synthetic_faults.gpkg" in xml
-    assert "DevResources" not in xml
+    assert str(session) not in xml and str(root) not in xml
 
 with (output / "multifractal_mother_agg.csv").open(newline="", encoding="utf-8") as file:
     local = list(csv.DictReader(file))

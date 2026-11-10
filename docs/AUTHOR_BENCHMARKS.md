@@ -23,18 +23,18 @@ Las escalas se fijan antes del ajuste considerando resolución, corte inferior d
 
 ## Reproducción y entrega
 
-Ejecutar desde el repositorio mediante DEVRESOURCES_RUN.cmd:
+Ejecutar desde la raíz del repositorio. Los originales se descargan en data/benchmarks (o en la carpeta indicada por MUSA_BENCHMARK_DATA); RESULTADOS es una carpeta nueva:
 
 ~~~text
-python scripts/fetch_fractal_benchmarks.py --root D:/DevResources/Shared/MUSA-benchmarks
-python scripts/run_author_benchmarks.py --output D:/DevResources/Sessions/NUEVA_SESION
-python scripts/package_author_benchmarks.py D:/DevResources/Sessions/NUEVA_SESION
-scripts/run_qgis_python.cmd scripts/qgis_author_benchmarks.py D:/DevResources/Sessions/NUEVA_SESION dist/qgis/ZIP_VALIDADO.zip
+python scripts/fetch_fractal_benchmarks.py --root data/benchmarks
+python scripts/run_author_benchmarks.py --output RESULTADOS
+python scripts/package_author_benchmarks.py RESULTADOS
+scripts/run_qgis_python.cmd scripts/qgis_author_benchmarks.py RESULTADOS dist/qgis/ZIP_VALIDADO.zip
 ~~~
 
 Para el último comando, definir MUSA_QGIS_ROOT con la instalación existente de QGIS. Si Zhu no está accesible, el primer comando conserva el suplemento verificado de Sahu/Roy y termina con error explícito; los siguientes comandos usan el suplemento disponible sin inventar datos de Zhu.
 
-Entrega comprobada: D:/DevResources/Sessions/MUSA-author-benchmarks-20261102_135150. Incluye GeoPackage combinado, archivos por caso, proyecto QGIS con rutas relativas, resultados globales/ventanas, cachés de espectros, comparación analítica, originales y atribución. Los archivos físicos por caso evitan la consulta de subconjuntos compartidos de GeoPackage que falló en el proveedor de esta instalación de QGIS; no se cambiaron las geometrías para resolverlo.
+Entrega comprobada: sesión MUSA-author-benchmarks-20261102_135150, archivada por el mantenedor. Incluye GeoPackage combinado, archivos por caso, proyecto QGIS con rutas relativas, resultados globales/ventanas, cachés de espectros, comparación analítica, originales y atribución. Los archivos físicos por caso evitan la consulta de subconjuntos compartidos de GeoPackage que falló en el proveedor de esta instalación de QGIS; no se cambiaron las geometrías para resolverlo.
 
 El proyecto se creó y reabrió en QGIS 3.44.12: 60 capas válidas, CRS de modelo aceptado y visor del plugin cargando una ejecución completada. Se utilizó estado temporal aislado sin modificar el perfil normal del usuario. Esto comprueba la carga y visualización nativa; no implica que se haya repetido la suite entera mediante Processing.
 

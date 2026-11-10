@@ -42,7 +42,7 @@ mejor; esa segunda afirmación es la que se pone a prueba aquí.
 
 ## Resultados
 
-Ejecución verificada: D:/DevResources/Sessions/MUSA-hex-extended-20261107_195052
+Ejecución verificada: sesión MUSA-hex-extended-20261107_195052, archivada por el mantenedor
 (64 configuraciones por caso y promedio de cuatro orígenes).
 
 | Caso | Cambio del RMSE del hexágono frente al cuadrado, q >= 0 | Observación |
@@ -66,7 +66,7 @@ redes poligonales un sesgo de +0,06 frente a D = 1.
 
 ## Rotación de la malla cuadrada
 
-Ejecución verificada: D:/DevResources/Sessions/MUSA-rotation-vs-hex-20261107_204652.
+Ejecución verificada: sesión MUSA-rotation-vs-hex-20261107_204652, archivada por el mantenedor.
 Todos los estimadores tienen el mismo costo: cuatro particiones cuyas curvas
 de entropía se promedian antes de ajustar una sola pendiente.
 
@@ -124,12 +124,12 @@ suite de tests del repositorio. Nada de esto establece validez geológica.
 
 ## Reproducción
 
-Ejecutar mediante DEVRESOURCES_RUN.cmd y elegir una carpeta nueva:
+Ejecutar desde la raíz del repositorio y elegir una carpeta nueva (RESULTADOS):
 
 ~~~text
-python scripts/grid_geometry/run_hex_vs_square.py D:/DevResources/Sessions/NUEVA_SESION
-python scripts/grid_geometry/run_extended.py D:/DevResources/Sessions/NUEVA_SESION
-python scripts/grid_geometry/run_rotation.py D:/DevResources/Sessions/NUEVA_SESION
+python scripts/grid_geometry/run_hex_vs_square.py RESULTADOS
+python scripts/grid_geometry/run_extended.py RESULTADOS
+python scripts/grid_geometry/run_rotation.py RESULTADOS
 ~~~
 
 Los dos últimos necesitan las entradas preparadas de la suite ampliada. Su ruta

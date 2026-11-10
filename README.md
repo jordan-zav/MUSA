@@ -114,7 +114,7 @@ Use a new output directory to run the complete synthetic workflow without QGIS:
 See the installation guide for activation on Linux/macOS and direct installation
 from Git without cloning. The example uses synthetic, unlocated model coordinates.
 
-In this managed Windows workspace, run development commands through DEVRESOURCES_RUN.cmd.
+Run the development commands from the repository root.
 
 ## Quick Python example
 

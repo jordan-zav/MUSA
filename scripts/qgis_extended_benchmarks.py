@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import time
 import zipfile
 
@@ -14,7 +15,7 @@ parser.add_argument("output", type=Path)
 parser.add_argument("bundle", type=Path)
 args = parser.parse_args()
 root = args.output
-session = Path(os.environ["DEVRESOURCES_SESSION"]) / "extended_qgis"
+session = Path(tempfile.mkdtemp(prefix="musa_")) / "extended_qgis"
 session.mkdir()
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QGIS_CUSTOM_CONFIG_PATH"] = str(session / "profile")

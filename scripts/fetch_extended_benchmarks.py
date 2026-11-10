@@ -3,6 +3,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import time
@@ -11,7 +12,7 @@ import zipfile
 
 import requests
 
-ROOT = Path("D:/DevResources/Shared/MUSA-benchmarks")
+ROOT = Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks"))
 META = ROOT / "extended_metadata"
 
 

@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import time
 import zipfile
 
@@ -16,7 +17,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("bundle", type=Path)
 parser.add_argument("--output", type=Path, help="New isolated smoke-test folder, including screenshots")
 args = parser.parse_args()
-session = args.output or Path(os.environ["DEVRESOURCES_SESSION"]) / "qgis_smoke"
+session = args.output or Path(tempfile.mkdtemp(prefix="musa_")) / "qgis_smoke"
 session.mkdir(parents=True, exist_ok=False)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["QGIS_CUSTOM_CONFIG_PATH"] = str(session / "profile")

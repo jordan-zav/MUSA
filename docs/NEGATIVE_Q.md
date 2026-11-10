@@ -1,7 +1,7 @@
 # Interpretación de q negativos
 
 Evaluación local del 7 de noviembre de 2026. No modifica el motor ni los
-valores por defecto. Evidencia completa: D:/DevResources/Sessions/MUSA-negq-20261107_204932
+valores por defecto. Evidencia completa: sesión MUSA-negq-20261107_204932, archivada por el mantenedor
 (informe.md, resultados.json, protocolo.json con el hash del script, curvas y
 diagnósticos por escala).
 

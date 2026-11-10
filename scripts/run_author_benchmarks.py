@@ -8,6 +8,7 @@ from dataclasses import asdict
 import hashlib
 import itertools
 import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -216,7 +217,7 @@ def run_case(case, out, windows):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--raw-root", type=Path, default=Path("D:/DevResources/Shared/MUSA-benchmarks"))
+    parser.add_argument("--raw-root", type=Path, default=Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks")))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import time
 import zipfile
 
@@ -13,7 +14,7 @@ parser.add_argument("output", type=Path)
 parser.add_argument("bundle", type=Path)
 args = parser.parse_args()
 root = args.output
-session = Path(os.environ["DEVRESOURCES_SESSION"]) / "author_qgis"
+session = Path(tempfile.mkdtemp(prefix="musa_")) / "author_qgis"
 session.mkdir()
 os.environ["SQLITE_TMPDIR"] = str(session)
 os.environ["CPL_TMPDIR"] = str(session)

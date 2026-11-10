@@ -3,11 +3,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import requests
 
-ROOT = Path("D:/DevResources/Shared/MUSA-benchmarks/extended_metadata")
+ROOT = Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks")) / "extended_metadata"
 SOURCES = {
     "geocrack_dataverse": "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:10.7910/DVN/E4OXHQ",
     "hatchfrac_files": "https://data.mendeley.com/public-api/datasets/zhs97tsdry/files?folder_id=root&version=1",

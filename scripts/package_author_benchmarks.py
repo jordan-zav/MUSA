@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -19,7 +20,7 @@ from run_author_benchmarks import CRS_WKT
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
-    parser.add_argument("--raw-root", type=Path, default=Path("D:/DevResources/Shared/MUSA-benchmarks"))
+    parser.add_argument("--raw-root", type=Path, default=Path(os.environ.get("MUSA_BENCHMARK_DATA", Path(__file__).resolve().parents[1] / "data/benchmarks")))
     args = parser.parse_args()
     root = args.output
     summaries = json.loads((root / "summary.json").read_text())
@@ -115,7 +116,7 @@ Open MUSA_author_benchmarks.qgz in QGIS. Groups contain original-source derivati
 
 Each results folder contains global/window Dq, tau, alpha, f(alpha), acceptance reasons, JSON/CSV, spectrum SQLite and a global spectrum image. Open that folder with MUSA's completed-run viewer to select individual windows and estimators. Analysis and assessment spectra have distinct sources and may differ.
 
-Repository scripts: fetch_fractal_benchmarks.py, run_author_benchmarks.py, package_author_benchmarks.py, qgis_author_benchmarks.py. Run through DEVRESOURCES_RUN.cmd; QGIS helper uses scripts/run_qgis_python.cmd. Inputs and results stay outside the plugin ZIP.
+Repository scripts: fetch_fractal_benchmarks.py, run_author_benchmarks.py, package_author_benchmarks.py, qgis_author_benchmarks.py. Run from the repository root; the QGIS helper is scripts/run_qgis_python.cmd. Inputs and results stay outside the plugin ZIP.
 """
     (root / "README.md").write_text(report, encoding="utf-8")
     (root / "source_hashes.json").write_text(json.dumps({p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in originals.iterdir()}, indent=2), encoding="utf-8")
