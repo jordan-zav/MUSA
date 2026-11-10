@@ -17,7 +17,7 @@ from .scaling import ScalingOptions, assess_curve, assess_lineament_scaling, wri
 from .spectrum_products import list_spectra, read_spectrum, spectrum_figure
 
 resolutions_from_mother_cell = MUSA.resolutions_from_mother_cell
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 
 def launch_interface() -> None:

@@ -1,8 +1,8 @@
 # MUSA for QGIS
 
-QGIS is the primary MUSA interface. The English dock follows the workflow
-structure used by GeoMorphX and TerraWorkbench: project inputs, analysis
-parameters, reproducible recipes, background execution and mapped results.
+QGIS is the primary MUSA interface. The English dock is organised as project
+inputs, analysis parameters, reproducible recipes, background execution and
+mapped results.
 The numerical implementation remains in src/musa and is shared with Python.
 Start with [installation and distribution status](https://github.com/jordan-zav/MUSA/blob/main/docs/INSTALLATION.md) and
 [architecture](https://github.com/jordan-zav/MUSA/blob/main/docs/ARCHITECTURE.md) to distinguish the Python package from the
@@ -11,15 +11,14 @@ register the QGIS plugin or update an already installed ZIP.
 
 ## Installation
 
-Build with python scripts/build_qgis_plugin.py from the source checkout.
-The maintainer's managed Windows workspace prefixes development commands
-with DEVRESOURCES_RUN.cmd; end users do not need that launcher.
-In QGIS, open Plugins > Manage and Install
-Plugins > Install from ZIP and select the archive in dist/qgis. Open
+Download musa_qgis-<version>.zip from the latest GitHub release, or build it
+with python scripts/build_qgis_plugin.py from the source checkout (the archive
+is written to dist/qgis). In QGIS, open Plugins > Manage and Install
+Plugins > Install from ZIP and select the archive. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
-MUSA 1.1.0 is the first QGIS plugin release; the ZIP is attached to the
-v1.1.0 GitHub release. The historical release tags are unchanged.
+MUSA 1.1.1 is the first QGIS plugin release; the ZIP is attached to the
+v1.1.1 GitHub release. The historical release tags are unchanged.
 Metadata targets QGIS 3.34–3.99. Actual runtime validation is recorded in the
 development status; metadata does not imply all versions have been tested.
 The plugin bundles its own core, without changing global Python import paths.

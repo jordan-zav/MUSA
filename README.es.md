@@ -26,8 +26,8 @@ de terminal para recetas siguen pendientes**; musa-ui es el lanzador Tk legado.
 
 ## Instalación en QGIS
 
-QGIS es la interfaz principal de MUSA. MUSA 1.1.0 es la primera release del plugin:
-descarga musa_qgis-1.1.0.zip desde la [última release](https://github.com/jordan-zav/MUSA/releases/latest)
+QGIS es la interfaz principal de MUSA. MUSA 1.1.1 es la primera release del plugin:
+descarga musa_qgis-1.1.1.zip desde la [última release](https://github.com/jordan-zav/MUSA/releases/latest)
 e instálalo con Complementos > Administrar e instalar complementos > Instalar a partir de ZIP.
 El panel actual está en inglés y se acopla a la ventana de QGIS.
 
@@ -126,7 +126,7 @@ pip install -e ".[gis,fast]"
 
 ## Estado y límites
 
-La release pública actual es 1.1.0, la primera del plugin de QGIS. Las releases
+La release pública actual es 1.1.1, la primera del plugin de QGIS. Las releases
 de escritorio 1.0.x siguen disponibles en el historial de releases.
 Consulta el [alcance de la validación matemática](docs/SCALING_VALIDATION_STATUS.md):
 los filtros actuales no demuestran por sí solos fractalidad ni multifractalidad.
