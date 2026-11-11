@@ -31,7 +31,9 @@ MUSA provides a Python numerical engine and a QGIS workbench for direct Chhabraâ
 
 | Start here | Guide |
 | --- | --- |
-| Follow the illustrated QGIS workflow | [Spanish user guide](docs/USER_GUIDE.es.md) |
+| Learn inputs, outputs, options, and expected behavior | [English user guide](docs/USER_GUIDE.md) |
+| Run a synthetic assessment in Python and QGIS | [Reproducible tutorial](docs/TUTORIAL.md) |
+| Follow the historical illustrated QGIS workflow in Spanish | [Spanish user guide](docs/USER_GUIDE.es.md) |
 | Install and check distribution availability | [Installation](docs/INSTALLATION.md) |
 | Understand engine, QGIS adapter and recipes | [Architecture](docs/ARCHITECTURE.md) |
 | Run without QGIS | [Python API](docs/PYTHON_API.md) |
