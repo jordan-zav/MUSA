@@ -1,247 +1,354 @@
-# Teoría y metodología de MUSA
+# MUSA theory and methodology
 
-Referencia de MUSA 1.2.0, revisada el 10 de noviembre de 2026. El motor Python y el plugin QGIS usan estas operaciones; las rutas descriptiva y de diagnóstico aplican criterios distintos. Esta referencia sustituye las notas antiguas mezcladas con controles de la interfaz Tk.
+Reference for MUSA 1.2.0, revised November 10, 2026. The Python engine and QGIS
+plugin use these operations; descriptive and assessment paths apply different
+criteria. This reference replaces older notes mixed with Tk-interface controls.
 
-## 1. Dominio, medida y escalas
+## 1. Domain, measure, and scales
 
-Sea Ω el dominio observado y ε el lado de una caja de la cuadrícula. MUSA analiza datos espaciales 2D:
+Let Ω be the observed domain and ε the side of a grid box. MUSA analyzes
+spatial 2D data:
 
-| Entrada | Medida mᵢ(ε) |
+| Input | Measure mᵢ(ε) |
 | --- | --- |
-| Puntos | Número de puntos de la caja |
-| Lineamientos | Longitud de trazas dentro de la caja y del dominio |
+| Points | Number of points in the box |
+| Lineaments | Trace length inside both the box and domain |
 
-En el caso de líneas, las coordenadas GIS ordinarias deben estar en una proyección métrica. Cambiar la etiqueta del CRS no reproyecta coordenadas. Para puntos, la normalización por defecto escala cada eje a su intervalo observado; puede cambiar la relación de aspecto y no conserva metros ni distancias físicas. Desactivarla cuando sea necesario conservar esas coordenadas.
+Ordinary GIS line coordinates must use a metric projection. Changing a CRS
+label does not reproject coordinates. Default point normalization scales each
+axis to its observed range; it can change aspect ratio and preserves neither
+meters nor physical distances. Disable it when those coordinates must be retained.
 
-Para cada escala se consideran las cajas ocupadas y se normaliza:
+At each scale, occupied boxes are normalized:
 
 $$
 p_i(\varepsilon)=\frac{m_i(\varepsilon)}{\sum_{j:m_j>0}m_j(\varepsilon)}.
 $$
 
-Las cajas vacías no entran como probabilidades cero en los momentos negativos. Un umbral de longitud por caja del flujo descriptivo puede retirar cajas y modificar la medida; se aplica sobre la longitud acumulada completa de la caja, no sobre cada segmento. Debe registrarse y justificarse.
+Empty boxes do not enter negative moments as zero probabilities. A descriptive
+per-box length threshold can remove boxes and change the measure; it applies
+to total accumulated box length, not each segment. Record and justify it.
 
-El tratamiento de duplicados depende de la ruta: la preparación descriptiva no garantiza una unión única de todos los segmentos; las ventanas móviles disuelven coincidencias exactas y el diagnóstico independiente rechaza multiplicidad coincidente. Comparar resultados exige armonizar y documentar ese preprocesamiento.
+Duplicate handling differs by path: descriptive preparation does not guarantee
+a single union of all segments; moving windows dissolve exact coincidences;
+independent assessment rejects coincident multiplicity. Harmonize and document
+preprocessing before comparing results.
 
-Un conjunto finito de segmentos rectos no vacíos tiene dimensión geométrica asintótica 1. Un Dq mayor que 1 estimado en una red de trazas describe organización en un intervalo observable; no demuestra un límite fractal de esa cartografía.
+A finite nonempty collection of straight segments has asymptotic geometric
+dimension 1. A network's estimated Dq >1 describes organization over an
+observable interval, not proof of a fractal map limit.
 
-## 2. Dimensiones generalizadas de Rényi y exponente de masa
+## 2. Generalized Rényi dimensions and mass exponent
 
-Para q distinto de 1, se define la función de partición:
+For q other than 1, the partition function is:
 
 $$
 Z_q(\varepsilon)=\sum_i p_i(\varepsilon)^q.
 $$
 
-Si existe escalamiento en un intervalo, se estudia:
+If scaling exists over an interval:
 
 $$
 Z_q(\varepsilon)\sim\varepsilon^{\tau(q)},\qquad
 D_q=\frac{\tau(q)}{q-1}.
 $$
 
-MUSA estima Dq mediante la pendiente de la entropía de Rényi frente a x = ln(1/ε):
+MUSA estimates Dq as the slope of Rényi entropy against x = ln(1/ε):
 
 $$
 H_q(\varepsilon)=\frac{\ln Z_q(\varepsilon)}{1-q}.
 $$
 
-Los casos límite se calculan sin dividir por cero:
+Limiting cases avoid division by zero:
 
 $$
-H_0(\varepsilon)=\ln N_{\rm ocupadas}(\varepsilon),
+H_0(\varepsilon)=\ln N_{\rm occupied}(\varepsilon),
 \qquad
 H_1(\varepsilon)=-\sum_i p_i(\varepsilon)\ln p_i(\varepsilon).
 $$
 
-D0 es la pendiente de capacidad, D1 la de información y D2 la de correlación asociada a esta medida por cajas. No confundir este D2 de longitud por cajas con una estimación de correlación de centroides de fracturas: cambiar el objeto y la medida puede cambiar la comparación.
+D0 is the capacity slope, D1 information, and D2 correlation associated with
+this box measure. Do not confuse length-per-box D2 with a fracture-centroid
+correlation estimate: changing the object/measure can change the comparison.
 
-El exponente se exporta como τ(q) = (q−1)Dq. En q=1, τ(1)=0 es una identidad de normalización, no evidencia de una recta ajustada ni un motivo para inventar R².
+The exported exponent is τ(q) = (q−1)Dq. At q=1, τ(1)=0 is a normalization
+identity, not evidence of a fitted line or a reason to invent R².
 
-| Orden q | Énfasis |
+| Order q | Emphasis |
 | --- | --- |
-| q negativo | Cajas ocupadas con probabilidad pequeña; mayor sensibilidad a resolución y fragmentos pequeños |
-| q=0 | Número de cajas ocupadas |
-| q=1 | Entropía de Shannon |
-| q positivo creciente | Concentración en cajas de probabilidad grande |
+| Negative q | Low-probability occupied boxes; greater resolution/small-fragment sensitivity |
+| q=0 | Number of occupied boxes |
+| q=1 | Shannon entropy |
+| Increasing positive q | Concentration in high-probability boxes |
 
-La familia Dq, no creciente bajo los supuestos teóricos apropiados, aporta más información que una sola dimensión. Las pendientes finitas pueden desviarse por rango, muestreo o cuadrícula; el diagnóstico registra esa incoherencia. Variar q no convierte un análisis 2D en 3D ni crea un análisis conjunto de variables diferentes.
+Dq is nonincreasing under the appropriate theoretical assumptions and conveys
+more than a single dimension. Finite slopes can depart from this ordering
+through interval, sampling, or grid effects; assessment records inconsistencies.
+Varying q neither makes a 2D analysis 3D nor jointly analyzes different variables.
 
-## 3. Espectro directo de singularidades
+## 3. Direct singularity spectrum
 
-El estimador canónico de Chhabra–Jensen utiliza probabilidades auxiliares:
+The canonical Chhabra–Jensen estimator uses auxiliary probabilities:
 
 $$
 \mu_i(q,\varepsilon)=\frac{p_i(\varepsilon)^q}{Z_q(\varepsilon)}.
 $$
 
-Se calculan los integrandos:
+Its integrands are:
 
 $$
 A_q(\varepsilon)=\sum_i\mu_i\ln p_i,\qquad
 F_q(\varepsilon)=\sum_i\mu_i\ln\mu_i.
 $$
 
-Alpha(q) y f(alpha(q)) son las pendientes de A y F frente a ln ε, respectivamente. De forma equivalente, se pueden cambiar los signos de ambos integrandos y usar ln(1/ε). El flujo descriptivo usa la primera convención para alpha/f; el diagnóstico usa la segunda. No cambiar solamente el signo del eje.
+Alpha(q) and f(alpha(q)) are the respective slopes of A and F against ln ε.
+Equivalently, negate both integrands and use ln(1/ε). Descriptive analysis uses
+the former convention for alpha/f; assessment uses the latter. Do not change
+only the axis sign.
 
-El cálculo directo evita estimar alpha como una derivada numérica de τ. La relación de Legendre alpha = dτ/dq requiere los supuestos de una misma medida y regularidad; no es el algoritmo utilizado para obtener alpha en MUSA.
+Direct calculation avoids a numerical derivative of τ for alpha. The Legendre
+relation alpha = dτ/dq requires the same measure and regularity assumptions;
+it is not MUSA's alpha-estimation algorithm.
 
-Para cálculos consistentes se comprueban:
+Consistent calculations are checked against:
 
 $$
 \tau(q)=(q-1)D_q,\qquad f(\alpha(q))=q\alpha(q)-\tau(q).
 $$
 
-Estas identidades algebraicas ayudan a detectar inconsistencias de implementación. Cumplirlas no prueba que los datos tengan escalamiento. Dq se contrasta con el soporte planar en el diagnóstico; no se impone automáticamente la misma cota a alpha ni se rechaza un τ negativo por su signo.
+These algebraic identities help detect implementation inconsistencies; satisfying
+them does not establish scaling in data. Assessment checks Dq against planar
+support; it neither automatically imposes the same bound on alpha nor rejects
+negative τ solely because of its sign.
 
-Los pesos se evalúan en dominio logarítmico para evitar desbordamientos. El número efectivo de cajas enfatizadas por un q se calcula como:
+Weights are evaluated in the log domain to prevent overflow. The effective
+number of boxes emphasized by q is:
 
 $$
 N_{\rm eff}(q,\varepsilon)=\frac{1}{\sum_i\mu_i^2}.
 $$
 
-Si casi todo el peso corresponde a una sola caja, el diagnóstico de soporte puede resultar insuficiente aunque el ajuste aparente tenga R² alto.
+If nearly all weight belongs to one box, support can be insufficient despite
+an apparently high R².
 
-## 4. Tres referencias de singularidad distintas
+## 4. Three different singularity references
 
-| Referencia | Definición |
+| Reference | Definition |
 | --- | --- |
-| Alpha en q=0 | Valor evaluado y utilizable en q=0; no se interpola desde un q vecino |
-| Máximo observado | Alpha correspondiente al mayor f entre puntos utilizables; conserva empates y marca extremos |
-| Pico cuadrático | Vértice de un ajuste descriptivo sobre f(alpha), sujeto a rango, concavidad y degeneración |
+| Alpha at q=0 | Evaluated, usable q=0 value; no interpolation from a neighboring q |
+| Observed maximum | Alpha at largest f among usable points; retains ties and flags endpoints |
+| Quadratic peak | Vertex of a descriptive f(alpha) fit, subject to range, concavity, and degeneracy checks |
 
-El término modo no debe usarse sin especificar cuál de esas referencias se está mostrando. Un vértice cuadrático no es la moda de un histograma de alpha. Con exactamente tres puntos, la parábola se etiqueta como interpolación descriptiva. Si el ajuste no es cóncavo, es degenerado o deja el vértice fuera del intervalo observado, el pico se conserva ausente.
+Do not use mode without specifying the reference. A quadratic vertex is not
+the mode of an alpha histogram. With exactly three points, the parabola is
+labeled descriptive interpolation. A nonconcave/degenerate fit or an out-of-range
+vertex leaves the peak absent.
 
-Delta alpha es el rango observado de alpha sobre q utilizables. No equivale al ancho de un espectro extrapolado hasta q infinitos. El orden de conexión de las curvas es el de q y se interrumpe en puntos rechazados; ordenar alpha no debe ocultar retornos o huecos. Ver [SPECTRA.md](SPECTRA.md).
+Delta alpha is the observed range across usable q, not an extrapolated width
+at infinite q. Curves connect in q order and break at rejected points; sorting
+alpha must not hide reversals or gaps. See [SPECTRA.md](SPECTRA.md).
 
-## 5. Dos rutas de cálculo y dos contratos de calidad
+## 5. Two calculation paths and quality contracts
 
-| Aspecto | analysis: flujo descriptivo | assessment: diagnóstico independiente |
+| Aspect | analysis: descriptive workflow | assessment: independent assessment |
 | --- | --- | --- |
-| Entrada principal | run_analysis / execute_analysis | assess_lineament_scaling / musa:scaling_support |
-| Objetivo | Estimar y exportar espectros y productos locales | Evaluar compatibilidad en un intervalo declarado |
-| Orígenes | Global descriptivo: origen de la partición; ventanas: uno u opción de 16 | Cuatro orígenes desplazados fijos |
-| Filtro global | R² de Dq, alpha y f superior a min_r2 | Resolución, escalas, cobertura, soporte, estabilidad y modelos |
-| Zeta | Disponible en estimadores locales separados | No se aplica |
-| Piso de probabilidad | Opcional para q negativos | No se aplica |
-| Q rechazados | Se registran; el flujo puede fallar si quedan menos de dos aceptados | Se conservan todos los q y sus causas, aunque ninguno tenga respaldo |
+| Main entry | run_analysis / execute_analysis | assess_lineament_scaling / musa:scaling_support |
+| Goal | Estimate/export spectra and local products | Assess compatibility over a declared interval |
+| Origins | Descriptive global partition origin; windows: one or optional 16 | Four fixed shifted origins |
+| Global filter | R² of Dq, alpha, and f above min_r2 | Resolution, scales, coverage, support, stability, and models |
+| Zeta | Separate local estimators | Not applied |
+| Probability floor | Optional at negative q | Not applied |
+| Rejected q | Recorded; workflow can fail with fewer than two accepted | All q/reasons retained even when none are supported |
 
-run_analysis usa el filtro triple de R² con desigualdad estricta. Su valor predeterminado es 0,9. RunConfig exige al menos cuatro divisores internos; ese requisito técnico no certifica un intervalo de escalamiento suficiente.
+run_analysis uses strict inequalities in its triple R² filter; the default is
+0.9. RunConfig requires at least four internal divisors, a technical condition
+that does not certify a sufficient scaling interval.
 
-El diagnóstico de ScalingOptions aplica, por defecto:
+ScalingOptions applies these defaults:
 
-- Resolución observacional positiva, declarada por quien conoce los datos.
-- Escalas no menores que esa resolución ni mayores que un cuarto del lado menor del soporte.
-- Al menos ocho escalas restantes y una década de amplitud.
-- Al menos 80 % del área nominal observada y dos cajas efectivas.
-- R² lineal al menos 0,98; variación máxima de pendiente de 0,10 ante exclusión/recorte de escalas y cambios de origen.
-- Comparación con modelos cuadrático y segmentado mediante predicción leave-one-scale-out. El punto de cambio se vuelve a seleccionar dentro de cada entrenamiento, sin usar el valor retenido.
+- Positive observation resolution declared by the person who knows the data.
+- Scales at least that resolution and at most one quarter of the support's shorter side.
+- At least eight remaining scales and a one-decade span.
+- At least 80% observed nominal area and two effective boxes.
+- Linear R² >=0.98; maximum slope variation 0.10 under scale omission/end trimming and origin changes.
+- Quadratic/segmented comparisons through leave-one-scale-out prediction, reselecting the breakpoint inside every training fold without the held-out value.
 
-Se marca una alternativa si mejora suficientemente la predicción con los criterios registrados; no se busca después un subintervalo favorable. Las curvas se promedian entre los cuatro orígenes antes del ajuste y se conserva la sensibilidad por origen.
+An alternative is flagged when its predictive improvement meets the recorded
+criteria. No favorable subinterval is searched afterward. Curves are averaged
+across four origins before fitting; per-origin sensitivity is retained.
 
-| Estado | Alcance |
+| State | Scope |
 | --- | --- |
-| compatible_finite_range | Cumple los criterios operativos en ese intervalo |
-| not_supported | Hay observaciones suficientes, pero fallan criterios de ajuste, estabilidad o forma |
-| insufficient_information | No alcanza resolución, cobertura, rango, número de escalas o soporte efectivo |
+| compatible_finite_range | Meets operational criteria over that interval |
+| not_supported | Sufficient observations, but fit/stability/shape criteria fail |
+| insufficient_information | Inadequate resolution, coverage, span, scale count, or effective support |
 
-Cada observable tiene su propio estado. Un Dq compatible no asegura alpha o f(alpha) respaldados. Los números calculados y rechazados pueden conservarse para auditoría; los ausentes no son cero.
+Each observable has its own state. Compatible Dq does not assure supported
+alpha/f(alpha). Rejected numerical values can remain for audit; absent values
+are not zero.
 
-Una malla periódica puede parecer compatible en un intervalo finito. El control ampliado detectó su cambio de régimen al incluir su separación característica. Por ello estos estados no equivalen a una clasificación universal de fractal/no fractal. Detalles en [SCALING_SUPPORT.md](SCALING_SUPPORT.md).
+A periodic grid can appear compatible over a finite interval. An extended
+control detected its crossover after including characteristic spacing. These
+states are not universal fractal/nonfractal classifications. See
+[SCALING_SUPPORT.md](SCALING_SUPPORT.md).
 
-## 6. Celdas madre, ventanas móviles y cobertura
+## 6. Mother cells, moving windows, and coverage
 
-Las celdas madre forman la partición local del flujo descriptivo. Su lado es la resolución máxima de ese flujo; las hijas estrictamente menores alimentan la regresión. Las probabilidades se normalizan dentro de cada madre.
+Mother cells form the descriptive local partition. Their side is that
+workflow's maximum resolution; strictly smaller children feed the regression.
+Probabilities normalize within each mother cell.
 
-La ruta histórica asigna hijas a madres por centroide. Si se suministran manualmente escalas no compatibles con la madre, una hija puede cruzar una frontera y su masa no equivaler a un recorte exacto de esa madre. El constructor de resoluciones madre/divisor ayuda a definir una cuadrícula compatible.
+The historical path assigns children by centroid. With manually supplied
+incompatible scales, a child can cross a mother boundary and its mass need
+not equal an exact mother-cell clip. Mother/divisor resolution construction
+helps define a compatible grid.
 
-Las ventanas móviles separan lado L, paso entre centros y tamaños internos ε = L/divisor. Recortan líneas al soporte observado y calculan probabilidades dentro de cada ventana. Pueden conservar orígenes múltiples y estimaciones canónicas/ponderadas separadas. Son experimentales y no requieren que cada q pase el ajuste global para calcular sus estimaciones propias; el flujo execute_analysis, sin embargo, debe terminar antes su etapa global.
+Moving windows separate side L, center spacing, and internal ε = L/divisor.
+They clip lines to observed support and calculate probabilities within each
+window. Multiple origins and separate canonical/weighted estimates can be
+retained. They are experimental and do not require each q to pass the global
+fit to calculate their own estimates; execute_analysis still must finish its
+earlier global stage.
 
-La cobertura de área es área(ventana ∩ Ω)/L². No equivale al porcentaje de cajas ocupadas utilizado dentro de zeta. Un cuadrante de un círculo inscrito tiene cobertura π/4 ≈ 0,785, inferior al mínimo 0,8. Es una razón geométrica de insuficiencia, no un fallo a corregir llenando datos fuera del dominio.
+Area coverage is area(window ∩ Ω)/L². It is not the occupied-box proportion
+within zeta. A quadrant of an inscribed circle has coverage π/4 ≈0.785, below
+the 0.8 minimum. This geometric insufficiency is not resolved by filling data
+outside the domain.
 
-Los benchmarks conservan cuadrantes y añaden centros interiores declarados geométricamente. Las ventanas solapadas comparten información: no son réplicas independientes ni pueden repartirse sin control espacial entre entrenamiento y prueba. Ver [moving_windows.md](moving_windows.md).
+Benchmarks retain quadrants and add geometrically declared interior centers.
+Overlapping windows share information: they are neither independent replicates
+nor suitable for uncontrolled training/test partitioning. See
+[moving_windows.md](moving_windows.md).
 
-## 7. Ponderación operacional zeta
+## 7. Operational zeta weighting
 
-Zeta pondera escalas locales; no reemplaza las probabilidades de la medida ni es una nueva dimensión multifractal. La forma operacional del código es:
+Zeta weights local scales; it replaces neither measure probabilities nor
+constitutes another multifractal dimension. The code's operational form is:
 
 $$
 \zeta(\varepsilon)=C^{a}R^{b}S^{c}E^{d}.
 $$
 
-| Factor | Cálculo |
+| Factor | Calculation |
 | --- | --- |
-| C | Cajas ocupadas / cajas posibles del soporte a esa escala |
-| R | Masa local a esa escala / masa local en la escala más fina |
-| S | Piso + (1−piso) × ln(ε_gruesa/ε) / ln(ε_gruesa/ε_fina), con posición acotada a [0,1] |
-| E | exp(H1) / número de cajas ocupadas, acotado a [0,1] |
+| C | Occupied boxes / possible support boxes at that scale |
+| R | Local mass at that scale / local mass at the finest scale |
+| S | Floor + (1−floor) × ln(ε_coarse/ε) / ln(ε_coarse/ε_fine), with position clipped to [0,1] |
+| E | exp(H1) / occupied-box count, clipped to [0,1] |
 
-Los exponentes predeterminados son (1,1,1,1) y el piso de escala es 0,25. E mide dispersión de la masa mediante Shannon y no es el mismo N_eff(q) de los pesos auxiliares. Si se conserva toda la longitud, R debe ser aproximadamente 1; umbrales o preparación pueden modificarlo.
+Default exponents are (1,1,1,1); the scale floor is 0.25. E measures mass
+dispersion through Shannon entropy, not the auxiliary weights' N_eff(q).
+With full length conservation, R should be approximately 1; thresholds or
+preparation can change it.
 
-Para celdas madre alineadas, las cajas posibles se calculan con el cuadrado del divisor redondeado. Las ventanas con orígenes desplazados usan su conteo de cajas posibles correspondiente; las cajas parciales no se convierten automáticamente en exposiciones de igual área. La sensibilidad de borde debe revisarse por separado.
+Aligned mother cells use the squared rounded divisor for possible boxes.
+Offset moving windows use their corresponding possible-box count; partial
+boxes are not automatically equal-area exposures. Examine boundary sensitivity
+separately.
 
-La regresión ponderada conserva alpha_w, f_alpha_w y Dq ponderado cuando está disponible, separados de los canónicos. La condición reliable añade los umbrales de zeta y R² de su producto; no es una probabilidad calibrada. La [guía de candidatos](candidate_scoring.md) describe el perfil experimental, sin introducir un puntaje de prospectividad.
+Weighted regression retains alpha_w, f_alpha_w, and weighted Dq where available,
+separately from canonical values. reliable adds its product's zeta/R² thresholds;
+it is not a calibrated probability. The [candidate guide](candidate_scoring.md)
+describes the experimental profile without introducing a prospectivity score.
 
-## 8. Estabilización, robustez e incertidumbre
+## 8. Stabilization, robustness, and uncertainty
 
-El piso opcional para q negativos modifica p antes del cálculo descriptivo. Para N cajas ocupadas y fracción configurada η, el código usa:
+The optional negative-q floor changes p before descriptive calculation.
+For N occupied boxes and configured fraction η, the code uses:
 
 $$
 p_{\min}=\min\left(\frac{0.5}{N},\frac{\eta\max(|q|,1)}{N}\right),\qquad
 p'_i=\frac{\max(p_i,p_{\min})}{\sum_j\max(p_j,p_{\min})}.
 $$
 
-Con η=0 no se aplica. Al depender de q, esta regularización no representa estrictamente la misma medida sin modificar en todos los momentos; debe reportarse y compararse con la ruta sin piso. El diagnóstico independiente conserva la medida original y controla dominancia en lugar de aplicar ese piso.
+η=0 disables it. Because it depends on q, this regularization does not strictly
+preserve one unchanged measure across all moments; report it and compare with
+the untreated path. Independent assessment keeps the original measure and
+checks dominance instead.
 
-Con cualquier η > 0 y q < 0, Hq(p′) − ln N queda acotada por una constante independiente de la escala. Si existe un régimen de escalamiento, la pendiente regularizada tiende entonces a D0: el piso no puede conservar un espectro negativo distinto de D0. Ver la derivación y la evaluación con verdad conocida en [q negativos](NEGATIVE_Q.md).
+For any η >0 and q <0, Hq(p′) − ln N is bounded by a scale-independent constant.
+If a scaling regime exists, the regularized slope therefore tends to D0: the
+floor cannot preserve a negative-order spectrum distinct from D0. See the
+derivation and known-truth evaluation in [negative q](NEGATIVE_Q.md).
 
-Bootstrap de escalas, jackknife, Theil–Sen, leverage y Cook evalúan sensibilidad del ajuste. No representan por sí solos errores de levantamiento, incertidumbre de trazado ni independencia espacial. El valor p de pendiente del ajuste descriptivo tampoco equivale al contraste nulo espacial ni a una probabilidad de fractalidad.
+Scale bootstrap, jackknife, Theil–Sen, leverage, and Cook's distance examine
+fit sensitivity. They do not themselves represent mapping/tracing uncertainty
+or spatial independence. A descriptive slope p value is neither the spatial
+null test nor a probability of fractality.
 
-## 9. Contraste espacial condicional
+## 9. Conditional spatial test
 
-Cuando se solicita, el diagnóstico compara T = D0−D2 con traslaciones uniformes independientes de las formas de traza suministradas, contenidas en el mismo polígono. Conserva forma, longitud, orientación, número y masa; cambia posiciones, cruces y dependencia espacial.
+When requested, assessment compares T = D0−D2 with independent uniform
+translations of supplied trace shapes contained in the same polygon.
+Shape, length, orientation, count, and mass are preserved; positions,
+crossings, and spatial dependence change.
 
-Si las entradas ya se nodificaron por una unión geométrica, las unidades conservadas son esas partes, no necesariamente las fracturas interpretadas originales. Declarar ese inventario.
+If input was noded through geometric union, the preserved units are those
+parts, not necessarily originally interpreted fractures. Declare that inventory.
 
-Con B réplicas válidas y cola superior:
+With B valid replicates and the upper tail:
 
 $$
 p=\frac{1+\#\{T_{\rm sim}\ge T_{\rm obs}\}}{B+1}.
 $$
 
-Con la opción null_tail="two_sided" se informa p = min(1, 2 min(p_superior, p_inferior)), donde p_inferior cuenta las réplicas con T_sim ≤ T_obs; los empates cuentan en contra del rechazo y el p mínimo es 2/(B+1). La opción coarse_trim_min_effective_q2, desactivada con 0, retira escalas desde el extremo grueso, solo sobre el mapa observado y antes de cualquier réplica, hasta que la escala más gruesa conservada tenga al menos ese número de cajas efectivas con q=2. Si queda menos de una década, no se calcula el contraste.
+null_tail="two_sided" reports p = min(1, 2 min(p_upper, p_lower)), where p_lower
+counts T_sim ≤ T_obs; ties count against rejection and minimum p is 2/(B+1).
+coarse_trim_min_effective_q2 is disabled at 0. Otherwise it removes scales from
+the coarse end on the observed map only, before any replicate, until the
+coarsest retained scale has at least that many effective q=2 boxes. With less
+than a decade remaining, the test is not calculated.
 
-No se descartan simulaciones incómodas hasta obtener un resultado favorable. Si no se puede colocar una realización o falta respaldo de q0/q2, no se inventa un valor p. Holm corrige la familia de soportes del informe; una familia adicional de benchmarks debe identificarse por separado. Los q correlacionados no se cuentan como pruebas independientes nuevas.
+Uncomfortable simulations are not discarded until a favorable result appears.
+Failed placement or unsupported q0/q2 produces no invented p value. Holm adjusts
+the report's support family; an additional benchmark family must be declared
+separately. Correlated q values are not additional independent tests.
 
-El contraste estudia heterogeneidad condicional bajo ese modelo de traslación. Un rechazo no demuestra multifractalidad y un no rechazo no prueba homogeneidad o ausencia de estructura. La calibración y potencia generales siguen pendientes.
+The test concerns conditional heterogeneity under that translation model.
+Rejection does not prove multifractality; nonrejection proves neither homogeneity
+nor absence of structure. General calibration and power remain outstanding.
 
-## 10. Descriptores espaciales y topología
+## 10. Spatial descriptors and topology
 
-La longitud registrada en la escala fina permite obtener intensidad estructural sobre el área observada. No se suman longitudes de la misma red repetidas en varias escalas como si fueran masa adicional.
+Length recorded at the finest scale supports structural intensity over observed
+area. Lengths of the same network repeated over scales are not additional mass.
 
-El índice histórico d_local_index = −ln(pᵢ)/ln(L/ε) es un cociente local a una escala; no reemplaza una regresión Dq ni una dimensión física demostrada.
+Historical d_local_index = −ln(pᵢ)/ln(L/ε) is a one-scale local quotient, not a
+Dq regression or an established physical dimension.
 
-La topología móvil obtiene nodos únicos de la unión planar exacta: I extremo, Y grado 3, X grado 4 y complejo de grado superior. El grafo histórico de network.py cuenta líneas y pares relacionados: no es el mismo inventario de nodos geográficos. Sin snapping, los casi cruces continúan separados. Ni un cruce planar ni una proximidad verifican conectividad hidráulica 3D.
+Moving topology obtains unique nodes from exact planar union: I=end,
+Y=degree 3, X=degree 4, complex=higher degree. The historical network.py graph
+counts lines/related pairs, not the same geographic-node inventory. Without
+snapping, near crossings stay separate. Neither a planar crossing nor proximity
+verifies 3D hydraulic connectivity.
 
-## 11. Evidencia y límites de interpretación
+## 11. Evidence and interpretation limits
 
-El núcleo de partición/cálculo canónico se contrastó con una cascada 2D de 65.536 segmentos y pesos diádicos: error máximo Dq/τ/alpha/f de aproximadamente 2,09 × 10⁻¹⁴ en una cuadrícula alineada y escalas finitas. Esa prueba algebraico-geométrica no certifica precisión para cualquier origen, resolución o cartografía.
+The partition/canonical-calculation core was compared with a 2D dyadic-weight
+cascade of 65,536 segments: maximum Dq/τ/alpha/f error approximately
+2.09 × 10⁻¹⁴ on an aligned grid at finite scales. This algebraic/geometric
+test does not certify accuracy for every origin, resolution, or map.
 
-La validación ampliada incluye 67 casos procesables de fuentes públicas, modelos, variantes y controles; no son 67 afloramientos independientes. Se conservaron máscaras vacías y fuentes no descargadas con sus estados reales. Las comparaciones entre figuras rasterizadas, centroides, líneas y medidas ponderadas necesitan correspondencia de dominio y medida.
+Extended validation includes 67 processable public-source cases, models,
+variants, and controls, not 67 independent outcrops. Empty masks and unavailable
+sources retain their actual states. Raster-figure, centroid, line, and weighted-
+measure comparisons require matching domains and measures.
 
-Los tres niveles de afirmación deben permanecer separados:
+Three levels of claim must stay separate:
 
-1. Fórmulas, conservación y coherencia numérica comprobadas en controles definidos.
-2. Compatibilidad de datos con un modelo en un intervalo resoluble, con calidad y sensibilidad explícitas.
-3. Interpretación física o geológica validada mediante evidencia externa.
+1. Formulas, conservation, and numerical consistency checked on defined controls.
+2. Compatibility with a model over a resolvable interval, with explicit quality/sensitivity.
+3. Physical/geological interpretation validated through external evidence.
 
-MUSA integra cálculos y diagnósticos de los dos primeros niveles. No convierte automáticamente sus salidas en permeabilidad, favorabilidad, conexión 3D ni una prueba universal de multifractalidad.
+MUSA integrates calculations and diagnostics at the first two levels. It does
+not automatically convert outputs into permeability, favorability, 3D
+connection, or a universal multifractality test.
 
-## Guías relacionadas
+## Related guides
 
-- [Arquitectura](ARCHITECTURE.md): núcleo compartido e instantánea privada del plugin.
-- [API Python](PYTHON_API.md): ejemplos y contratos de ejecución sin QGIS.
-- [Salidas](OUTPUTS.md): archivos, campos, unidades y estados.
-- [Espectros por soporte](SPECTRA.md): fuentes y referencias de singularidad.
-- [Alcance de validación](SCALING_VALIDATION_STATUS.md) y [benchmarks públicos](EXTENDED_BENCHMARKS.md).
-- [Referencias científicas](references.md): distinguir métodos implementados de antecedentes y fuentes de datos.
+- [Architecture](ARCHITECTURE.md): shared core and bundled plugin snapshot.
+- [Python API](PYTHON_API.md): headless examples and execution contracts.
+- [Outputs](OUTPUTS.md): files, fields, units, and states.
+- [Support spectra](SPECTRA.md): sources and singularity references.
+- [Validation scope](SCALING_VALIDATION_STATUS.md) and [public benchmarks](EXTENDED_BENCHMARKS.md).
+- [Scientific references](references.md): distinguish implemented methods, related work, and data sources.

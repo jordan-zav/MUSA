@@ -1,59 +1,85 @@
-# Validación ampliada con datos publicados
+# Extended validation with published data
 
-Trabajo del 2 de noviembre de 2026, implementado mediante scripts de descarga, adaptadores, análisis, comprobación nativa en QGIS y consolidación de evidencias. Los originales y resultados permanecen fuera del plugin y del repositorio.
+Work completed on November 2, 2026 through download scripts, adapters, analysis,
+native QGIS checks, and evidence consolidation. Originals and results remain
+outside the plugin and repository.
 
-## Qué se implementó
+## Implemented components
 
-- Adaptadores para GeoJSON y Shapefile con CRS métrico y polígonos de observación originales, grafos MATLAB dispersos, filas de coordenadas de FracPaQ/HatchFrac y máscaras binarias.
-- Descargas con procedencia y verificación de checksums. La selección FraXet usa rangos HTTP que el servidor admite, caché de bloques y espera ante HTTP429; se verifican los miembros seleccionados, sin afirmar haber descargado todo el archivo.
-- Esqueletización explícita Zhang–Suen y segmentos entre centros de píxeles; registro de píxeles aislados, umbral y recorte. No se recupera la identidad de las fracturas originales desde una máscara.
-- Unión geométrica exacta para retirar multiplicidad coincidente, con longitudes antes/después. Sin snapping, redondeo de coordenadas ni relleno de huecos. No se ejecuta código de terceros descargado.
-- Evaluación global y por ventanas para q de −4 a 4, con Dq, tau, alpha, f(alpha), calidad e identidades. Los ajustes no respaldados y la información insuficiente permanecen en las salidas.
-- Dos diseños de ventanas para los casos georreferenciados: cuadrantes del rectángulo exterior y una cuadrícula interior solapada. Se conservan ambos; la posición interior depende de la geometría y no de las pendientes obtenidas.
-- Comparación analítica del núcleo geométrico real con una cascada diádica 2D de 65.536 segmentos; controles Cantor finitos; sensibilidad de resolución y contraste con conteo ráster.
-- Controles de una estructura periódica: compatibilidad aparente en un intervalo y rechazo al extenderlo a través de su escala característica. El seguimiento de intervalo ampliado se identifica como exploratorio.
-- Familia declarada de tres contrastes globales de traslación condicional, con 99 réplicas solicitadas por soporte y corrección Holm. Los casos no contrastables no reciben valores p inventados.
-- Proyectos QGIS separados por coordenadas y fuente; inspección del visor y comparación numérica entre Python y Processing nativo.
+- Adapters for GeoJSON/Shapefile with metric CRSs and original observation polygons, sparse MATLAB graphs, FracPaQ/HatchFrac coordinate rows, and binary masks.
+- Downloads with provenance and checksum checks. FraXet selection uses supported HTTP ranges, a block cache, and HTTP429 backoff; selected members were verified without claiming the whole archive was downloaded.
+- Explicit Zhang–Suen skeletonization and segments between pixel centers; isolated pixels, threshold, and cropping are recorded. A mask does not recover original fracture identity.
+- Exact geometric union to remove coincident multiplicity, with lengths before/after. No snapping, coordinate rounding, or gap filling. Downloaded third-party code is not executed.
+- Global/window assessment for q from −4 to 4, retaining Dq, tau, alpha, f(alpha), quality, and identities. Unsupported fits and insufficient information remain in outputs.
+- Two window designs for georeferenced cases: outer-bounding-box quadrants and an overlapping interior grid. Both remain available; interior positions depend on geometry, not fitted slopes.
+- Analytical comparison of the actual geometry engine with a 2D dyadic cascade of 65,536 segments; finite Cantor controls; resolution sensitivity; raster-count comparisons.
+- Periodic-structure controls: apparent compatibility over one interval and rejection when it is extended across the characteristic scale. The extended follow-up is identified as exploratory.
+- A declared family of three global conditional-translation tests, requesting 99 replicates per support and Holm adjustment. Untestable cases receive no invented p values.
+- Separate QGIS projects by coordinates/source; viewer inspection and numerical comparison between Python and native Processing.
 
-## Cobertura de fuentes
+## Source coverage
 
-| Fuente | Material utilizado | Límite de la comparación |
+| Source | Material used | Comparison limit |
 | --- | --- | --- |
-| Åland, Ovaskainen y colaboradores | Vectores de fracturas/lineamientos y dominios, EPSG:3067 | Varias modalidades y subconjuntos del mismo territorio; resolución operacional declarada |
-| Loviisa, Ovaskainen y Nordbäck | Ocho redes y polígonos originales, EPSG:3067 | El dominio puede impedir ventanas completas; no se rellena la cobertura ausente |
-| Bristol, Kang | Coordenadas y conectividad MATLAB | Rectángulo de observación inferido; unidades originales sin verificación física |
-| HatchFrac | Red 2D, backbone y tres etapas de crecimiento de los autores | Salidas originales existentes; no representan fractales de dimensión exacta conocida |
-| Hornelen, figuras de Sahu y Roy | Tres representaciones/recortes con identificación explícita en el artículo | Derivados de figuras en píxeles; mapas relacionados, no afloramientos independientes |
-| FracPaQ | Dos ejemplos vectoriales del repositorio de autores | No se atribuyen a Hornelen solo por el nombre map1/map7 |
-| FraXet | 24 máscaras de prueba preseleccionadas de tres familias | 20 con trazas y cuatro vacías; no se ensamblan en un supuesto afloramiento continuo |
-| GeoCrack | Metadatos de DataCite | Harvard Dataverse devolvió 403 y una verificación antibot; imágenes no descargadas ni analizadas |
-| Zhu, dataset 10.4121/14464893 | Metadatos conservados de la tarea anterior | Coordenadas no disponibles en los endpoints probados; no se afirma su análisis |
+| Åland, Ovaskainen and colleagues | Fracture/lineament vectors and domains, EPSG:3067 | Multiple modalities/subsets of one territory; declared operational resolution |
+| Loviisa, Ovaskainen and Nordbäck | Eight original networks/polygons, EPSG:3067 | Domains can prevent complete windows; absent coverage is not filled |
+| Bristol, Kang | MATLAB coordinates/connectivity | Inferred observation rectangle; original units without physical verification |
+| HatchFrac | Authors' 2D network, backbone, and three growth stages | Existing model outputs, not fractals with exact known dimension |
+| Hornelen, Sahu/Roy figures | Three representations/crops explicitly identified in the article | Pixel-based figure derivatives; related maps, not independent outcrops |
+| FracPaQ | Two vector examples from the authors' repository | Not attributed to Hornelen solely because they are named map1/map7 |
+| FraXet | 24 preselected test masks from three families | 20 with traces, four empty; not assembled into a presumed continuous outcrop |
+| GeoCrack | DataCite metadata | Harvard Dataverse returned 403/antibot checks; images were neither downloaded nor analyzed |
+| Zhu, dataset 10.4121/14464893 | Metadata retained from the earlier task | Coordinates unavailable at tested endpoints; no analysis is claimed |
 
-La entrega contiene 67 casos procesables, incluidas variantes de resolución y controles. No equivale a 67 conjuntos independientes. Las cuatro máscaras vacías se conservan como no aplicables. El inventario detallado registra identificadores, licencias y estado efectivo de cada fuente; las licencias del artículo, código y dataset se distinguen.
+The archive contains 67 processable cases, including resolution variants and
+controls; these are not 67 independent datasets. Four empty masks remain
+not applicable. The detailed inventory records identifiers, licenses, and actual
+source status; article, code, and dataset licenses are distinguished.
 
-## Qué permiten concluir las pruebas
+## What the tests support
 
-El núcleo de partición de longitud y cálculo canónico recuperó Dq, tau, alpha y f(alpha) de la cascada exacta con error máximo de aproximadamente 2,09 × 10⁻¹⁴. Esta comprobación usa un origen alineado y escalas diádicas finitas: valida ese cálculo, no la precisión geológica ni la estabilidad frente a cuatro orígenes arbitrarios.
+The length-partition/canonical-calculation core recovered Dq, tau, alpha, and
+f(alpha) of the exact cascade with maximum error approximately 2.09 × 10⁻¹⁴.
+This uses an aligned origin and finite dyadic scales: it checks that calculation,
+not geological accuracy or stability across four arbitrary origins.
 
-La malla periódica mostró por qué una pendiente estable no demuestra fractalidad. D0 fue aproximadamente 1,846 y compatible en el intervalo inicial; al ampliar el intervalo a través de su separación conocida aparecieron mejores modelos cuadrático y segmentado. Se conservaron ambos resultados sin modificar umbrales.
+The periodic grid illustrates why a stable slope does not prove fractality.
+D0 was approximately 1.846 and compatible over the initial interval; extending
+across its known spacing favored quadratic/segmented models. Both results
+were retained without changing thresholds.
 
-En un círculo, cada cuadrante del rectángulo exterior tiene cobertura pi/4 ≈ 0,785, menor que el mínimo 0,8. Los informes iniciales se conservan y las ventanas interiores permiten estudiar soportes mejor cubiertos. Los centros interiores están a 3/8 y 5/8 de cada eje, con el mismo lado de ventana. No son réplicas independientes.
+For a circle, each outer-rectangle quadrant has coverage pi/4 ≈ 0.785, below
+the 0.8 minimum. Original reports remain available; interior windows permit
+study of better-covered supports. Interior centers are at 3/8 and 5/8 along
+each axis, with the same window side. These are not independent replicates.
 
-En redes naturales y figuras, cada observable tiene su propio estado. Que D0 sea compatible no garantiza un espectro completo ni un máximo de singularidad respaldado. Las estimaciones rechazadas, cortes de resolución y sensibilidades deben acompañar cualquier interpretación.
+Each observable in natural networks/figures has its own state. Compatible D0
+does not guarantee a complete spectrum or a supported singularity peak.
+Rejected estimates, resolution cutoffs, and sensitivities must accompany interpretation.
 
-## Reproducción
+## Reproduction
 
-Ejecutar los comandos desde la raíz del repositorio. Las descargas usan data/benchmarks, o la carpeta indicada por MUSA_BENCHMARK_DATA. Para repetir el análisis con los originales disponibles, elegir una carpeta nueva:
+Run from the repository root. Downloads use data/benchmarks or
+MUSA_BENCHMARK_DATA. To repeat analysis with available originals, choose a
+new output folder:
 
 ~~~text
 python -m pip install -e ".[benchmarks]"
-python scripts/extended_benchmark_inputs.py RESULTADOS
-python scripts/run_extended_benchmarks.py RESULTADOS
-python scripts/add_interior_benchmark_windows.py RESULTADOS
-scripts/run_qgis_python.cmd scripts/qgis_extended_benchmarks.py RESULTADOS dist/qgis/ZIP_VALIDADO.zip
-python scripts/report_extended_benchmarks.py RESULTADOS
+python scripts/extended_benchmark_inputs.py RESULTS
+python scripts/run_extended_benchmarks.py RESULTS
+python scripts/add_interior_benchmark_windows.py RESULTS
+scripts/run_qgis_python.cmd scripts/qgis_extended_benchmarks.py RESULTS dist/qgis/VALIDATED_PLUGIN.zip
+python scripts/report_extended_benchmarks.py RESULTS
 ~~~
 
-Definir MUSA_QGIS_ROOT con la instalación existente antes del paso QGIS. La preparación conserva supuestos e inventarios; el ejecutor verifica hashes de entrada y rechaza reanudar con parámetros diferentes. El informe final conserva CSV de soportes, resúmenes espectrales, comparación ráster/vector, manifiestos y evidencias QGIS. La ejecución comprobada es la sesión MUSA-extended-benchmarks-20261102_143812, archivada por el mantenedor.
+Set MUSA_QGIS_ROOT to an existing installation before the QGIS step.
+Preparation retains assumptions and inventories; the runner verifies input
+hashes and refuses resumption with different parameters. The final report
+retains support CSV files, spectral summaries, raster/vector comparisons,
+manifests, and QGIS evidence. The verified run is the maintainer's archive
+MUSA-extended-benchmarks-20261102_143812.
 
-Ver fuentes primarias y alcance de cada método en README.md de la entrega. Los algoritmos completos de wavelets de Ouillon y el programa MATLAB de De Souza/Rostirolla no se incorporaron a MUSA; sus artículos orientan las comprobaciones de rango y muestreo. No se publicó una release.
+Primary sources and method scope are documented in that archive's README.md.
+Ouillon's complete wavelet algorithms and the De Souza/Rostirolla MATLAB program
+were not incorporated into MUSA; their papers inform range/sampling checks.
+No release was published in that campaign.

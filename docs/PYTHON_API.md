@@ -1,8 +1,10 @@
-# API Python: ejecutar el motor sin QGIS
+# Python API: run the engine without QGIS
 
-Requiere la instalación de [INSTALLATION.md](INSTALLATION.md). Estos ejemplos usan la API disponible; no presuponen un comando instalado musa ni una publicación en PyPI.
+Install as described in [INSTALLATION.md](INSTALLATION.md). These examples use
+the available API; they assume neither an installed musa analysis command nor
+a PyPI publication.
 
-## Puntos 2D en memoria
+## In-memory 2D points
 
 ~~~python
 import numpy as np
@@ -16,13 +18,20 @@ print(result.dq)
 print(result.tau)
 ~~~
 
-La entrada de puntos es una matriz N × 2, con al menos diez puntos. La normalización está activada por defecto; las escalas del ejemplo son del espacio normalizado, no metros de una cartografía. Usar normalize=False y escalas coherentes cuando sea necesario conservar las coordenadas. Esta ruta cuenta puntos por caja; no mide longitud de trazas ni admite una matriz espacial 3D.
+Point input is an N × 2 array with at least ten points. Normalization is on by
+default; these scales belong to normalized space, not map meters. Use
+normalize=False and consistent scales to preserve coordinates. This path
+counts points per box; it does not measure trace length or accept a spatial 3D array.
 
-MUSAResult contiene los q aceptados, sus Dq, tau, alpha, f_alpha, R² y diagnósticos disponibles, además de los q rechazados y su calidad. Si quedan menos de dos q que superen el filtro triple del análisis descriptivo, run_analysis genera ValueError. No devuelve una aprobación de fractalidad.
+MUSAResult contains accepted q values, their Dq, tau, alpha, f_alpha, R²,
+available diagnostics, and rejected q values with quality information. If fewer
+than two q values pass the descriptive triple filter, run_analysis raises
+ValueError. It does not return an approval of fractality.
 
-## Líneas y dominio observacional
+## Lines and observation domain
 
-El bloque siguiente requiere dos archivos propios; los nombres son ilustrativos. Para GeoPackage con varias capas, elegir la capa mediante el argumento layer de GeoPandas.
+The following block requires your own two files; filenames are illustrative.
+For multilayer GeoPackages, choose layers explicitly with GeoPandas' layer argument.
 
 ~~~python
 import geopandas as gpd
@@ -31,15 +40,15 @@ from pyproj import CRS
 from shapely.ops import unary_union
 from musa import MUSA
 
-lines = gpd.read_file("lineamientos.gpkg", layer="lineamientos")
-area = gpd.read_file("dominio.gpkg", layer="dominio")
+lines = gpd.read_file("lineaments.gpkg", layer="lineaments")
+area = gpd.read_file("domain.gpkg", layer="domain")
 if lines.crs is None or area.crs is None:
-    raise ValueError("Ambas entradas necesitan su CRS de origen correcto")
+    raise ValueError("Both inputs need their correct source CRS")
 
-# Ejemplo de CRS métrico; sustituirlo por el adecuado al área real.
+# Example metric CRS: replace it with one appropriate to the actual study area.
 analysis_crs = CRS.from_user_input("EPSG:32718")
 if not analysis_crs.is_projected or analysis_crs.axis_info[0].unit_conversion_factor != 1:
-    raise ValueError("Se requiere una proyección en metros")
+    raise ValueError("A projection in meters is required")
 lines = lines.to_crs(analysis_crs)
 area = area.to_crs(analysis_crs)
 boundary = unary_union(area.geometry)
@@ -48,13 +57,19 @@ analyzer = MUSA.from_line_geometries(
     lines.geometry, boundary, analysis_crs.to_wkt(), q_values=np.arange(-2, 3))
 ~~~
 
-Este adaptador recorta al polígono, rechaza líneas no válidas y no reproyecta. La etiqueta de CRS no cambia coordenadas. El constructor MUSA también acepta un GeoDataFrame o ruta vectorial y boundary, con gis_reproject_to configurable; la preparación explícita anterior facilita auditar unidades y capas.
+This adapter clips to the polygon, rejects invalid lines, and does not reproject.
+A CRS label does not change coordinates. The MUSA constructor also accepts a
+GeoDataFrame/vector path and boundary, with configurable gis_reproject_to;
+explicit preparation makes units and layers easier to audit.
 
-Antes de evaluar soporte de escalamiento, armonizar duplicados y registrar el efecto sobre la longitud. El diagnóstico independiente rechaza multiplicidad coincidente; no aplica una disolución silenciosa. El flujo descriptivo y las ventanas móviles tienen contratos de preparación distintos, explicados en [teoría](theory.md).
+Before assessing scaling support, harmonize duplicates and record the effect
+on length. The independent assessment rejects coincident multiplicity rather
+than silently dissolving it. Descriptive and moving-window preparation have
+different contracts; see [theory](theory.md).
 
-## Ejecutar el flujo común y exportar
+## Shared workflow and exports
 
-Continuación del analizador de líneas anterior:
+Continue from the line analyzer above:
 
 ~~~python
 from musa.workflow import RunConfig, execute_analysis
@@ -66,24 +81,31 @@ config = RunConfig(
     local=True, structural=True, network=False,
     plots=True, gis=True)
 
-manifest = execute_analysis(analyzer, config, "outputs/analisis_nuevo")
+manifest = execute_analysis(analyzer, config, "outputs/new_analysis")
 print(manifest["status"])
 print(manifest["outputs"])
 ~~~
 
-Los tamaños son ejemplos de configuración, no escalas geológicas recomendadas. Elegirlos según resolución, dominio y objetivos. La carpeta final debe no existir; no crearla antes de execute_analysis. El flujo la reserva y conserva el manifiesto incluso si después falla o se cancela. El padre puede existir.
+These sizes illustrate configuration; they are not recommended geological
+scales. Choose them from resolution, domain, and objectives. The final folder
+must not exist: do not create it before execute_analysis. The workflow reserves
+it and retains a manifest on later failure/cancellation. Its parent may exist.
 
-El flujo siempre ejecuta el espectro global. Los indicadores local, structural, network, moving, plots y gis habilitan sus etapas correspondientes. La validación de RunConfig exige al menos cuatro divisores enteros distintos, mayores o iguales que dos. No impone por sí sola una década de escalamiento; esa condición pertenece al diagnóstico independiente.
+The workflow always runs the global spectrum. local, structural, network,
+moving, plots, and gis enable their respective stages. RunConfig requires at
+least four distinct integer divisors >=2. It does not itself establish a decade
+of scaling; that is a separate assessment criterion.
 
-Para probar esta ruta sin archivos propios:
+A synthetic example without your own files is available:
 
 ~~~text
 python examples/headless_workflow.py --output outputs/headless_demo
 ~~~
 
-El ejemplo sintético se ejecutó completo sin QGIS y con exportación GIS/figuras. No es un conjunto natural ni un ejecutor general de archivos desde terminal.
+This example ran without QGIS, including GIS/figure exports. It is neither a
+natural dataset nor a general command-line file-analysis tool.
 
-## Recetas
+## Recipes
 
 ~~~python
 import json
@@ -92,58 +114,73 @@ from musa.workflow import RunConfig
 
 recipe_text = json.dumps(config.recipe(), indent=2)
 restored = RunConfig.from_recipe(json.loads(recipe_text))
-
-# Para leer una receta exportada por una ejecución o por QGIS:
 restored_from_file = RunConfig.from_recipe(
-    json.loads(Path("outputs/analisis_nuevo/recipe.json").read_text(encoding="utf-8")))
+    json.loads(Path("outputs/new_analysis/recipe.json").read_text(encoding="utf-8")))
 ~~~
 
-El formato es musa-analysis versión 1. Guarda los parámetros, no las rutas de entrada. La receta se pasa a execute_analysis junto con un analizador preparado. Se puede reutilizar en QGIS mediante musa:run_recipe. La equivalencia exige las mismas geometrías, CRS, escalas y versión del núcleo.
+The format is musa-analysis version 1. It stores parameters, not input paths.
+Pass the recipe to execute_analysis with a prepared analyzer. QGIS can reuse it
+through musa:run_recipe. Equivalence requires the same geometries, CRS, scales,
+and core version.
 
-## Diagnóstico independiente de escalamiento
+## Independent scaling assessment
 
-Continuación del mismo analizador de líneas, incluso si run_analysis no pudo ajustarlo:
+Continue with the same line analyzer, even if run_analysis could not fit it:
 
 ~~~python
 from pathlib import Path
 import numpy as np
 from musa import ScalingOptions, assess_lineament_scaling, write_scaling_reports
 
-options = ScalingOptions(resolution_m=10, null_replicates=0, seed=42)
+options = ScalingOptions(
+    resolution_m=10, null_replicates=99, seed=42,
+    renyi_order_policy="inform_q0_q2", null_tail="two_sided",
+    coarse_trim_min_effective_q2=4)
 report = assess_lineament_scaling(analyzer, np.geomspace(25, 1000, 16), options)
-out = Path("outputs/diagnostico_nuevo")
+out = Path("outputs/new_assessment")
 out.mkdir(parents=True, exist_ok=False)
 write_scaling_reports(out, [report])
 for row in report["q_results"]:
     print(row["q"], row["status"], row["dimension"], row["reasons"])
 ~~~
 
-Resolución e intervalo son ejemplos que deben justificarse con los datos. Se excluyen escalas fuera de los límites del soporte. Puede no quedar información suficiente; eso se informa sin buscar otro intervalo que ajuste mejor. write_scaling_reports escribe archivos con nombres fijos en la carpeta indicada; por eso el ejemplo crea una carpeta nueva explícitamente.
+Resolution and interval are examples to justify from the data. Unsupported
+scales are excluded. Information can remain insufficient; this is reported
+without searching afterward for a better-fitting interval. write_scaling_reports
+uses fixed filenames, so the example explicitly reserves a new folder.
+The [user guide](USER_GUIDE.md) lists all ScalingOptions and the
+[tutorial](TUTORIAL.md) executes a complete synthetic case with the article policy.
 
-Para un soporte local, pasar boundary con el recorte geométrico de la ventana, nominal_area con el área cuadrada antes de recortar y un support_id único. Añadir center_id, center_x, center_y y window_m a los informes de ventanas antes de exportarlos permite identificarlos en el índice espectral. La opción RunConfig.scaling_support integra este diagnóstico en el flujo común; no elimina la exigencia del ajuste global de ese flujo.
+For local support, pass boundary as the clipped window, nominal_area as the
+unclipped square's area, and a unique support_id. Add center_id, center_x,
+center_y, and window_m to window reports before exporting to identify them in
+the spectral index. RunConfig.scaling_support integrates the assessment into
+the shared workflow without removing its global-fit requirement.
 
-## Ventanas y lectura de resultados
+## Windows and result readers
 
-La API export_moving_windows permite centros regulares o explícitos y una lista de tamaños. Ver [moving_windows.md](moving_windows.md) para su contrato y para el conjunto opcional de orígenes.
+export_moving_windows accepts regular or explicit centers and a list of sizes.
+See [moving_windows.md](moving_windows.md) for its contract and optional origins.
 
 ~~~python
 from pathlib import Path
 from musa import list_spectra, read_spectrum, spectrum_figure
 
-cache = Path("outputs/analisis_nuevo/spectrum_curves.sqlite")
+cache = Path("outputs/new_analysis/spectrum_curves.sqlite")
 index = list_spectra(cache)
 if index:
     selected = read_spectrum(cache, index[0]["series_id"])
     figure = spectrum_figure(selected)
-    figure.savefig("outputs/espectro_seleccionado.png", dpi=160)
+    figure.savefig("outputs/selected_spectrum.png", dpi=160)
     figure.clear()
 ~~~
 
-Los lectores del índice son de solo lectura y no necesitan QGIS. Seleccionar explícitamente source, support_id y estimator al comparar resultados; el primer registro no tiene un significado científico preferente.
+Index readers are read-only and need no QGIS. Select source, support_id, and
+estimator explicitly for comparisons; the first record has no preferred scientific meaning.
 
-## Parámetros operativos
+## Operational parameters
 
-Para consultar los valores y campos completos de la versión instalada:
+Inspect complete fields/defaults in the installed version:
 
 ~~~python
 from dataclasses import asdict
@@ -154,4 +191,6 @@ print(asdict(RunConfig()))
 print(asdict(ScalingOptions(resolution_m=1)))
 ~~~
 
-RunConfig y ScalingOptions tienen validadores distintos porque resuelven tareas distintas. resolution_m es obligatorio para el diagnóstico; seed controla las réplicas solicitadas, no corrige errores de entrada ni selecciona una proyección.
+RunConfig and ScalingOptions have different validators because they solve
+different tasks. resolution_m is mandatory for assessment; seed controls the
+requested replicates, not input errors or projection selection.

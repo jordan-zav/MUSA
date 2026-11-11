@@ -1,120 +1,104 @@
-# Alcance de la validación matemática de MUSA
+# Scope of MUSA's mathematical validation
 
-Revisión del 2 de noviembre de 2026, vigente para MUSA 1.1.0. No constituye una revisión por pares ni una certificación matemática.
+Review of November 2, 2026, covering MUSA 1.1.0. This is neither peer review
+nor mathematical certification. Later dated sections retain their own scope.
 
-## Qué calcula y comprueba actualmente
+## Current calculations and checks
 
-MUSA analiza una medida de longitud de lineamientos en un dominio espacial 2D.
-Calcula dimensiones generalizadas Dq y el espectro directo de Chhabra–Jensen,
-alpha y f(alpha), a varias escalas. Cambiar q estudia el peso relativo de regiones
-densas y poco densas; no agrega dimensiones espaciales ni variables independientes.
+MUSA analyzes a lineament-length measure over a spatial 2D domain. It calculates
+generalized dimensions Dq and the direct Chhabra–Jensen spectrum, alpha and
+f(alpha), at multiple scales. Changing q studies the relative weight of dense
+and sparse regions; it adds neither spatial dimensions nor independent variables.
 
-Las ventanas móviles separan tamaño de ventana, paso entre centros y escalas
-internas. Hay controles de cobertura, número de cajas, dominancia de pesos,
-conservación de longitud y ajustes de Dq, alpha y f(alpha). Los ajustes constantes
-no se consideran evidencia de escalamiento. Se conservan rechazos y sus motivos.
-El conjunto opcional de 16 orígenes y una segunda fase permite examinar sesgo de
-malla. Las ventanas solapadas y los orígenes son dependientes, no réplicas
-estadísticas independientes. Zeta y su regresión ponderada son diagnósticos
-operativos separados de las estimaciones canónicas.
+Moving windows separate window size, center spacing, and internal scales.
+Checks cover coverage, box counts, weight dominance, length conservation,
+and Dq/alpha/f(alpha) fits. Constant fits are not evidence of scaling.
+Rejections and reasons remain available. The optional 16-origin ensemble and
+a second phase examine grid bias. Overlapping windows and origins are
+dependent, not independent statistical replicates. Zeta and its weighted
+regression are operational diagnostics separate from canonical estimates.
 
-El análisis global añade diagnósticos por escala, jackknife y bootstrap opcional.
-La disponibilidad de un intervalo no garantiza que su cobertura esté calibrada
-para una red espacial dependiente; el p de una pendiente tampoco es una prueba
-de fractalidad o multifractalidad.
+Global analysis adds per-scale diagnostics, jackknife, and optional bootstrap.
+An interval's availability does not establish calibrated coverage for a
+dependent spatial network; a slope p value is not a test of fractality or
+multifractality.
 
-## Controles computacionales que sí ejecutan el motor
+## Computational controls that actually run the engine
 
-- tests/test_origin_ensemble.py contrasta particiones con una referencia
-  independiente y conserva longitud tras trasladar geometrías.
-- La línea uniforme se contrasta con Dq aproximadamente 1 y pequeña anchura
-  espectral, sin forzar el espectro a cumplir ese resultado.
-- La construcción binomial de Cantor se contrasta con valores analíticos de Dq
-  y alpha en el intervalo finito estudiado y bajo dos fases de malla.
-- tests/test_numerical_bias.py comprueba bordes, fragmentación de trazas,
-  orientación, conservación de longitud y sensibilidad de clasificaciones.
+- tests/test_origin_ensemble.py compares partitions with an independent reference and checks length conservation after geometry translation.
+- A uniform line is compared with Dq approximately 1 and a narrow spectrum, without forcing that result.
+- Binomial Cantor is compared with analytical Dq/alpha over the finite interval and two grid phases.
+- tests/test_numerical_bias.py checks boundaries, trace fragmentation, orientation, length conservation, and classification sensitivity.
 
-Son controles útiles de implementación en casos concretos; no demuestran que
-cualquier cartografía real presente escalamiento fractal. Las trazas finitas de
-esos controles tampoco equivalen a un fractal matemático en el límite infinito.
+These are implementation controls for specific cases. They do not establish
+fractal scaling in every real map. Their finite traces are not mathematical
+fractals in the infinite limit.
 
-La API histórica run_synthetic_validation, en src/musa/synthetic.py, genera
-perfiles prefijados y una tabla ilustrativa. No crea geometrías ni llama al motor.
-Sus campos pass/fail y el test de esa tabla no validan el cálculo multifractal.
-Se ha aclarado expresamente su alcance en la documentación de la función.
+The historical run_synthetic_validation API in src/musa/synthetic.py generates
+preset profiles and an illustrative table. It neither constructs geometry nor
+calls the engine. Its pass/fail fields and table test do not validate
+multifractal calculation. The function documentation explicitly states this scope.
 
-## Diagnóstico implementado y validación científica pendiente
+## Implemented assessment and outstanding scientific validation
 
-Ahora existe un diagnóstico experimental integrado, descrito en
-[SCALING_SUPPORT.md](SCALING_SUPPORT.md). Evalúa dimensiones generalizadas de
-Rényi Dq; no es una prueba universal calibrada de fractalidad o multifractalidad.
-Un R2 elevado,
-varios q aceptados o un espectro ancho no bastan. Un conjunto finito de segmentos
-rectos tiene dimensión geométrica 1 a escalas suficientemente pequeñas; las
-dimensiones mayores estimadas en una cartografía describen su organización en
-un intervalo de escalas, no un límite fractal demostrado.
+An integrated experimental assessment is described in
+[SCALING_SUPPORT.md](SCALING_SUPPORT.md). It evaluates generalized Rényi
+dimensions Dq; it is not a universally calibrated fractality/multifractality
+test. High R², several accepted q values, or a wide spectrum are insufficient.
+A finite set of straight segments has geometric dimension 1 at sufficiently
+small scales; larger dimensions estimated from maps describe organization
+over a scale interval, not an established fractal limit.
 
-El diagnóstico implementado incorpora:
+The implemented assessment includes:
 
-1. Declarar el intervalo resoluble a partir de precisión cartográfica, tamaño del
-   dominio y soporte observado, y registrar su amplitud en órdenes de magnitud.
-2. Comparar una recta log–log con curvatura y cambios de pendiente, usando un
-   criterio definido antes de seleccionar el intervalo y controles de selección.
-3. Evaluar estabilidad al retirar escalas, cambiar orígenes, tamaños de ventana
-   y resolución de observación, sin tratar ventanas solapadas como independientes.
-4. Contrastar D0−D2 con un modelo nulo condicional que traslada trazas conservando
-   formas, longitudes y orientaciones. Holm corrige la familia completa de soportes;
-   los q no generan pruebas independientes adicionales. Cambia la densidad local
-   y los cruces, por lo que el contraste es de heterogeneidad espacial bajo ese
-   modelo, no una demostración de multifractalidad.
-5. Reportar por separado evidencia compatible, evidencia contraria e información
-   insuficiente, con el intervalo y la sensibilidad; no una etiqueta universal.
+1. Declaring a resolvable interval from mapping precision, domain size, and observed support, recording its span in orders of magnitude.
+2. Comparing a log–log line with curvature and slope changes using criteria fixed before interval selection and controls on model selection.
+3. Evaluating sensitivity to omitted scales, origins, window sizes, and observation resolution without treating overlapping windows as independent.
+4. Testing D0−D2 against conditional trace translations preserving supplied shapes, lengths, and orientations. Holm adjusts the complete support family; q values are not additional independent tests. Local density and crossings change, so this tests spatial heterogeneity under that model, not proof of multifractality.
+5. Reporting compatible evidence, contrary evidence, and insufficient information separately, with interval/sensitivity rather than a universal label.
 
-Los estados se basan en umbrales operativos explícitos. El piloto con 24 conjuntos
-generados bajo el modelo nulo y 39 réplicas por conjunto produjo 1 rechazo a 0,05;
-el intervalo binomial del 95 % fue aproximadamente 0,0011–0,2112. No certifica una
-tasa de error general del 5 %. Faltan calibración extensa, potencia ante alternativas
-y validación independiente para distintos dominios, inventarios y diseños de
-muestreo. El usuario debe justificar la resolución cartográfica, el intervalo y
-la adecuación del modelo nulo. No se ha implementado multifractal conjunto de
-varias variables. Las dimensiones de Rényi sí están implementadas; no se
-confunden con dimensiones espaciales adicionales.
+States use explicit operational thresholds. A pilot with 24 null-generated
+datasets and 39 replicates each produced one rejection at 0.05; its 95%
+binomial interval was approximately 0.0011–0.2112. This does not certify a
+general 5% error rate. Extensive calibration, power assessment, and independent
+validation across domains, inventories, and sampling designs remain necessary.
+The user must justify mapping resolution, interval, and null-model suitability.
+Joint multifractals of multiple variables are not implemented. Rényi dimensions
+are implemented and are not additional spatial dimensions.
 
-## Evidencia ampliada del 2 de noviembre
+## Extended evidence of November 2
 
-La comprobación del núcleo geométrico con una cascada diádica de 65.536
-segmentos obtuvo error máximo Dq/tau/alpha/f(alpha) de aproximadamente
-2,09 × 10⁻¹⁴ para un origen alineado y escalas finitas. La suite ampliada
-completó 67 casos procesables y 450 soportes, conservando insuficiencias y
-rechazos. No equivale a 67 afloramientos independientes ni certifica precisión
-geológica general. Cuatro máscaras seleccionadas estaban vacías; GeoCrack y
-las coordenadas de Zhu no se contabilizan como datos analizados.
+The geometry core's 65,536-segment dyadic-cascade check obtained maximum
+Dq/tau/alpha/f(alpha) error approximately 2.09 × 10⁻¹⁴ for an aligned origin
+and finite scales. The extended suite completed 67 processable cases and 450
+supports, retaining insufficiencies and rejections. These are not 67 independent
+outcrops or certification of general geological accuracy. Four selected masks
+were empty; GeoCrack images and Zhu coordinates are not counted as analyzed.
 
-El control de malla periódica dio compatibilidad en un intervalo inicial y fue
-rechazado en un seguimiento exploratorio ampliado, sin cambiar los criterios.
-Esto documenta una limitación real de interpretar pendientes finitas como
-fractalidad. Ver [validación ampliada](EXTENDED_BENCHMARKS.md),
-[teoría](theory.md) y [fuentes de espectros](SPECTRA.md).
+A periodic-grid control was compatible over an initial interval and rejected
+over an exploratory extended interval without changing criteria. This documents
+a limitation of interpreting finite slopes as fractality. See
+[extended validation](EXTENDED_BENCHMARKS.md), [theory](theory.md), and
+[spectral sources](SPECTRA.md).
 
-## Sensibilidad a la geometría de la celda (7 de noviembre)
+## Cell-geometry sensitivity (November 7)
 
-Un experimento exploratorio comparó celdas cuadradas y hexagonales de igual
-área con verdad conocida y en ocho mapas públicos. La forma de la celda resultó
-una fuente de incertidumbre de segundo orden: cambia el RMSE en q >= 0 en pocos
-puntos porcentuales y no corrige el error grande en q negativos, que afecta por
-igual a ambas mallas. El motor no cambió. Ver [geometría de la celda](GRID_GEOMETRY.md).
+An exploratory experiment compared equal-area squares/hexagons against known
+truth and eight public maps. Cell shape was a second-order uncertainty source:
+q >= 0 RMSE changed by a few percentage points, without correcting large
+negative-q errors affecting both grids. The engine was unchanged. See
+[cell geometry](GRID_GEOMETRY.md).
 
-## q negativos (7 de noviembre)
+## Negative q (November 7)
 
-Con cuatro medidas de verdad conocida y 48 configuraciones de malla, D(q<0)
-mostró errores de hasta 1,33 en D(−4) que no corrigieron ni el piso de
-probabilidad, ni el umbral por celda, ni el recorte de escalas, ni el promedio
-de orígenes, sin cambiar la medida. El piso, además, lleva los q negativos
-hacia D0 por construcción. D(q<0) debe tratarse como indicador de sensibilidad.
-Ver [q negativos](NEGATIVE_Q.md).
+For four known-truth measures and 48 grid configurations, D(q<0) errors reached
+1.33 for D(−4). Neither probability floors, per-cell thresholds, scale trimming,
+nor origin averaging corrected these without changing the measure. The floor
+also drives negative-order dimensions toward D0 by construction. Treat D(q<0)
+as a sensitivity indicator. See [negative q](NEGATIVE_Q.md).
 
-## Referencias
+## References
 
-- [Chhabra y Jensen (1989), espectro directo](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.62.1327).
-- [Roy y colaboradores (2007), box counting de redes de fracturas y rango de escalamiento](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2006JB004582).
-- [Gonzato y colaboradores (1998), problemas prácticos de estimar dimensión y rango de invariancia](https://academic.oup.com/gji/article/132/2/275/671597).
+- [Chhabra and Jensen (1989), direct spectrum](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.62.1327).
+- [Roy and colleagues (2007), fracture-network box counting and scaling range](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2006JB004582).
+- [Gonzato and colleagues (1998), practical dimension/range estimation problems](https://academic.oup.com/gji/article/132/2/275/671597).

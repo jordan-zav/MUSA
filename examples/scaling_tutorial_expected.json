@@ -1,0 +1,56 @@
+{
+  "software_version": "1.2.0",
+  "q_results": [
+    {
+      "q": 0.0,
+      "status": "compatible_finite_range",
+      "dimension": 0.9865903926148908,
+      "tau": -0.9865903926148908,
+      "reasons": []
+    },
+    {
+      "q": 1.0,
+      "status": "compatible_finite_range",
+      "dimension": 0.9910850870242291,
+      "tau": 0.0,
+      "reasons": []
+    },
+    {
+      "q": 2.0,
+      "status": "compatible_finite_range",
+      "dimension": 0.9933071363120906,
+      "tau": 0.9933071363120906,
+      "reasons": []
+    }
+  ],
+  "used_scales_m": [
+    1000.0,
+    735.6422544596413,
+    541.1695265464638,
+    398.1071705534973,
+    292.8644564625237,
+    215.44346900318823,
+    158.48931924611142,
+    116.59144011798311,
+    85.76958985908941,
+    63.09573444801933,
+    46.41588833612777,
+    34.145488738336006,
+    25.118864315095795,
+    18.478497974222908,
+    13.593563908785255,
+    10.0
+  ],
+  "null": {
+    "status": "complete",
+    "p_value": 0.944,
+    "p_holm": 0.944,
+    "minimum_p": 0.002,
+    "tail": "two_sided",
+    "replicates_requested": 999,
+    "observed": -0.006716743697199767,
+    "reject_relocation_at_0_05": false,
+    "holm_family_size": 1
+  },
+  "valid_null_replicates": 999
+}

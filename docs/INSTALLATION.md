@@ -1,112 +1,138 @@
-# Instalación y formas de ejecución
+# Installation and execution routes
 
-Referencia de MUSA 1.2.0; la primera release del plugin de QGIS fue 1.1.0.
+Reference for MUSA 1.2.0; the first QGIS plugin release was 1.1.0.
 
-## Elegir una ruta
+## Choose a route
 
-| Objetivo | Instalar | Ejecutar |
+| Goal | Install | Run |
 | --- | --- | --- |
-| Trabajar con mapas y ventanas desde QGIS | ZIP del plugin, construido desde el repositorio actual | Vector > MUSA > MUSA Workbench o herramientas Processing |
-| Usar el motor en scripts o notebooks | Paquete Python desde el repositorio, en un entorno virtual | Importar MUSA y las funciones de musa.workflow |
-| Reproducir los benchmarks | Fuente y dependencias opcionales benchmarks | Scripts de validación, con originales y resultados externos |
+| Maps and windows in QGIS | Plugin ZIP from the matching release or source checkout | Vector > MUSA > MUSA Workbench, or Processing |
+| Engine in scripts/notebooks | Python package from the repository, in a virtual environment | Import MUSA and musa.workflow functions |
+| Reproduce benchmarks | Source and optional benchmarks dependencies | Validation scripts with external originals/results |
 
-El nombre de distribución es musa-multifractal; la importación Python es musa. El identificador del plugin construido es musa_qgis. Son nombres de distribución distintos para un mismo núcleo numérico.
+The distribution name is musa-multifractal; the Python import is musa. The built
+plugin identifier is musa_qgis. These are different distribution names for the
+same numerical core.
 
-## Python desde GitHub
+## Python from GitHub
 
-Python 3.10 o superior. Crear y activar un entorno virtual propio; no usar el Python de QGIS para esta ruta.
+Use Python 3.10 or later. Create and activate your own virtual environment; do
+not use QGIS Python for this route.
 
 ~~~text
 python -m venv .venv
 ~~~
 
-En Windows PowerShell:
+Windows PowerShell:
 
 ~~~powershell
 .\.venv\Scripts\Activate.ps1
 ~~~
 
-En Linux/macOS:
+Linux/macOS:
 
 ~~~sh
 source .venv/bin/activate
 ~~~
 
-Instalación directa del código actual publicado en main:
+Install the published 1.2.0 source (requires Git):
 
 ~~~text
-python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@main"
+python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@v1.2.0"
 ~~~
 
-Requiere Git. Para una ejecución reproducible sustituir main por el hash del commit elegido. Para trabajar con los ejemplos y modificar la fuente:
+For a reproducible run, record the resolved commit hash. To work with examples
+and edit the source:
 
 ~~~text
-git clone https://github.com/jordan-zav/MUSA.git
+git clone --branch v1.2.0 https://github.com/jordan-zav/MUSA.git
 cd MUSA
 python -m pip install -e ".[gis]"
 ~~~
 
-Los comandos siguientes presuponen ese directorio del repositorio y el entorno activado.
+The following commands assume the repository root and an active environment.
+Examples added after the v1.2.0 tag require a source checkout that contains
+those files. In particular, the scaling tutorial names its required generator
+and reference file; the tagged package alone does not provide those additions.
 
-| Extra | Uso y dependencia |
+| Extra | Purpose and dependencies |
 | --- | --- |
-| Sin extra | API de puntos y cálculos con NumPy, SciPy y Matplotlib |
-| gis | Shapely, GeoPandas y PyProj para líneas, archivos vectoriales y exportación GIS |
-| fast | Aceleración opcional Numba; el motor conserva la alternativa Python |
-| benchmarks | Adaptadores GIS actuales, Pyogrio, Pillow, requests y PyMuPDF para las fuentes de validación |
+| None | Point API and calculations using NumPy >=1.24, SciPy >=1.10, Matplotlib >=3.7 |
+| gis | Shapely >=2.0, GeoPandas >=0.14, PyProj >=3.6 for lines, vector files, and GIS exports |
+| fast | Optional Numba >=0.64 acceleration; the Python alternative remains available |
+| benchmarks | GIS adapters, Pyogrio, Pillow, requests, and PyMuPDF for validation sources |
 
-Para benchmarks o desarrollo:
+For benchmarks or development:
 
 ~~~text
 python -m pip install -e ".[benchmarks]"
 python -m pip install -r requirements-dev.txt
 ~~~
 
-La segunda orden instala también pytest y Ruff. No descarga los conjuntos de datos de autores. Consultar [validación ampliada](EXTENDED_BENCHMARKS.md) para esas descargas, licencias y límites.
+The second command also installs pytest and Ruff. It does not download author
+datasets. See [extended benchmarks](EXTENDED_BENCHMARKS.md) for downloads,
+licenses, and limits. Exact dependency bounds are in pyproject.toml.
 
-## Ejecutar sin QGIS
+## Run without QGIS
 
-La [API Python](PYTHON_API.md) describe la entrada real de líneas, puntos y recetas. Existe un ejemplo sintético ejecutable desde la fuente:
+The [Python API](PYTHON_API.md) describes points, lines, and recipes. A synthetic
+source example is available:
 
 ~~~text
 python examples/headless_workflow.py --output outputs/headless_demo
 ~~~
 
-La carpeta de salida debe ser nueva. El ejemplo no abre ventanas ni necesita QGIS. Produce una receta, manifiesto, CSV, caché espectral, figuras y productos GIS. Su plano sintético no tiene ubicación real.
+The output folder must be new. The example opens no windows and needs no QGIS.
+It produces a recipe, manifest, CSV files, spectral cache, figures, and GIS
+products. Its synthetic plane has no real location. For an independent
+assessment and relocation test, follow [TUTORIAL.md](TUTORIAL.md).
 
 ## QGIS
 
-El código declara compatibilidad con QGIS 3.34–3.99; la versión comprobada en esta revisión es 3.44.12. Ese rango de metadatos no equivale a haber probado todas las versiones y sistemas.
+Metadata declares QGIS 3.34–3.99 compatibility; the version checked in this
+documentation is 3.44.12. This range does not mean every version/system was tested.
 
-1. Obtener el repositorio y construir el ZIP con el Python de desarrollo:
+1. Obtain the source and build the ZIP using development Python:
 
 ~~~text
 python scripts/build_qgis_plugin.py
 ~~~
 
-2. En QGIS: Complementos > Administrar e instalar complementos > Instalar a partir de ZIP. Elegir el archivo nuevo de dist/qgis.
-3. Abrir Vector > MUSA > MUSA Workbench. El panel actual está en inglés.
+2. In QGIS, select Plugins > Manage and Install Plugins > Install from ZIP.
+   Choose the new file in dist/qgis, or obtain the matching release ZIP.
+3. Open Vector > MUSA > MUSA Workbench. The current panel is in English.
 
-El ZIP lleva una copia privada del núcleo, sin la interfaz Tk. NumPy, SciPy, Shapely y Matplotlib deben estar disponibles en el Python de QGIS; el plugin no ejecuta pip automáticamente. Para módulos ausentes, usar el gestor de dependencias de la distribución de QGIS y reiniciar QGIS. Instalar el paquete en un entorno virtual externo no instala módulos dentro de QGIS.
+The ZIP bundles the core without the Tk interface. NumPy, SciPy, Shapely, and
+Matplotlib must be available in QGIS Python; the plugin does not run pip
+automatically. For missing modules, use the dependency manager/environment of
+your QGIS distribution and restart QGIS. Installing packages in an external
+virtual environment does not install them in QGIS.
 
-Ver [guía QGIS](QGIS.md) para selección de capas, CRS, tareas, cancelación, recetas y resultados.
+See [QGIS.md](QGIS.md) for layer selection, CRS, tasks, cancellation, recipes,
+and results.
 
-## Estado de distribución
+## Distribution status and limits
 
-| Vía | Estado al 2 de noviembre de 2026 |
+| Route | Recorded status |
 | --- | --- |
-| Fuente GitHub / instalación pip desde Git | Disponible |
-| Wheel Python desde pyproject.toml | Construido e instalado en un destino separado; ejemplo de puntos ejecutado sin QGIS |
-| PyPI, nombre musa-multifractal | Consulta pública sin proyecto disponible en esta revisión; publicación pendiente |
-| ZIP del plugin 1.2.0 | Publicado en la release v1.2.0 de GitHub; probado en QGIS 3.44.12 |
-| Catálogo oficial de complementos QGIS para este nuevo paquete | No se afirma una publicación en el catálogo |
-| Comando de análisis musa o python -m musa | No implementado |
-| Comando musa-ui | Lanzador Tk legado; no es la interfaz QGIS ni un ejecutor de recetas |
+| GitHub source / pip from Git | Available; pin a release or commit |
+| Python wheel from pyproject.toml | Built and installed separately in the earlier audit; a point example ran without QGIS |
+| PyPI, musa-multifractal | The November 2, 2026 audit found no project; these instructions do not assume a later PyPI publication |
+| Plugin ZIP 1.2.0 | Release v1.2.0 on GitHub; QGIS 3.44.12 was tested |
+| Official QGIS plugin catalog | Check the catalog's version separately; the earlier audit did not establish a catalog publication |
+| musa analysis command / python -m musa | Not implemented |
+| musa-ui | Legacy Tk launcher; neither the QGIS interface nor a recipe runner |
 
-No usar una instalación pip desde PyPI como instrucción disponible hasta publicar y comprobar el proyecto. La falta de un comando general de terminal no impide usar el motor sin QGIS mediante la API o scripts propios.
+Do not assume that a PyPI install command is available without checking that
+distribution. The absence of a general analysis CLI does not prevent headless
+use through Python or your own scripts.
 
-La construcción debe respetar el aislamiento de pip y el requisito setuptools >=77 declarado en pyproject.toml. Un setuptools antiguo con --no-build-isolation puede rechazar la licencia SPDX. La prueba de instalación del wheel utilizó dependencias científicas ya disponibles en Windows/Python 3.11; no constituye una matriz de instalaciones limpias en todos los sistemas.
+Builds must respect pip isolation and the setuptools >=77 requirement in
+pyproject.toml. An older setuptools with --no-build-isolation may reject the
+SPDX license declaration. The wheel audit reused available scientific
+dependencies on Windows/Python 3.11; it was not a clean-install matrix for all systems.
 
-## Entorno local del mantenedor
+## Development checks
 
-Las órdenes de desarrollo se ejecutan desde la raíz del repositorio. Los scripts de comprobación nativa usan scripts/run_qgis_python.cmd y MUSA_QGIS_ROOT, exclusivamente para desarrollo.
+Run development commands from the repository root. Native check scripts use
+scripts/run_qgis_python.cmd and MUSA_QGIS_ROOT for development only.

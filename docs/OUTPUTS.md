@@ -1,76 +1,102 @@
-# Salidas, estados y lectura de resultados
+# Outputs, states, and result interpretation
 
-La fuente del inventario de cada ejecución es run_manifest.json, campo outputs. Los archivos dependen de las opciones habilitadas; no todas las ejecuciones producen todos los productos.
+The outputs field of run_manifest.json is the inventory for each run. Files
+depend on enabled options; not every run produces every product.
 
-execute_analysis guarda una carpeta, sin ZIP automático. Para compartirla, conservar su estructura completa. El helper legado package_run_output solo agrupa archivos del primer nivel y no es un respaldo recursivo del workflow actual; no asumir que incluye subcarpetas, entradas originales o todos los datos necesarios para reproducirlo.
+execute_analysis writes a folder, with no automatic ZIP. Preserve its complete
+structure when sharing. The legacy package_run_output helper only bundles
+top-level files; it is not a recursive backup of the current workflow. Do not
+assume it includes subfolders, original inputs, or everything needed for reproduction.
 
-## Cómo empezar a leer una ejecución
+## Start reading a run
 
-1. Comprobar status en run_manifest.json. complete indica ejecución terminada; no significa que todos los q o ventanas tengan respaldo.
-2. Consultar analysis_report.csv para el análisis descriptivo y scaling_support.json/CSV para el diagnóstico independiente, si fue solicitado.
-3. Seleccionar una fuente, soporte y estimador en spectrum_summary.csv o en el visor QGIS. Revisar cuántos q son utilizables antes de interpretar un máximo o un ancho espectral.
-4. Para mapas locales, comprobar cobertura, escala, calidad y definición del producto. Mantener separados intensidad estructural, confiabilidad y espectro.
+1. Check status in run_manifest.json. complete means execution finished, not that every q/window is supported.
+2. Read analysis_report.csv for descriptive analysis and scaling_support.json/CSV for the independent assessment, if requested.
+3. Select a source, support, and estimator in spectrum_summary.csv or the QGIS viewer. Check usable q values before interpreting a peak or spectral width.
+4. For local maps, check coverage, scale, quality, and product definition. Keep structural intensity, reliability, and spectra separate.
 
-## Inventario principal
+## Main inventory
 
-| Producto | Cuándo aparece | Lectura |
+| Product | When available | Interpretation |
 | --- | --- | --- |
-| recipe.json | Flujo execute_analysis | Parámetros reutilizables; no guarda los archivos de entrada |
-| run_manifest.json | Flujo común | Versión, estado, procedencia disponible, outputs y hashes |
-| analysis_report.csv | Ajuste global terminado | Resúmenes, q aceptados/rechazados y calidad descriptiva |
-| analysis_scale_diagnostics.csv | Flujo común | Integrandos y diagnósticos de las escalas del ajuste global |
-| spectrum_fit_summary.csv | Flujo común | Control cuadrático descriptivo del espectro global |
-| spectrum_curves.sqlite | Productos espectrales | Índice por fuente, soporte y estimador; puntos y calidad |
-| spectrum_summary.csv | Productos espectrales | Una fila por serie; referencias de singularidad, q utilizables e identidades |
-| scaling_support.json / scaling_support.csv | Diagnóstico solicitado | Intervalo, exclusiones, orígenes, criterios, observables, causas y contraste nulo |
-| monofractal_cells.csv / multifractal_cells.csv | local=True | Medidas e integrandos por celda hija |
-| monofractal_mother_agg.csv / multifractal_mother_agg.csv | local=True | Resultados por celda madre, q y estimadores disponibles |
-| musa_mother_cells.gpkg | gis=True y productos madre | Capas espaciales del flujo; las capas efectivas dependen de opciones |
-| moving_windows.csv / moving_nodes.csv | moving=True | Soportes móviles y topología exacta |
-| musa_moving_windows.gpkg | moving=True y gis=True | Ventanas, candidatos/controles y tablas espectrales disponibles |
+| recipe.json | execute_analysis workflow | Reusable parameters; no input files |
+| run_manifest.json | Shared workflow | Version, status, available provenance, outputs, and hashes |
+| analysis_report.csv | Completed global fit | Summaries, accepted/rejected q values, and descriptive quality |
+| analysis_scale_diagnostics.csv | Shared workflow | Integrands and scale diagnostics for the global fit |
+| spectrum_fit_summary.csv | Shared workflow | Descriptive quadratic check of the global spectrum |
+| spectrum_curves.sqlite | Spectral products | Index by source, support, and estimator; points and quality |
+| spectrum_summary.csv | Spectral products | One row per series; singularity references, usable q values, identities |
+| scaling_support.json / scaling_support.csv | Requested assessment | Interval, exclusions, origins, criteria, observables, reasons, and null test |
+| monofractal_cells.csv / multifractal_cells.csv | local=True | Measures and integrands per child cell |
+| monofractal_mother_agg.csv / multifractal_mother_agg.csv | local=True | Results per mother cell, q, and available estimator |
+| musa_mother_cells.gpkg | gis=True and mother-cell products | Spatial workflow layers; actual layers depend on options |
+| moving_windows.csv / moving_nodes.csv | moving=True | Moving supports and exact topology |
+| musa_moving_windows.gpkg | moving=True and gis=True | Windows, candidates/controls, and available spectral tables |
 
-Los nombres de figuras globales y locales se registran en outputs; algunas incorporan q en el nombre. Las opciones bootstrap y sensibilidad pueden añadir columnas o archivos. Los postprocesos experimentales tienen sus propios contratos en [nodos](node_products.md) y [candidatos](candidate_scoring.md).
+Global/local figure names are listed in outputs; some include q. Bootstrap
+and sensitivity options can add columns/files. Experimental postprocessors
+have separate contracts in [nodes](node_products.md) and [candidates](candidate_scoring.md).
 
-## Cuatro estados que no deben confundirse
+## Four different kinds of state
 
-| Campo/contexto | Significado |
+| Field/context | Meaning |
 | --- | --- |
-| status de ejecución | running, complete, failed o cancelled; estado del proceso |
-| accepted del análisis descriptivo | Calidad según el filtro de esa ruta; no una prueba formal de fractalidad |
-| reliable / reliable_w | Regla local de calidad/zeta de su estimador; no probabilidad de validez geológica |
-| status del diagnóstico | compatible_finite_range, not_supported o insufficient_information, para el soporte y observable declarados |
+| Run status | running, complete, failed, or cancelled; execution state |
+| Descriptive accepted | Quality under that path's filter; not a formal test of fractality |
+| reliable / reliable_w | Local quality/zeta rule of its estimator; not geological-validity probability |
+| Assessment status | compatible_finite_range, not_supported, or insufficient_information for the declared support/observable |
 
-El diagnóstico admite un Dq calculado con status=not_supported: ese número se conserva para auditoría, no se convierte en una estimación respaldada. Cuando no hay información suficiente, dimension puede ser nulo; nunca sustituirlo por cero. tau, alpha y f_alpha tienen sus propios estados en observables. El mismo q puede tener Dq compatible y alpha insuficiente.
+The assessment can retain a calculated Dq with status=not_supported: the value
+is kept for audit, not promoted to a supported estimate. With insufficient
+information, dimension can be null; never replace it with zero. tau, alpha,
+and f_alpha have their own states under observables. A q value can have a
+compatible Dq and insufficient alpha.
 
-## Diccionario de espectros y unidades
+## Spectral fields and units
 
-| Campo | Significado |
+| Field | Meaning |
 | --- | --- |
-| q | Orden del momento; modifica el énfasis de masa, no el número de dimensiones espaciales |
-| dq / dimension | Pendiente de entropía de Rényi en el intervalo; revisar estado y fuente |
-| tau / tau_w | Exponente de masa de la estimación canónica/ponderada correspondiente |
-| alpha / f_alpha | Estimación canónica de singularidad y dimensión espectral |
-| alpha_w / f_alpha_w | Variante local ponderada por zeta, conservada por separado |
-| alpha_q0 | Alpha en q=0 utilizable; no se reemplaza por un q vecino |
-| observed_peak_alpha | Alpha del máximo observado de f; revisar empates y si está en un extremo |
-| fit_peak_alpha | Vértice cuadrático descriptivo válido; puede estar ausente |
-| delta_alpha | Rango de alpha sobre puntos utilizables; no extrapolación a q no evaluados |
-| measure_sum_m | Longitud local registrada en la escala fina para líneas métricas; no dimensión multifractal |
-| zeta_mean | Resumen de ponderación operacional; no conectividad ni favorabilidad |
-| coverage | Fracción del soporte nominal observada, según el producto |
+| q | Moment order; changes mass emphasis, not spatial dimensionality |
+| dq / dimension | Rényi-entropy slope over the interval; check source and state |
+| tau / tau_w | Mass exponent for the corresponding canonical/weighted estimate |
+| alpha / f_alpha | Canonical singularity and spectral-dimension estimates |
+| alpha_w / f_alpha_w | Separate local zeta-weighted variant |
+| alpha_q0 | Usable alpha at q=0; no substitution from a neighboring q |
+| observed_peak_alpha | Alpha at observed maximum f; check ties and endpoints |
+| fit_peak_alpha | Valid descriptive quadratic vertex; may be absent |
+| delta_alpha | Alpha range over usable points; no extrapolation to untested q |
+| measure_sum_m | Local length recorded at the finest scale for metric lines; not a multifractal dimension |
+| zeta_mean | Operational weighting summary; neither connectivity nor favorability |
+| coverage | Observed fraction of the nominal support, as defined by the product |
 
-Dq, tau, alpha, f(alpha), q, R² y zeta son adimensionales. Coordenadas, longitudes, lado de ventana y escalas de una corrida GIS ordinaria son metros del CRS proyectado. Los ejemplos UNLOCATED de benchmark usan unidades de modelo o píxeles explícitamente declarados; no interpretar sus sufijos m como mediciones geográficas reales. En entradas de puntos normalizados, la escala es la de esa normalización.
+Dq, tau, alpha, f(alpha), q, R², and zeta are dimensionless. Coordinates,
+lengths, window sides, and scales of an ordinary GIS run are meters in the
+projected CRS. UNLOCATED benchmarks use explicitly declared model/pixel units;
+their m suffixes do not establish real geographic measurements. Normalized-point
+inputs use the scale of that normalization.
 
-## Fuentes y uniones
+## Sources and joins
 
-analysis y assessment son fuentes distintas; canonical y zeta son estimadores distintos. El soporte global no equivale al promedio de ventanas. Identificar una serie mediante source, support_id y estimator; para ventanas, añadir center_id y window_m según la tabla disponible. No unir solo por q ni solo por coordenadas.
+analysis and assessment are different sources; canonical and zeta are different
+estimators. The global support is not the average of windows. Identify a series
+by source, support_id, and estimator; for windows add center_id and window_m as
+available. Do not join only on q or coordinates.
 
-La tabla window_spectrum_summary del GeoPackage móvil conserva resúmenes no espaciales cuando el flujo la exporta. El índice SQLite contiene los puntos necesarios para reconstruir las cuatro curvas. El visor carga la selección guardada; no recalcula el análisis al cambiar de ventana.
+The moving GeoPackage's window_spectrum_summary table retains nonspatial
+summaries when exported. The SQLite index contains points for reconstructing
+the four curves. The viewer loads saved selections; changing windows does not
+repeat the analysis.
 
-## Trazabilidad y fallos
+## Traceability and failures
 
-Un flujo fallido puede dejar scaling_support.json válido y luego fallar el ajuste global. La ejecución completa sigue marcada failed y no debe abrirse como complete. Para obtener una evaluación independiente sin ese filtro global, usar assess_lineament_scaling o musa:scaling_support.
+A workflow can write valid scaling_support.json and subsequently fail its
+global fit. The whole run remains failed and must not be opened as complete.
+For an independent assessment without that global filter, use
+assess_lineament_scaling or musa:scaling_support.
 
-El manifiesto registra hashes de productos y, si el host aporta la información, de las geometrías transformadas. Una receta sin entradas no basta para reproducir una cartografía: conservar datos, CRS, selección, preprocesamiento, versión y licencias originales.
+The manifest records product hashes and transformed-geometry hashes if supplied
+by the host. A recipe without inputs cannot reproduce a map: retain the data,
+CRS, selection, preprocessing, version, and original licenses.
 
-La [guía de espectros](SPECTRA.md) detalla empates, criterios del pico y consulta del índice. La [teoría](theory.md) explica fórmulas y diferencias de estimadores.
+The [spectral guide](SPECTRA.md) covers ties, peak criteria, and index queries.
+[Theory](theory.md) explains formulas and estimator differences.

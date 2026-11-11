@@ -1,58 +1,58 @@
-# Motor Python e integración con QGIS
+# Python engine and QGIS integration
 
-MUSA mantiene un núcleo numérico común. QGIS aporta controles, captura de geometría y visualización; los cálculos compartidos residen en el paquete Python.
+MUSA maintains a shared numerical core. QGIS provides controls, geometry capture, and visualization; the shared calculations reside in the Python package.
 
 ~~~text
-QGIS: capas y CRS -> snapshot WKB -> tarea -> núcleo privado -> salidas -> capas/visor
-Python: geometrías/datos         -> MUSA + RunConfig -> mismo flujo -> archivos
+QGIS: layers and CRS -> WKB snapshot -> task -> bundled core -> outputs -> layers/viewer
+Python: geometry/data              -> MUSA + RunConfig -> same workflow -> files
 ~~~
 
-## Responsabilidades
+## Responsibilities
 
-| Componente | Código | Responsabilidad |
+| Component | Code | Responsibility |
 | --- | --- | --- |
-| API básica | src/musa/core.py | Preparación de puntos/líneas, partición de medida, análisis global y celdas madre |
-| Medida y partición | partition.py y mass_partition.py | Longitudes por caja y aceleración opcional |
-| Flujo común | workflow.py | RunConfig, recetas, etapas, cancelación, manifiesto y exportaciones |
-| Diagnóstico independiente | scaling.py | Escalamiento de Rényi en intervalo declarado y contraste espacial condicional |
-| Ventanas móviles | moving.py | Soportes recortados, espectros locales, orígenes y topología planar |
-| Espectros | spectrum.py y spectrum_products.py | Diagnóstico del pico, identidades, índice SQLite y consulta por soporte |
-| GIS Python | geomatics.py y gis_styles.py | Entrada/salida con dependencias opcionales y estilos |
-| Adaptador QGIS | qgis_plugin/inputs.py y native_gis.py | Captura, transformación de CRS y salida mediante QGIS |
-| Interfaz QGIS | workbench.py y provider.py | Panel acoplable y algoritmos Processing |
-| Legado | src/musa/interface.py y lanzadores antiguos | Tk; conserva compatibilidad, no es la ruta recomendada |
+| Basic API | src/musa/core.py | Point/line preparation, measure partitioning, global analysis, and mother cells |
+| Measure and partition | partition.py and mass_partition.py | Length per box and optional acceleration |
+| Shared workflow | workflow.py | RunConfig, recipes, stages, cancellation, manifest, and exports |
+| Independent assessment | scaling.py | Rényi scaling over a declared interval and a conditional spatial test |
+| Moving windows | moving.py | Clipped supports, local spectra, origins, and planar topology |
+| Spectra | spectrum.py and spectrum_products.py | Peak diagnostics, identities, SQLite index, and support queries |
+| Python GIS | geomatics.py and gis_styles.py | Input/output with optional dependencies and styles |
+| QGIS adapter | qgis_plugin/inputs.py and native_gis.py | Geometry capture, CRS transformation, and native QGIS output |
+| QGIS interface | workbench.py and provider.py | Dock panel and Processing algorithms |
+| Legacy | src/musa/interface.py and older launchers | Tk compatibility; not the recommended interface |
 
-Los nombres de archivo sin directorio en la tabla pertenecen a src/musa salvo los componentes QGIS.
+Filenames without a directory in this table belong to src/musa, except for the QGIS components.
 
-## Qué significa compartir el motor
+## What sharing the engine means
 
-El constructor del ZIP copia src/musa a musa_qgis/_core/musa. El plugin importa esa copia privada mediante runtime.py. No depende de que el usuario haya instalado otro paquete llamado musa en el Python de QGIS, y evita mezclar accidentalmente versiones con un paquete externo.
+The ZIP builder copies src/musa into musa_qgis/_core/musa. The plugin imports that bundled copy through runtime.py. It does not depend on another package called musa being installed in QGIS Python, avoiding accidental mixing with an external version.
 
-El código fuente es común; cada ZIP contiene una instantánea. Cambiar la fuente o instalar una versión nueva por pip no actualiza un plugin ya instalado. Hay que reconstruir e instalar su ZIP. El manifiesto de construcción registra hashes de archivos para comparar las copias.
+The source is shared; each ZIP contains a snapshot. Editing the source or installing a newer package with pip does not update an installed plugin. Rebuild and reinstall its ZIP. The build manifest records file hashes for comparing the copies.
 
-## Geometría, CRS e hilos
+## Geometry, CRS, and threads
 
-En QGIS, el adaptador valida tipo de geometría y CRS proyectado en metros, transforma las coordenadas y copia WKB antes de iniciar la tarea. La tarea no recibe capas del proyecto ni objetos de la interfaz. También se incluyen capas temporales, ediciones sin guardar y selección explícita de líneas. Los atributos copiados son los admitidos para el contexto estructural; no es un respaldo completo de los datos originales.
+In QGIS, the adapter validates geometry type and a projected CRS in meters, transforms coordinates, and copies WKB before starting the task. The task receives no project layers or interface objects. Temporary layers, unsaved edits, and explicit line selections are included. Copied attributes are those supported by the structural context; this is not a complete backup of the original data.
 
-En la API Python, MUSA.from_line_geometries recibe Shapely ya proyectado: no transforma coordenadas ni verifica que una etiqueta de CRS corresponda a sus valores. El llamador debe comprobar el CRS real y las unidades antes. El constructor MUSA con GeoDataFrame/archivo tiene su propia preparación GIS; para reproducibilidad se recomienda reproyectar explícitamente.
+In Python, MUSA.from_line_geometries receives already projected Shapely objects: it does not transform coordinates or verify that a CRS label matches their values. The caller must check the actual CRS and units. The MUSA constructor accepting a GeoDataFrame/file has its own GIS preparation; explicit reprojection is recommended for reproducibility.
 
-El flujo compartido reserva una carpeta nueva, escribe receta/manifiesto y ejecuta etapas. Mantiene un bloqueo para una ejecución por copia cargada del núcleo. La cancelación es cooperativa; un cálculo en curso puede tardar en volver al siguiente punto de cancelación. Un fallo conserva resultados parciales y marca el manifiesto; no se carga como una ejecución completa.
+The shared workflow reserves a new folder, writes a recipe/manifest, and executes stages. A lock permits one run per loaded copy of the core. Cancellation is cooperative; an ongoing operation may take time to reach the next cancellation point. A failure retains partial results and marks the manifest; it is not loaded as a completed run.
 
-## Dos rutas de cálculo que deben distinguirse
+## Two calculation paths
 
-1. execute_analysis ejecuta siempre el análisis descriptivo global y añade los productos solicitados. Su filtro triple de R² puede dejar menos de dos q aceptados y hacer fallar el flujo, aunque se haya generado previamente un diagnóstico parcial.
-2. assess_lineament_scaling y Processing musa:scaling_support ejecutan el diagnóstico independiente. No requieren pasar el filtro global anterior. Es la ruta adecuada para examinar datos cuyo espectro descriptivo no pudo ajustarse.
+1. execute_analysis always runs the descriptive global analysis and adds the requested products. Its triple R² filter can leave fewer than two accepted q values and fail the workflow, even if a partial assessment was written earlier.
+2. assess_lineament_scaling and Processing musa:scaling_support run the independent assessment. They do not require passing that global filter. Use this path to examine data whose descriptive spectrum could not be fitted.
 
-En el visor, analysis y assessment identifican esas fuentes. No deben promediarse ni confundirse sus criterios, escalas, estabilización o cantidad de orígenes. Ver [teoría](theory.md) y [espectros](SPECTRA.md).
+In the viewer, analysis and assessment identify these sources. Do not average them or confuse their criteria, scales, stabilization, or number of origins. See [theory](theory.md) and [spectra](SPECTRA.md).
 
-## Distribución y automatización
+## Distribution and automation
 
-El paquete Python permite scripts y notebooks sin QGIS. El plugin necesita el runtime QGIS y sus dependencias. PyPI sería un canal de distribución del paquete Python; no instalaría la aplicación QGIS ni registraría automáticamente el complemento.
+The Python package supports scripts and notebooks without QGIS. The plugin requires QGIS and its dependencies. A Python package distribution channel would not install QGIS or automatically register the plugin.
 
-La automatización instalada actualmente se ofrece mediante Python y Processing. Hay un ejemplo ejecutable de la API en examples/headless_workflow.py. Todavía no existe un comando general musa para analizar archivos o ejecutar recetas. La [guía de instalación](INSTALLATION.md) mantiene la tabla de disponibilidad y el estado de PyPI.
+Automation is currently available through Python and Processing. An executable API example is examples/headless_workflow.py. There is no general musa command for analyzing files or running recipes. The [installation guide](INSTALLATION.md) records distribution and command-line availability.
 
-## Reproducibilidad
+## Reproducibility
 
-Registrar versión/commit o hash del ZIP, parámetros, CRS real, entradas y su procedencia. recipe.json guarda parámetros; no contiene rutas de entrada. run_manifest.json registra los hashes de geometría copiados por el host cuando están disponibles y los hashes de salidas. Debe conservarse además el inventario original de datos y su licencia.
+Record the version/commit or ZIP hash, parameters, actual CRS, inputs, and provenance. recipe.json saves parameters, not input paths. run_manifest.json records geometry hashes supplied by the host when available, and output hashes. Also retain the original data inventory and its license.
 
-La equivalencia comprobada entre Python y Processing corresponde a las mismas entradas, escalas y parámetros; no implica equivalencia con una versión diferente del ZIP o con otro preprocesamiento. El [estado de validación](SCALING_VALIDATION_STATUS.md) describe la evidencia y los límites científicos.
+Verified Python/Processing equivalence concerns matching inputs, scales, and parameters; it does not establish equivalence with another ZIP version or preprocessing method. The [validation status](SCALING_VALIDATION_STATUS.md) describes the evidence and scientific limits.

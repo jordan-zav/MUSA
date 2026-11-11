@@ -1,131 +1,108 @@
-# Ventanas moviles multiescala (experimental)
+# Multiscale moving windows (experimental)
 
-El backend tambien genera la capa trap_candidates con componentes,
-puntaje exploratorio, calidad separada y simbologia. Ver
-[formula y angulos de interseccion](candidate_scoring.md).
+The backend also produces trap_candidates with components, an exploratory
+score, separate quality information, and symbology. See the
+[formula and intersection angles](candidate_scoring.md).
 
-En el panel QGIS, abrir **Moving windows** y activar las ventanas. Introducir
-los lados de ventana en metros, el paso entre centros y al menos cuatro
-divisores internos enteros. El modo anterior sigue disponible y se ejecuta
-tambien para facilitar comparaciones. Los q son los elegidos en la interfaz;
-no se eliminan ventanas porque ese q falle en el analisis global.
+In the QGIS **Moving windows** tab, enable windows. Enter window sides in
+meters, center spacing, and at least four integer internal divisors. The older
+mode remains available and also runs for comparison. q values come from the
+interface; windows are not removed because a q fails global analysis.
 
-Los valores iniciales 2000,4000,8000 m, paso 1000 m y divisores 2,4,8,16 son
-ejemplos editables, no escalas geologicas recomendadas universalmente. Cada
-ventana L utiliza cajas de lado L/divisor: verificar que la escala mas fina
-sea compatible con la resolucion cartografica. Reducir el paso no agrega
-detalle a los datos. No combinar capas que repiten las mismas fallas sin
-armonizar primero su procedencia y geometria.
+Initial values 2000,4000,8000 m, spacing 1000 m, and divisors 2,4,8,16 are
+editable examples, not universal geological scales. Each window L uses boxes
+of side L/divisor: check the finest scale against mapping resolution. Reducing
+spacing adds no data detail. Harmonize provenance/geometry before combining
+layers that repeat the same faults.
 
-El valor predeterminado es un origen por escala. La opción de conjunto de
-orígenes habilita 16; no sustituye automáticamente los divisores elegidos por
-los siete del perfil de investigación. Para el diagnóstico independiente de
-escalamiento, cuatro escalas no alcanzan el mínimo de ocho: declarar otra lista
-resoluble y revisar su amplitud. Ver [teoría](theory.md).
+The default is one origin per scale. The origin ensemble enables 16; it does
+not automatically replace chosen divisors with the research profile's seven.
+Four scales do not meet the independent assessment's minimum of eight: declare
+another resolvable list and examine its span. See [theory](theory.md).
 
-## Metodo y controles
+## Method and controls
 
-- Ventanas cuadradas solapadas recortadas al dominio real, con probabilidades
-  renormalizadas dentro de cada ventana y espectro Chhabra-Jensen no ponderado.
-- Longitud de trazas unicas: los segmentos exactamente coincidentes se
-  disuelven. No se deduplican trazas cercanas que difieran geometricamente.
-- CRS proyectado en metros obligatorio. No se amplian los datos observados
-  fuera del limite. Cobertura minima por defecto: 80% del cuadrado.
-- Al menos cuatro escalas internas y dos cajas ocupadas en cada escala.
-- Se reportan Dq, alpha, f_alpha y sus R2. R2 minimo por defecto: 0.9.
-- Pesos calculados en dominio logaritmico. min_effective_boxes es el minimo
-  entre escalas de 1/sum(mu^2); por defecto se requieren al menos dos cajas
-  efectivas. max_box_weight revela concentracion excesiva del peso.
-- Se conservan estimaciones rechazadas con accepted=false y reason:
-  low_coverage, insufficient_support, dominant_box o poor_scaling.
-  Un ajuste constante no se considera evidencia de escalamiento.
-- accepted_window_sizes cuenta tamanos con estimacion aceptada para cada
-  centro/q; NO mide persistencia de una anomalia ni probabilidad de exito.
-- Los nodos se calculan sobre toda la red recortada al dominio: I=extremo,
-  Y=grado 3, X=grado 4, complex=grado superior. Grado 2 no se exporta.
-  El conteo local incluye cruces estrictamente dentro de la ventana y excluye
-  nodos del borde del dominio. No crea cruces nuevos al recortar ventanas.
-- No hay snapping automatico. Un cruce planar no prueba conexion en 3D.
-- Limite por defecto de 10000 ventanas; ampliar el paso si se supera.
+- Overlapping square windows clipped to the actual domain, probabilities renormalized within each window, and an unweighted Chhabra–Jensen spectrum.
+- Unique trace length: exactly coincident segments are dissolved. Nearby but geometrically different traces are not deduplicated.
+- Projected CRS in meters required. Observations are not extended outside the boundary. Default minimum coverage: 80% of the square.
+- At least four internal scales and two occupied boxes per scale.
+- Dq, alpha, f_alpha, and their R² are reported; default minimum R² is 0.9.
+- Log-domain weights. min_effective_boxes is the minimum across scales of 1/sum(mu²); at least two effective boxes are required by default. max_box_weight exposes excessive concentration.
+- Rejected estimates retain accepted=false and reason: low_coverage, insufficient_support, dominant_box, or poor_scaling. Constant fits are not evidence of scaling.
+- accepted_window_sizes counts sizes with an accepted estimate for each center/q; it does not measure anomaly persistence or success probability.
+- Nodes are computed on the whole domain-clipped network: I=end, Y=degree 3, X=degree 4, complex=higher degree. Degree 2 is not exported. Local counts include crossings strictly inside the window and exclude domain-edge nodes. Clipping windows creates no new crossings.
+- No automatic snapping. A planar crossing does not prove a 3D connection.
+- Default limit: 10000 windows; increase spacing if exceeded.
 
-El perfil experimental actual conserva estimaciones canónicas y ponderadas por
-zeta, con sus diagnósticos separados. Consulte candidate_scoring.md para los
-factores, parámetros y criterios de soporte. Zeta no se interpreta como una
-propiedad física ni como probabilidad de validez geológica. No se produce un
-índice de permeabilidad ni una incertidumbre hidráulica. Las ventanas vecinas
-son dependientes y no deben repartirse al azar entre entrenamiento y prueba.
+The experimental profile retains canonical and zeta-weighted estimates with
+separate diagnostics. See candidate_scoring.md for factors, parameters, and
+support criteria. Zeta is neither a physical property nor geological-validity
+probability. No permeability index or hydraulic uncertainty is produced.
+Neighboring windows are dependent; do not randomly split them into training/test sets.
 
-## Salidas
+## Outputs
 
-- moving_windows.csv: resultados por centro, tamano y q, cobertura y cruces.
-- moving_nodes.csv: coordenadas y grados de nodos unicos.
-- moving_windows_config.json: parametros, centros, CRS y limitaciones.
-- musa_moving_windows.gpkg, al activar GIS: poligonos window_spectra,
-  structural_candidates (cruces interiores) y topology_controls (extremos y
-  cortes del limite). El workflow guarda una carpeta de resultados; no crea
-  automáticamente un ZIP. Consultar OUTPUTS.md antes de empaquetar esa carpeta.
+- moving_windows.csv: results per center, size, and q, with coverage/crossings.
+- moving_nodes.csv: coordinates/degrees of unique nodes.
+- moving_windows_config.json: parameters, centers, CRS, and limits.
+- musa_moving_windows.gpkg with GIS enabled: window_spectra polygons, structural_candidates (interior crossings), and topology_controls (ends/boundary cuts). The workflow writes a results folder, not an automatic ZIP. Read OUTPUTS.md before packaging it.
 
-El GeoPackage incluye estilos predeterminados de QGIS en layer_styles:
-Y triangulo naranja, X rombo azul, complejo estrella violeta. Los controles
-son cruces grises pequenos. Las ventanas no tienen relleno; por defecto se
-dibujan contornos para q=2 segun calidad. Para otros q, cambiar el filtro de
-reglas. Filtrar tambien window_m evita superponer tamanos. La visibilidad de
-capas se guarda en un proyecto QGIS, no en el GeoPackage.
+The GeoPackage includes QGIS layer_styles: orange triangles for Y, blue diamonds
+for X, and purple stars for complex nodes. Controls are small gray crosses.
+Windows have no fill; default outlines display q=2 by quality. Change rule
+filters for other q values. Also filter window_m to avoid superimposed sizes.
+Layer visibility is saved in a QGIS project, not in the GeoPackage.
 
-Los candidatos incluyen max_branch_angle_deg (mayor separacion axial entre
-tangentes de ramas, 0-90 grados; NO identifica familias tectonicas), y contexto
-de las ventanas que contienen el punto: context_windows_q2,
-accepted_context_q2, accepted_sizes_q2 y context_status_q2. No son un espectro
-centrado en el nodo, una puntuacion prospectiva ni persistencia geologica.
-Si q=2 no fue evaluado, el estado es not_evaluated. No se descarta un cruce
-geologico porque no haya ventanas aceptadas alrededor. El atributo
-interpretation recuerda que la geometria planar no esta validada para prospeccion.
+Candidates include max_branch_angle_deg (largest axial branch-tangent
+separation, 0–90°; not tectonic-family identification) and context from containing
+windows: context_windows_q2, accepted_context_q2, accepted_sizes_q2, and
+context_status_q2. These are not a node-centered spectrum, prospectivity score,
+or geological persistence. If q=2 was not assessed, status is not_evaluated.
+A geological crossing is not discarded because surrounding windows lack accepted
+fits. interpretation records that planar geometry is unvalidated for prospecting.
 
-## Python: centros regulares o nodos seleccionados
+## Python: regular centers or selected nodes
 
-### Interacciones potenciales por radio
+### Potential interactions by radius
 
-En **Moving windows** de QGIS, habilitar las interacciones potenciales por radio.
-Los radios 100,250,500 m son ejemplos exploratorios editables, no tolerancias
-cartograficas verificadas ni distancias hidraulicas. Al ejecutar, el backend
-genera potential_relations.csv y, con GIS activado, dos capas adicionales con
-estilos QGIS incorporados: potential_relations (conectores discontinuos por
-tipo) e interaction_search_zones (contornos punteados sin relleno).
+Enable potential radius-based interactions in QGIS **Moving windows**. Radii
+100,250,500 m are editable exploratory examples, not verified mapping tolerances
+or hydraulic distances. The backend creates potential_relations.csv and, with
+GIS enabled, styled potential_relations (dashed connectors by type) and
+interaction_search_zones (unfilled dotted outlines).
 
-Se examinan pares de partes lineales disjuntas dentro del radio mayor. Se
-guarda una relacion mas cercana por par, con distancia, separacion axial de
-tangentes locales, tipo extremo-extremo/extremo-traza/traza-traza y primer
-radio ensayado que la detecta. Las geometrias no se modifican. Se excluyen
-pares con interseccion exacta, puntos de contacto en el borde y conectores
-que atraviesan zonas fuera del AOI. part_a/part_b son indices de partes de la
-entrada preparada, no identificadores geologicos de fallas independientes.
-Segmentacion y cartografia pueden influir; revisar antes de interpretar.
+Pairs of disjoint line parts are examined within the largest radius. One nearest
+relation per pair records distance, local tangent axial separation,
+end–end/end–trace/trace–trace type, and the first tested radius detecting it.
+Geometry is unchanged. Exact-intersection pairs, boundary contacts, and
+connectors crossing outside the AOI are excluded. part_a/part_b index prepared
+input parts, not independent geological faults. Segmentation/mapping can affect
+them; review before interpretation.
 
-matching_radii_m indica inclusion por distancia: no es persistencia independiente
-ni puntuacion. Las zonas son buffers del punto medio con el primer radio
-compatible, recortados al AOI; solo representan busqueda, no zonas de dano.
-No se infiere conectividad 3D, permeabilidad ni familias tectonicas del angulo.
-No se unen componentes ni se inventan conexiones por proximidad. Para evitar
-salidas desmesuradas se limita a 100000 relaciones, con error explicito.
+matching_radii_m records distance inclusion, not independent persistence or a
+score. Zones are midpoint buffers at the first compatible radius, clipped to
+the AOI; they represent search, not damage zones. Angles do not establish 3D
+connectivity, permeability, or tectonic families. Components are not joined and
+proximity does not fabricate connections. An explicit error enforces a limit
+of 100000 relations.
 
-En Python, pasar proximity_radii_m=[100,250,500] a export_moving_windows.
+In Python, pass proximity_radii_m=[100,250,500] to export_moving_windows.
 
 ~~~python
 from musa import MUSA, export_moving_windows
 
-musa = MUSA('fallas.gpkg', boundary='limite.gpkg', q_values=[0, 1, 2, 4, 8])
+musa = MUSA('faults.gpkg', boundary='boundary.gpkg', q_values=[0, 1, 2, 4, 8])
 outputs = export_moving_windows(
-    musa, 'outputs/ventanas', window_sizes_m=[2000, 4000, 8000], step_m=1000,
+    musa, 'outputs/windows', window_sizes_m=[2000, 4000, 8000], step_m=1000,
     divisors=[2, 4, 8, 16],
 )
-# Para evaluar entornos de nodos concretos, pasar centers=[(x1,y1), (x2,y2)].
-# Las coordenadas deben estar en el CRS metrico activo del analizador.
+# For specific node neighborhoods, pass centers=[(x1, y1), (x2, y2)].
+# Coordinates must use the analyzer's active metric CRS.
 ~~~
 
-La validacion automatica cubre dimension conocida de una linea, eliminacion
-de duplicados exactos, redes con igual densidad y distinta conectividad,
-invariancia por traslacion/segmentacion, bordes, q extremos y exportacion GIS.
-La validación ampliada ya incluye datos públicos y derivados identificados;
-ver [EXTENDED_BENCHMARKS.md](EXTENDED_BENCHMARKS.md). Sigue siendo necesaria
-evidencia independiente de cada aplicación antes de interpretar nodos como
-favorables para flujo.
+Automated checks cover a line's known dimension, exact-duplicate removal,
+equal-density networks with different connectivity, translation/segmentation
+invariance, boundaries, extreme q, and GIS export. Extended validation includes
+public data and identified derivatives; see
+[EXTENDED_BENCHMARKS.md](EXTENDED_BENCHMARKS.md). Independent application-specific
+evidence is still required before interpreting nodes as favorable for flow.

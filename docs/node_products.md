@@ -1,63 +1,58 @@
-# Nodos y Pathway: contrato de uso
+# Nodes and Pathway: usage contract
 
-node_classes es el producto descriptivo de nodos. node_class distingue
-1-1, 1-2, 1-3, 2-2, 2-3 y 3-3 por órdenes interpretados participantes.
-node_kind separa intersección en planta de proximidad sin cruce.
-Varias parejas se conservan como multiple_pairs; órdenes compartidos como
-ambiguous_classification. No se escoge automáticamente la pareja más favorable.
-participant_faults_json permite recuperar las fallas y sus registros originales.
+node_classes is the descriptive node product. node_class distinguishes
+1-1, 1-2, 1-3, 2-2, 2-3, and 3-3 by participating interpreted orders.
+node_kind separates planar intersections from noncrossing proximity.
+Multiple pairs remain multiple_pairs; shared orders remain
+ambiguous_classification. The most favorable pair is not selected automatically.
+participant_faults_json recovers participating faults and original records.
 
-node_weight se obtiene de node_weights.json: w(n) = w[clase(n)].
-El valor inicial es 1 para cada pareja: referencia neutral, no calibración.
-Clases ambiguas, múltiples o desconocidas tienen peso nulo, no cero.
-Cruces y proximidades deben filtrarse por separado al usar esos pesos.
-Cada pareja puede recibir otro peso explícito mediante una política externa
-justificada; ninguna pareja tiene prioridad geológica universal en MUSA.
-No se multiplica por ángulo, ζ ni puntaje multifractal.
+node_weight comes from node_weights.json: w(n) = w[class(n)]. Every pair
+initially has weight 1: a neutral reference, not calibration. Ambiguous,
+multiple, or unknown classes have null weight, not zero. Filter crossings and
+proximities separately when using weights. Any pair can receive another explicit
+weight under a justified external policy; MUSA assigns no universal geological
+priority to a pair. No multiplication by angle, ζ, or multifractal score is applied.
 
-structural_trap_class es un campo reservado, sin evaluar. Cualquier regla
-geológica adicional requiere contexto y validación independientes, aportados
-explícitamente por el usuario. La clase 1-2 por sí sola no demuestra dilatación
-ni permeabilidad. No se incluye una regla geológica específica de un proyecto.
+structural_trap_class is a reserved, unevaluated field. Additional geological
+rules require independent context/validation explicitly supplied by the user.
+Class 1-2 alone proves neither dilation nor permeability. No project-specific
+geological rule is included.
 
-pathway_multifractal conserva el contraste continuo por ventana:
+pathway_multifractal retains continuous window contrast:
 
-- pᵢ(r) = longitudᵢ(r) / longitud total de la ventana.
-- μᵢ(q,r) = pᵢ(r)^q / Σⱼpⱼ(r)^q, sobre cajas ocupadas.
-- α(q) = pendiente de promedio_orígenes[Σᵢ μᵢ ln(pᵢ)] frente a ln(r/L).
-- H = α(0) − α(2), campo multifractal_contrast.
+- pᵢ(r) = lengthᵢ(r) / total window length.
+- μᵢ(q,r) = pᵢ(r)^q / Σⱼpⱼ(r)^q, over occupied boxes.
+- α(q) = slope of origin_average[Σᵢ μᵢ ln(pᵢ)] against ln(r/L).
+- H = α(0) − α(2), field multifractal_contrast.
 
-Se mantienen los tamaños de ventana configurados separados mediante window_m;
-no existe una terna universal de tamaños adecuada a cualquier cartografía.
-No sumarlas como si fueran observaciones independientes. El campo
-contrast_usable y support_reason acompañan H; valores negativos permanecen
-como diagnóstico, no como evidencia desfavorable ni cero. La cobertura es provisional.
-Este es un producto por ventanas, no un raster RF validado a 500 m.
-ζ pondera confiabilidad numérica del ajuste en los diagnósticos ponderados;
-no pondera favorabilidad geológica ni sustituye la sensibilidad de origen.
+Configured window sizes remain separate through window_m; no universal set of
+three sizes suits every map. Do not sum them as independent observations.
+contrast_usable and support_reason accompany H; negative values remain
+diagnostics, not unfavorable evidence or zero. Coverage is provisional.
+This is a window product, not a validated 500 m RF raster. ζ weights numerical
+fit reliability in weighted diagnostics, not geological favorability, and does
+not replace origin sensitivity.
 
-trap_candidates conserva resultados históricos por compatibilidad. Su
-score es rango relativo: S = 100 × mediana(percentiles frente al fondo comparable).
-evidence_class y relative_class no son clases geológicas de nodos.
-La intensidad KDE experimental usa esos puntajes por distancia y sigue siendo
-otra variable Pathway, sin multiplicarla por el peso geológico del nodo.
+trap_candidates retains historical results for compatibility. Its score is a
+relative rank: S = 100 × median(percentiles against comparable background).
+evidence_class and relative_class are not geological node classes. Experimental
+KDE intensity uses those scores by distance and remains a separate Pathway
+variable; it is not multiplied by a geological node weight.
 
-Tabla actualizada para el modelo:
+| Product | Use | Status |
+| --- | --- | --- |
+| node_class + node_kind | Structural categories and explicit weights | Descriptive |
+| structural_trap_class | Reserved for externally validated rules | Unevaluated |
+| pathway_multifractal | Continuous window H with support | Experimental |
+| candidate_contrast_intensity | Relative-rank KDE | Experimental; requires coverage and spatial validation |
 
-| Producto | Uso | Estado |
-|---|---|---|
-| node_class + node_kind | Categorías estructurales y pesos explícitos | Descriptivo |
-| structural_trap_class | Campo reservado para reglas externas validadas | Sin evaluar |
-| pathway_multifractal | H continuo por ventana con soporte | Experimental |
-| candidate_contrast_intensity | KDE de rango relativo | Experimental; requiere cobertura y validación espacial |
+To update classes/weights without rerunning multifractal calculation, use
+export_products from musa.node_classes on your own compatible GeoPackage with
+an explicit weight policy. The function modifies that file: work on an output
+copy, not a closed deliverable. Project-specific launchers, data, and rules
+remain outside the general software distribution.
 
-Para actualizar clases/pesos sin repetir el cálculo multifractal, usar
-export_products de musa.node_classes sobre un GeoPackage propio compatible,
-con una política de pesos explícita. La función modifica el archivo indicado:
-trabajar sobre una copia de salida, no sobre una entrega cerrada.
-Los lanzadores, datos y reglas específicos de proyectos se mantienen fuera
-de la distribución general del software.
-
-Un R² alto de una parábola sobre f(α) no sustituye la evaluación de las pendientes
-a través de tamaños de caja. Un q alto enfatiza masa concentrada, no demuestra
-prospectividad. Ver candidate_scoring.md para la matemática completa y sus límites.
+A high R² for a parabola on f(α) does not replace evaluating slopes across box
+sizes. High q emphasizes concentrated mass, not prospectivity. See
+candidate_scoring.md for the full mathematics and limits.
