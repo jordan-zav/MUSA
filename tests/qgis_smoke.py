@@ -13,6 +13,7 @@ import time
 import zipfile
 
 faulthandler.enable()
+cpu_started, wall_started = time.process_time(), time.perf_counter()
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("bundle", type=Path)
 parser.add_argument("--output", type=Path, help="New isolated smoke-test folder, including screenshots")
@@ -48,7 +49,7 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QColor, QFont, QFontDatabase
 from qgis.PyQt.QtWidgets import QMainWindow
 from qgis.gui import QgsMapCanvas
@@ -57,6 +58,7 @@ import numpy as np
 
 app = QgsApplication([], True, str(session / "profile"))
 app.initQgis()
+QgsApplication.setMaxThreads(2)
 assert Path(QgsApplication.qgisSettingsDirPath()).resolve().is_relative_to((session / "profile").resolve())
 font = Path("C:/Windows/Fonts/arial.ttf")
 if font.is_file():
@@ -103,7 +105,8 @@ boundary.renderer().setSymbol(
 )
 lines.renderer().setSymbol(QgsLineSymbol.createSimple({"line_color": "#244e68", "line_width": "0.4"}))
 snapshot = snapshot_sources(lines, boundary, crs)
-config = RunConfig(mother_cell_m=2000, divisors=(2, 4, 8, 16), q_min=-2, q_max=2, min_r2=0.1)
+config = RunConfig(mother_cell_m=2000, divisors=(2, 4, 8, 16), q_min=-2, q_max=2, min_r2=0.1,
+                   scaling_resolution_m=1)
 
 
 class Interface:
@@ -155,6 +158,7 @@ def wait_until(predicate, seconds=120):
 plugin = classFactory(None)
 plugin.initProcessing()
 assert sorted(a.id() for a in plugin.provider.algorithms()) == ["musa:analyze", "musa:run_recipe", "musa:scaling_support"]
+assert QgsApplication.processingRegistry().algorithmById("musa:scaling_support").parameterDefinition("SCALES").defaultValue() in ("", None)
 context, feedback = QgsProcessingContext(), QgsProcessingFeedback()
 context.setProject(project)
 params = {
@@ -162,6 +166,7 @@ params = {
     "BOUNDARY": boundary,
     "CRS": crs,
     "MOTHER": 2000,
+    "RESOLUTION": 1,
     "DIVISORS": "2,4,8,16",
     "Q_MIN": -2,
     "Q_MAX": 2,
@@ -171,20 +176,32 @@ params = {
     "STRUCTURAL": True,
     "NETWORK": False,
     "PLOTS": False,
+    "CLASSIC_COMPARISON": True,
     "OUTPUT": str(session / "processing"),
 }
 result = processing.run("musa:analyze", params, context=context, feedback=feedback)
 manifest = json.loads(Path(result["MANIFEST"]).read_text())
 assert manifest["status"] == "complete"
+assert json.loads((session / "processing/classic_comparison.json").read_text())["comparison"]["comparison_only"]
+missing_resolution = dict(params, RESOLUTION=0, OUTPUT=str(session / "missing_resolution"))
+try:
+    processing.run("musa:analyze", missing_resolution, context=context, feedback=feedback)
+except Exception as exc:
+    assert "observation resolution" in str(exc) + feedback.textLog(), (str(exc), feedback.textLog())
+else:
+    raise AssertionError("Processing analysis must request source resolution")
+assert not (session / "missing_resolution").exists()
 scaling_params = {"LINES": lines, "BOUNDARY": boundary, "CRS": crs,
                   "SCALES": "2,4,6,10,16,25,40,63,100,160,250,400", "RESOLUTION": 1,
                   "Q_MIN": 0, "Q_MAX": 2, "Q_STEP": 1, "NULL_REPLICATES": 0, "SEED": 42,
-                  "OUTPUT": str(session / "scaling_processing")}
+                  "CLASSIC_COMPARISON": True, "OUTPUT": str(session / "scaling_processing")}
 scaling_result = processing.run("musa:scaling_support", scaling_params, context=context, feedback=feedback)
 scaling_report = json.loads(Path(scaling_result["REPORT"]).read_text())
 assert len(scaling_report["supports"][0]["q_results"]) == 3
 assert scaling_report["supports"][0]["renyi_order_policy"] == "legacy_block"
 assert (session / "scaling_processing/scaling_support.csv").exists()
+assert json.loads((session / "scaling_processing/classic_comparison.json").read_text())["comparison"]["scales_m"] == [
+    float(v) for v in scaling_params["SCALES"].split(",")]
 assert json.loads((session / "scaling_processing/run_manifest.json").read_text())["status"] == "complete"
 assert (session / "scaling_processing/spectrum_curves.sqlite").is_file()
 assert all("observables" in row for row in scaling_report["supports"][0]["q_results"])
@@ -269,6 +286,78 @@ plugin.initGui()
 assert len(plugin.actions) == 2
 plugin.show_workbench()
 dock = plugin.dock
+iface.window.show()
+app.processEvents()
+assert not dock.classic_comparison.isChecked()
+for language, title, content in (("en", "Learn", "fracture network"), ("es", "Fundamentos", "red de fracturas")):
+    dock.learning_language_selector.setCurrentIndex(dock.learning_language_selector.findData(language))
+    assert dock.tabs.tabText(dock.tabs.indexOf(dock.learning_page)) == title
+    assert content in dock.learning_reader.toPlainText()
+    dock.tabs.setCurrentWidget(dock.learning_page)
+    app.processEvents()
+    assert dock.learning_reader.document().resource(2, QUrl(f"images/knowledge_box_counting.{language}.png")) is not None
+    for filename in (f'knowledge_{name}.{language}.png' for name in ('raster', 'cantor', 'rods')):
+        assert dock.learning_reader.document().resource(2, QUrl('images/' + filename)) is not None
+    assert dock.learning_reader.horizontalScrollBar().maximum() == 0
+    for _ in range(3):
+        dock.learning_reader.fit_images()
+    dock.learning_reader.document().documentLayout().documentSize()
+    block = dock.learning_reader.document().begin()
+    while block.isValid():
+        if block.text().strip():
+            assert dock.learning_reader.document().documentLayout().blockBoundingRect(block).height() > 0, block.text()
+        iterator = block.begin()
+        while not iterator.atEnd():
+            fragment = iterator.fragment()
+            if fragment.isValid() and fragment.charFormat().isImageFormat():
+                height = fragment.charFormat().toImageFormat().height()
+                assert dock.learning_reader.document().documentLayout().blockBoundingRect(block).height() <= height+24
+            iterator += 1
+        block = block.next()
+    assert iface.window.grab().save(str(session / f"knowledge_{language}.png"))
+    algorithm = QgsApplication.processingRegistry().algorithmById("musa:scaling_support")
+    assert "Learn / Fundamentos" in algorithm.shortHelpString()
+    assert Path(QUrl(algorithm.helpUrl()).toLocalFile()).is_file()
+    dock.set_run_summary(session / "scaling_processing", {})
+    assert "D_BC" in dock.comparison_summary.text()
+    assert ("Retained interval" if language == "en" else "Intervalo retenido") in dock.comparison_summary.text()
+    dock.tabs.setCurrentWidget(dock.results_page)
+    app.processEvents()
+    assert iface.window.grab().save(str(session / f"comparison_{language}.png"))
+dock.learning_language_selector.setCurrentIndex(dock.learning_language_selector.findData("en"))
+dock.tabs.setCurrentIndex(0)
+print("PASS bilingual knowledge reader, local Processing help and classic/D0 comparison", flush=True)
+assert dock.q_min.value() == 0
+assert dock.scaling_support.isChecked()
+assert "experimental" not in dock.scaling_support.text().lower()
+assert dock.scaling_resolution.value() == 0
+assert not dock.scaling_null_enabled.isChecked()
+assert not dock.scaling_null.isEnabled()
+try:
+    dock.config()
+except ValueError as exc:
+    assert "observation resolution" in str(exc)
+else:
+    raise AssertionError("A source resolution must be entered")
+dock.scaling_resolution.setValue(1)
+dock.scaling_resolution.clear()
+try:
+    dock.config()
+except ValueError as exc:
+    assert "observation resolution" in str(exc)
+else:
+    raise AssertionError("An empty resolution must not reuse its previous value")
+dock.scaling_resolution.setValue(1)
+assert dock.config().scaling_null_replicates == 0
+dock.scaling_null_enabled.setChecked(True)
+assert dock.scaling_null.isEnabled() and dock.config().scaling_null_replicates == 199
+dock.scaling_null_enabled.setChecked(False)
+assert dock.config().scaling_null_replicates == 0
+dock.q_min.setValue(-1)
+assert not dock.negative_q_note.isHidden()
+dock.q_min.setValue(0)
+assert dock.negative_q_note.isHidden()
+assert QgsApplication.processingRegistry().algorithmById("musa:analyze").parameterDefinition("Q_MIN").defaultValue() == 0
 dock.lines.setLayer(lines)
 dock.boundary.setLayer(boundary)
 dock.crs.setCrs(crs)
@@ -276,6 +365,12 @@ dock.output_root.setText(str(session))
 dock.apply_config(config)
 assert dock.scaling_order_policy.currentData() == "legacy_block"
 assert dock.config().recipe() == json.loads(json.dumps(config.recipe()))
+interval = ','.join(str(float(value)) for value in np.geomspace(10, 1000, 16))
+dock.scaling_scales.setText(interval)
+assert dock.scaling_scales.text() == interval
+assert len(dock.config().scaling_scales_m) == 16
+assert dock.scaling_scales.lineWrapMode() == dock.scaling_scales.WidgetWidth
+dock.apply_config(config)
 iface.window.resizeDocks([dock], [600], Qt.Horizontal)
 iface.window.show()
 dock.start_run()
@@ -438,7 +533,7 @@ support_reports = json.loads(Path(moving_manifest["outputs"]["scaling_support_js
 assert len(support_reports["supports"]) >= 2
 assert all(r["null"]["holm_family_size"] == len(support_reports["supports"]) for r in support_reports["supports"])
 assert all(r["renyi_order_policy"] == "inform_q0_q2" for r in support_reports["supports"])
-assert "Order policy: inform_q0_q2" in dock.summary.text()
+assert "Order policy: Warn about D0–D2 order" in dock.summary.text()
 assert any(layer.name() == "Renyi scaling support - diagnostics" for layer in project.mapLayers().values())
 assert "Renyi scaling (support/q)" in dock.summary.text()
 dock.tabs.setCurrentIndex(1)
@@ -475,6 +570,8 @@ report = {"qgis_version": Qgis.QGIS_VERSION, "python_version": sys.version,
           "software_version": __version__, "bundle": str(args.bundle), "session": str(session),
           "settings_path": QgsApplication.qgisSettingsDirPath(),
           "qt_platform": os.environ["QT_QPA_PLATFORM"], "status": "passed"}
+report.update(cpu_seconds_main_process=time.process_time() - cpu_started,
+              wall_seconds=time.perf_counter() - wall_started)
 (session / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 print("VALIDATION", session / "validation.json", flush=True)
 iface.window.close()

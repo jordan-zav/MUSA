@@ -10,20 +10,22 @@ from matplotlib.ticker import FuncFormatter
 import numpy as np
 
 from .core import MUSAResult
-from .spectrum import fit_quadratic_spectrum
+from .figure_style import figure_style, styled_figure
 
 
 def _subplots(**kwargs):
     """Render without switching the host's Matplotlib backend or creating Qt UI."""
-    figure = Figure(**kwargs)
-    FigureCanvasAgg(figure)
-    return figure, figure.subplots()
+    with figure_style():
+        figure = Figure(**kwargs)
+        FigureCanvasAgg(figure)
+        return figure, figure.subplots()
 
 
 def _close(figure):
     figure.clear()
 
 
+@styled_figure
 def plot_loglog(result: MUSAResult, q: float = 0.0, ax=None):
     if ax is None:
         _, ax = _subplots(figsize=(7, 4.5))
@@ -32,23 +34,22 @@ def plot_loglog(result: MUSAResult, q: float = 0.0, ax=None):
     y = result.dq[idx] * np.log(1.0 / result.scales)
     x = np.log(1.0 / result.scales)
     ax.plot(x, y, "o-", lw=1.5)
-    ax.set_title(f"Log-Log Fit (q={result.q[idx]:.2f})")
+    ax.set_title(f"Scaling fit (q={result.q[idx]:.2f})")
     ax.set_xlabel("log(1/epsilon)")
     ax.set_ylabel("Scaled measure")
     ax.grid(alpha=0.3)
     return ax
 
 
+@styled_figure
 def plot_singularity_spectrum(result: MUSAResult, ax=None):
     if ax is None:
         _, ax = _subplots(figsize=(7, 4.5))
 
-    order = np.argsort(result.alpha)
-    ax.plot(result.alpha[order], result.f_alpha[order], "o-", lw=1.7, color="#1f4f72")
-    ax.set_title("MUSA: Singularity Spectrum f(alpha)")
-    ax.set_xlabel("alpha")
-    ax.set_ylabel("f(alpha)")
-    ax.grid(alpha=0.3)
+    ax.set_title("Multifractal spectrum")
+    ax.set_axis_off()
+    ax.text(.5, .5, "Scaling support has not been assessed.\nRun Assess Rényi scaling support.",
+            ha="center", va="center", transform=ax.transAxes)
     return ax
 
 
@@ -120,6 +121,7 @@ def _unique_mother_zeta_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]
     return unique_rows
 
 
+@styled_figure
 def export_presentation_maps(
     gpkg_path: str | Path,
     output_dir: str | Path,
@@ -183,8 +185,8 @@ def export_presentation_maps(
         kilometers = FuncFormatter(lambda value, _position: f"{value / 1000:.0f}")
         ax.xaxis.set_major_formatter(kilometers)
         ax.yaxis.set_major_formatter(kilometers)
-        ax.set_xlabel("Este (km)", color=theme["muted"])
-        ax.set_ylabel("Norte (km)", color=theme["muted"])
+        ax.set_xlabel("Easting (km)", color=theme["muted"])
+        ax.set_ylabel("Northing (km)", color=theme["muted"])
         ax.tick_params(colors=theme["muted"], labelsize=8, length=3)
         for spine in ax.spines.values():
             spine.set_color(theme["grid"])
@@ -237,15 +239,16 @@ def export_presentation_maps(
         return str(path)
 
     outputs = {
-        "presentation_zeta": save_map(all_cells, "zeta_mean", zeta_cmap, "Soporte multiescala local", f"{len(all_cells)} celdas madre con resultado local · zeta es un indicador operativo", "zeta_mean", "01_soporte_multiescala_zeta.png"),
+        "presentation_zeta": save_map(all_cells, "zeta_mean", zeta_cmap, "Local numerical reliability", f"{len(all_cells)} mother cells", "Reliability weight ζ", "01_soporte_multiescala_zeta.png"),
     }
     if not reliable_cells.empty:
-        outputs["presentation_alpha_w"] = save_map(reliable_cells, "alpha_w", alpha_cmap, "Complejidad multifractal local con soporte", f"q = {q_label} · {len(reliable_cells)} de {len(all_cells)} celdas cumplen R² ≥ 0.90 y zeta ≥ 0.15", "alpha_w ponderado", "02_alpha_w_filtrado_q2.png")
+        outputs["presentation_alpha_w"] = save_map(reliable_cells, "alpha_w", alpha_cmap, "Local weighted singularity exponent", f"q = {q_label}", "Weighted α", "02_alpha_w_filtrado_q2.png")
     if not structural_cells.empty and "density_m_per_km2" in structural_cells:
-        outputs["presentation_density"] = save_map(structural_cells, "density_m_per_km2", density_cmap, "Intensidad estructural de lineamientos", f"{len(structural_cells)} celdas madre estructurales · longitud de lineamiento por unidad de área", "densidad (m por km²)", "03_densidad_lineamientos.png")
+        outputs["presentation_density"] = save_map(structural_cells, "density_m_per_km2", density_cmap, "Lineament density", f"{len(structural_cells)} mother cells", "Lineament density (m/km²)", "03_densidad_lineamientos.png")
     return outputs
 
 
+@styled_figure
 def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[str, str]:
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -255,15 +258,15 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
     r2_path = out_dir / "r2_fit_quality.png"
     fig, ax = _subplots(figsize=(8, 4.8))
     ax.scatter(result.q, result.r2, color="#1f77b4", label="Accepted Dq", s=42)
-    ax.scatter(result.q, result.alpha_r2, color="#2ca02c", label="Accepted alpha", s=36, marker="s")
-    ax.scatter(result.q, result.f_alpha_r2, color="#9467bd", label="Accepted f(alpha)", s=36, marker="^")
+    ax.scatter(result.q, result.alpha_r2, color="#2ca02c", label="Accepted α", s=36, marker="s")
+    ax.scatter(result.q, result.f_alpha_r2, color="#9467bd", label="Accepted f(α)", s=36, marker="^")
     if result.rejected_count:
-        ax.scatter(result.rejected_q, result.rejected_r2, color="#d62728", label="Eliminated Dq", s=42)
+        ax.scatter(result.rejected_q, result.rejected_r2, color="#d62728", label="Rejected Dq", s=42)
         ax.scatter(
             result.rejected_q,
             result.rejected_alpha_r2,
             color="#ff7f0e",
-            label="Eliminated alpha",
+            label="Rejected α",
             s=36,
             marker="s",
         )
@@ -271,14 +274,14 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
             result.rejected_q,
             result.rejected_f_alpha_r2,
             color="#8c564b",
-            label="Eliminated f(alpha)",
+            label="Rejected f(α)",
             s=36,
             marker="^",
         )
-    ax.axhline(result.min_r2, color="#444444", linestyle="--", linewidth=1.2, label="R2 threshold")
-    ax.set_title("R2 Fit Quality")
+    ax.axhline(result.min_r2, color="#444444", linestyle="--", linewidth=1.2, label="R² threshold")
+    ax.set_title("Regression fit")
     ax.set_xlabel("q")
-    ax.set_ylabel("R2")
+    ax.set_ylabel("R²")
     ax.set_ylim(0.0, 1.02)
     ax.grid(alpha=0.3)
     ax.legend()
@@ -302,98 +305,35 @@ def export_analysis_plots(output_dir: str | Path, result: MUSAResult) -> dict[st
             capsize=2,
             zorder=1,
         )
-    points = ax.scatter(result.q, result.dq, c=result.r2, cmap="viridis", s=46, zorder=2)
-    ax.set_title("Dq Scatterplot")
+    points = ax.scatter(result.q, result.dq, c=result.r2, cmap="viridis", s=46, zorder=2, vmin=0, vmax=1)
+    if np.ptp(result.dq) < 1e-6:
+        center = float(np.mean(result.dq))
+        ax.set_ylim(center - .02, center + .02)
+    ax.ticklabel_format(axis='y', style='plain', useOffset=False)
+    ax.set_title("Generalized dimensions Dq")
     ax.set_xlabel("q")
     ax.set_ylabel("Dq")
     ax.grid(alpha=0.3)
-    fig.colorbar(points, ax=ax, label="R2")
+    fig.colorbar(points, ax=ax, label="R²")
     fig.tight_layout()
     fig.savefig(scatter_path, dpi=160)
     _close(fig)
     written["dq_scatterplot"] = str(scatter_path)
 
-    spectrum_path = out_dir / "multifractal_singularity_spectrum.png"
-    fig, ax = _subplots(figsize=(8, 4.8))
-    order = np.argsort(result.alpha)
-    alpha_xerr = _asymmetric_errors(result.alpha, result.alpha_ci_low, result.alpha_ci_high)
-    f_yerr = _asymmetric_errors(result.f_alpha, result.f_alpha_ci_low, result.f_alpha_ci_high)
-    if alpha_xerr is not None or f_yerr is not None:
-        ax.errorbar(
-            result.alpha,
-            result.f_alpha,
-            xerr=alpha_xerr,
-            yerr=f_yerr,
-            fmt="none",
-            ecolor="#666666",
-            elinewidth=1.0,
-            alpha=0.65,
-            capsize=2,
-            zorder=1,
-        )
-    ax.plot(result.alpha[order], result.f_alpha[order], "o-", linewidth=1.7, color="#1f4f72")
-    fit = fit_quadratic_spectrum(result.alpha, result.f_alpha)
-    if fit["quadratic_r2"] != "" and np.isfinite(float(fit["quadratic_r2"])):
-        x_fit = np.linspace(float(np.min(result.alpha)), float(np.max(result.alpha)), 160)
-        y_fit = (
-            float(fit["quadratic_a"]) * x_fit**2
-            + float(fit["quadratic_b"]) * x_fit
-            + float(fit["quadratic_c"])
-        )
-        ax.plot(
-            x_fit,
-            y_fit,
-            "--",
-            linewidth=1.3,
-            color="#7a4b22",
-            label=f"Quadratic fit R2={float(fit['quadratic_r2']):.3f}",
-        )
-        ax.legend(loc="best")
-    ax.set_title("Singularity vs Multifractal Spectrum")
-    ax.set_xlabel("alpha")
-    ax.set_ylabel("f(alpha)")
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(spectrum_path, dpi=160)
-    _close(fig)
-    written["multifractal_singularity_spectrum"] = str(spectrum_path)
-
-    spectrum_q_path = out_dir / "multifractal_singularity_spectrum_by_q.png"
-    fig, ax = _subplots(figsize=(8, 4.8))
-    order_q = np.argsort(result.q)
-    ax.plot(result.alpha[order_q], result.f_alpha[order_q], "-", linewidth=1.1, color="#8b7d6b", alpha=0.75)
-    points = ax.scatter(
-        result.alpha,
-        result.f_alpha,
-        c=result.q,
-        cmap="coolwarm",
-        s=58,
-        edgecolors="white",
-        linewidths=0.6,
-        zorder=3,
-    )
-    for q_value, alpha_value, f_value in zip(result.q, result.alpha, result.f_alpha):
-        ax.annotate(
-            f"{q_value:g}",
-            (alpha_value, f_value),
-            textcoords="offset points",
-            xytext=(4, 4),
-            fontsize=7,
-            color="#2f3e46",
-        )
-    ax.set_title("Singularity Spectrum Colored by q")
-    ax.set_xlabel("alpha")
-    ax.set_ylabel("f(alpha)")
-    ax.grid(alpha=0.3)
-    fig.colorbar(points, ax=ax, label="q")
-    fig.tight_layout()
-    fig.savefig(spectrum_q_path, dpi=160)
-    _close(fig)
-    written["multifractal_singularity_spectrum_by_q"] = str(spectrum_q_path)
+    from .spectrum_products import _global_series, summarize_spectrum, spectrum_figure
+    spectrum = next(_global_series(result, result.q))
+    spectrum["summary"] = summarize_spectrum(spectrum["points"])
+    for key in ("multifractal_singularity_spectrum", "multifractal_singularity_spectrum_by_q"):
+        fig = spectrum_figure(spectrum, panel="f_alpha")
+        path = out_dir / (key + ".png")
+        fig.savefig(path, dpi=160)
+        _close(fig)
+        written[key] = str(path)
 
     return written
 
 
+@styled_figure
 def export_mother_plots(
     output_dir: str | Path,
     result: MUSAResult,
@@ -440,13 +380,12 @@ def export_mother_plots(
     fig, ax = _subplots(figsize=(8.5, 5.2))
     if result.q.size >= 2:
         order = np.argsort(result.alpha)
-        ax.plot(
+        ax.scatter(
             result.alpha[order],
             result.f_alpha[order],
-            "-",
             linewidth=1.8,
             color="#1f4f72",
-            label="Global spectrum (OLS)",
+            label="Global estimates (OLS)",
         )
     if global_point is not None:
         ax.scatter(
@@ -469,12 +408,12 @@ def export_mother_plots(
         edgecolors="none",
         label="Mother cells (weighted)",
     )
-    ax.set_title(f"Local Weighted Spectrum (q={q_label})")
-    ax.set_xlabel("alpha_w")
-    ax.set_ylabel("f(alpha)_w")
+    ax.set_title(f"Local weighted estimates (q={q_label})")
+    ax.set_xlabel("Weighted α")
+    ax.set_ylabel("Weighted f(α)")
     ax.grid(alpha=0.3)
     cbar = fig.colorbar(scatter, ax=ax)
-    cbar.set_label("zeta_mean")
+    cbar.set_label("Reliability weight ζ")
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(spectrum_path, dpi=160)
@@ -484,13 +423,13 @@ def export_mother_plots(
     spatial_alpha_path = out_dir / f"mother_spatial_alpha_w_q{q_label}.png"
     fig, ax = _subplots(figsize=(8.5, 5.2))
     points = ax.scatter(cx, cy, c=alpha_w, s=34, cmap="viridis", alpha=0.85, edgecolors="none")
-    ax.set_title(f"Mother Cells: alpha_w (q={q_label})")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
+    ax.set_title(f"Local weighted singularity exponent (q={q_label})")
+    ax.set_xlabel("Easting (m)")
+    ax.set_ylabel("Northing (m)")
     ax.set_aspect("equal", adjustable="box")
     ax.grid(alpha=0.25)
     cbar = fig.colorbar(points, ax=ax)
-    cbar.set_label("alpha_w")
+    cbar.set_label("Weighted α")
     fig.tight_layout()
     fig.savefig(spatial_alpha_path, dpi=160)
     _close(fig)
@@ -504,13 +443,13 @@ def export_mother_plots(
     spatial_zeta_path = out_dir / "mother_spatial_zeta.png"
     fig, ax = _subplots(figsize=(8.5, 5.2))
     points = ax.scatter(zeta_x, zeta_y, c=zeta_vals, s=34, cmap="cividis", alpha=0.85, edgecolors="none")
-    ax.set_title("Mother Cells: zeta Mean Reliability")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
+    ax.set_title("Local numerical reliability")
+    ax.set_xlabel("Easting (m)")
+    ax.set_ylabel("Northing (m)")
     ax.set_aspect("equal", adjustable="box")
     ax.grid(alpha=0.25)
     cbar = fig.colorbar(points, ax=ax)
-    cbar.set_label("zeta_mean")
+    cbar.set_label("Reliability weight ζ")
     fig.tight_layout()
     fig.savefig(spatial_zeta_path, dpi=160)
     _close(fig)
@@ -528,9 +467,9 @@ def export_mother_plots(
         ax.plot([lo - pad, hi + pad], [lo - pad, hi + pad], "--", color="#444444", linewidth=1.2, label="y = x")
         ax.set_xlim(lo - pad, hi + pad)
         ax.set_ylim(lo - pad, hi + pad)
-    ax.set_title(f"OLS vs Weighted alpha (q={q_label})")
-    ax.set_xlabel("alpha (OLS)")
-    ax.set_ylabel("alpha_w (weighted)")
+    ax.set_title(f"Standard and weighted singularity exponents (q={q_label})")
+    ax.set_xlabel("α (OLS)")
+    ax.set_ylabel("Weighted α")
     ax.grid(alpha=0.3)
     ax.set_aspect("equal", adjustable="box")
     ax.legend(loc="best")
@@ -566,13 +505,12 @@ def export_mother_plots(
             fig, ax = _subplots(figsize=(8.5, 5.2))
             if result.q.size >= 2:
                 order = np.argsort(result.alpha)
-                ax.plot(
+                ax.scatter(
                     result.alpha[order],
                     result.f_alpha[order],
-                    "-",
                     linewidth=1.8,
                     color="#1f4f72",
-                    label="Global spectrum (OLS)",
+                    label="Global estimates (OLS)",
                 )
             if extra_global_point is not None:
                 ax.scatter(
@@ -598,12 +536,12 @@ def export_mother_plots(
                 edgecolors="none",
                 label="Mother cells (weighted)",
             )
-            ax.set_title(f"Local Weighted Spectrum (q={extra_label})")
-            ax.set_xlabel("alpha_w")
-            ax.set_ylabel("f(alpha)_w")
+            ax.set_title(f"Local weighted estimates (q={extra_label})")
+            ax.set_xlabel("Weighted α")
+            ax.set_ylabel("Weighted f(α)")
             ax.grid(alpha=0.3)
             cbar = fig.colorbar(scatter, ax=ax)
-            cbar.set_label("zeta_mean")
+            cbar.set_label("Reliability weight ζ")
             ax.legend(loc="best")
             fig.tight_layout()
             fig.savefig(extra_spectrum_path, dpi=160)
@@ -621,13 +559,13 @@ def export_mother_plots(
                 alpha=0.85,
                 edgecolors="none",
             )
-            ax.set_title(f"Mother Cells: alpha_w (q={extra_label})")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_title(f"Local weighted singularity exponent (q={extra_label})")
+            ax.set_xlabel("Easting (m)")
+            ax.set_ylabel("Northing (m)")
             ax.set_aspect("equal", adjustable="box")
             ax.grid(alpha=0.25)
             cbar = fig.colorbar(points, ax=ax)
-            cbar.set_label("alpha_w")
+            cbar.set_label("Weighted α")
             fig.tight_layout()
             fig.savefig(extra_spatial_alpha_path, dpi=160)
             _close(fig)
@@ -660,9 +598,9 @@ def export_mother_plots(
                 )
                 ax.set_xlim(lo - pad, hi + pad)
                 ax.set_ylim(lo - pad, hi + pad)
-            ax.set_title(f"OLS vs Weighted alpha (q={extra_label})")
-            ax.set_xlabel("alpha (OLS)")
-            ax.set_ylabel("alpha_w (weighted)")
+            ax.set_title(f"Standard and weighted singularity exponents (q={extra_label})")
+            ax.set_xlabel("α (OLS)")
+            ax.set_ylabel("Weighted α")
             ax.grid(alpha=0.3)
             ax.set_aspect("equal", adjustable="box")
             ax.legend(loc="best")
@@ -674,8 +612,8 @@ def export_mother_plots(
     hist_path = out_dir / "mother_zeta_histogram.png"
     fig, ax = _subplots(figsize=(8, 4.8))
     ax.hist(zeta_vals, bins=min(30, max(10, zeta_vals.size // 20)), color="#5b8fa8", edgecolor="white")
-    ax.set_title("Distribution of zeta_mean Across Mother Cells")
-    ax.set_xlabel("zeta_mean")
+    ax.set_title("Local reliability distribution")
+    ax.set_xlabel("Reliability weight ζ")
     ax.set_ylabel("Count")
     ax.grid(alpha=0.3, axis="y")
     fig.tight_layout()
@@ -702,20 +640,19 @@ def export_mother_plots(
             all_f_alpha_w,
             c=all_q,
             s=24,
-            cmap="coolwarm",
+            cmap="cividis",
             alpha=0.35,
             edgecolors="none",
             label="Mother cells (all q)",
         )
     if result.q.size >= 2:
         order = np.argsort(result.alpha)
-        ax.plot(
+        ax.scatter(
             result.alpha[order],
             result.f_alpha[order],
-            "o-",
             linewidth=2.0,
             color="#1f4f72",
-            label="Global spectrum (OLS)",
+            label="Global estimates (OLS)",
         )
     for q_item in available_q:
         subset = _mother_rows_for_q(rows, float(q_item))
@@ -731,9 +668,9 @@ def export_mother_plots(
             color="black",
             zorder=5,
         )
-    ax.set_title("Global Spectrum vs Local Weighted Cloud")
-    ax.set_xlabel("alpha")
-    ax.set_ylabel("f(alpha)")
+    ax.set_title("Global and local exponent estimates")
+    ax.set_xlabel("α")
+    ax.set_ylabel("f(α)")
     ax.grid(alpha=0.3)
     ax.legend(loc="best")
     fig.tight_layout()
@@ -748,13 +685,13 @@ def export_mother_plots(
     my = np.array([_to_float(r["mother_centroid_y"]) for r in measure_rows], dtype=float)
     mm = np.array([_to_float(r["measure_sum_m"]) for r in measure_rows], dtype=float)
     points = ax.scatter(mx, my, c=mm, s=34, cmap="YlOrRd", alpha=0.85, edgecolors="none")
-    ax.set_title("Mother Cells: Structural Intensity (measure_sum_m)")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
+    ax.set_title("Lineament length")
+    ax.set_xlabel("Easting (m)")
+    ax.set_ylabel("Northing (m)")
     ax.set_aspect("equal", adjustable="box")
     ax.grid(alpha=0.25)
     cbar = fig.colorbar(points, ax=ax)
-    cbar.set_label("measure_sum_m")
+    cbar.set_label("Lineament length (m)")
     fig.tight_layout()
     fig.savefig(measure_path, dpi=160)
     _close(fig)
@@ -779,13 +716,13 @@ def export_mother_plots(
                 alpha=0.85,
                 edgecolors="none",
             )
-            ax.set_title("Mother Cells: Lineament Density")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_title("Lineament density")
+            ax.set_xlabel("Easting (m)")
+            ax.set_ylabel("Northing (m)")
             ax.set_aspect("equal", adjustable="box")
             ax.grid(alpha=0.25)
             cbar = fig.colorbar(points, ax=ax)
-            cbar.set_label("density_m_per_km2")
+            cbar.set_label("Lineament density (m/km²)")
             fig.tight_layout()
             fig.savefig(density_path, dpi=160)
             _close(fig)
@@ -807,13 +744,13 @@ def export_mother_plots(
                 vmin=0,
                 vmax=180,
             )
-            ax.set_title("Mother Cells: Dominant Axial Azimuth")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_title("Dominant axial azimuth")
+            ax.set_xlabel("Easting (m)")
+            ax.set_ylabel("Northing (m)")
             ax.set_aspect("equal", adjustable="box")
             ax.grid(alpha=0.25)
             cbar = fig.colorbar(points, ax=ax)
-            cbar.set_label("dominant_azimuth_deg")
+            cbar.set_label("Axial azimuth (°)")
             fig.tight_layout()
             fig.savefig(azimuth_path, dpi=160)
             _close(fig)

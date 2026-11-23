@@ -1,0 +1,76 @@
+{
+  "format": "musa-analysis",
+  "version": 1,
+  "parameters": {
+    "mother_cell_m": 2000,
+    "divisors": [
+      2,
+      4,
+      8,
+      16
+    ],
+    "q_min": 0,
+    "q_max": 4,
+    "q_step": 0.5,
+    "threshold_m": 0,
+    "min_r2": 0.9,
+    "local": false,
+    "structural": false,
+    "network": false,
+    "plots": true,
+    "gis": true,
+    "bootstrap_iterations": 0,
+    "local_bootstrap_iterations": 0,
+    "bootstrap_ci": 0.95,
+    "seed": 42,
+    "negative_q_floor_fraction": 0.0,
+    "reliable_min_zeta": 0.15,
+    "zeta_exponents": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "zeta_scale_floor": 0.25,
+    "zeta_sensitivity": false,
+    "moving": true,
+    "window_sizes_m": [
+      6000
+    ],
+    "window_step_m": 2000,
+    "moving_divisors": [
+      2,
+      4,
+      8,
+      16
+    ],
+    "origin_ensemble": false,
+    "proximity_radii_m": [],
+    "scaling_support": true,
+    "scaling_resolution_m": 1,
+    "scaling_scales_m": [
+      125.0,
+      152.631912508446,
+      186.37200572788737,
+      227.57052537825984,
+      277.8761961522853,
+      339.3022020743632,
+      414.3067521674983,
+      505.8914555879043,
+      617.7214431045069,
+      754.272042068145,
+      921.0078746600964,
+      1124.6015467576774,
+      1373.2006791326473,
+      1676.7539673113017,
+      2047.4093186947894,
+      2500.0
+    ],
+    "scaling_null_replicates": 99,
+    "scaling_window_limit": 25,
+    "renyi_order_policy": "inform_q0_q2",
+    "scaling_null_tail": "two_sided",
+    "scaling_coarse_trim_min_effective_q2": 0.0,
+    "classic_comparison": true
+  }
+}

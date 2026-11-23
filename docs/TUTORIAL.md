@@ -18,9 +18,7 @@ reported values are estimates over the declared finite interval.
 ### Install and run
 
 Use a source checkout containing examples/scaling_tutorial.py and its
-scaling_tutorial_expected.json reference. These documentation/example additions
-postdate the v1.2.0 tag and retain its 1.2.0 numerical core; installing the tagged
-package alone does not supply this newer example. Follow
+scaling_tutorial_expected.json reference. The v1.3.0 tag includes this example and its reference file. Follow
 [INSTALLATION.md](INSTALLATION.md) for dependencies, then run from that
 checkout's root:
 
@@ -119,7 +117,7 @@ states, and relocation-failure conditions.
 
 ## Case B: the same assessment in QGIS Processing
 
-Use the MUSA 1.2.0 plugin with QGIS 3.44.12, the checked runtime. This is the
+Use the MUSA 1.3.0 plugin with QGIS 3.44.12, the checked runtime. This is the
 independent Processing tool, not the descriptive Workbench's Run MUSA workflow.
 
 1. Install/enable the matching plugin ZIP as described in

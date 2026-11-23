@@ -1,4 +1,4 @@
-"""Generate synthetic inputs and run the independent MUSA 1.2.0 assessment.
+"""Generate synthetic inputs and run the independent MUSA 1.3.0 assessment.
 
 Run from a source checkout: python examples/scaling_tutorial.py --output NEW_DIR
 Coordinates are unlocated model meters, not observations from a real site.

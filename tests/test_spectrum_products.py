@@ -14,6 +14,7 @@ from musa.spectrum import fit_quadratic_spectrum
 from musa.spectrum_products import (
     _point, identity_diagnostics, summarize_spectrum, write_spectrum_products,
     list_spectra, read_spectrum, spectrum_figure,
+    spectrum_shape_reasons,
 )
 
 
@@ -21,6 +22,24 @@ def lognormal_points(qs=(-1, 0, 1, 2, 3)):
     d, a = 1.5, .1
     return [_point(q, {"dq": d - a * q, "tau": (q - 1) * (d - a * q),
                        "alpha": d + a - 2 * a * q, "f_alpha": d - a * q * q}, True, "accepted") for q in qs]
+
+
+def test_shape_message_names_each_increasing_pair_without_mutating_estimates():
+    points = lognormal_points([0, .5, 1, 1.5])
+    for point, alpha in zip(points, [1.4992, 1.57145, 1.57706, 1.56063]):
+        point['alpha'] = alpha
+    spectrum = dict(source='assessment', points=points)
+    before = json.dumps(spectrum)
+    assert spectrum_shape_reasons(spectrum) == [
+        'Alpha increases between q=0 and q=0.5: alpha(0) = 1.499 < alpha(0.5) = 1.571.',
+        'Alpha increases between q=0.5 and q=1: alpha(0.5) = 1.571 < alpha(1) = 1.577.',
+    ]
+    assert json.dumps(spectrum) == before
+    # Preserve the original tolerance, including the strict > comparison.
+    points[1]['alpha'] = points[0]['alpha'] + 5e-8
+    points[2]['alpha'] = points[0]['alpha']
+    points[3]['alpha'] = points[0]['alpha']
+    assert not spectrum_shape_reasons(spectrum)
 
 
 def test_single_chart_keeps_supported_dimension_when_full_spectrum_is_unsupported():
@@ -176,7 +195,7 @@ def test_cancelled_rebuild_preserves_previous_complete_cache(tmp_path):
 def test_figure_has_four_panels_and_does_not_bridge_rejected_q(tmp_path):
     points = lognormal_points()
     points[2]["accepted"] = False
-    spectrum = dict(support_id="window_2_1000m", source="analysis", estimator="canonical", support_basis="legacy_fit",
+    spectrum = dict(support_id="window_2_1000m", source="assessment", estimator="canonical", support_basis="fixed_range_diagnostics",
                     points=points, summary=summarize_spectrum(points))
     figure = spectrum_figure(spectrum)
     assert len(figure.axes) >= 4
@@ -187,3 +206,53 @@ def test_figure_has_four_panels_and_does_not_bridge_rejected_q(tmp_path):
     assert (tmp_path / "curves.png").stat().st_size > 1000
     assert "<svg" in (tmp_path / "curves.svg").read_text(encoding="utf-8")
     json.dumps(spectrum, allow_nan=False)
+
+
+def test_analysis_r2_acceptance_alone_does_not_draw_a_spectrum():
+    points = lognormal_points()
+    spectrum = dict(source="analysis", points=points, summary=summarize_spectrum(points))
+    figure = spectrum_figure(spectrum, panel="f_alpha")
+    assert not figure.axes[0].lines and not figure.axes[0].collections
+    assert "not been assessed" in figure.axes[0].texts[0].get_text()
+
+
+@pytest.mark.parametrize("failure", ["fold", "peak", "identity", "unsupported"])
+def test_incompatible_diagnosed_spectrum_is_hidden_without_changing_points(failure):
+    points = lognormal_points([0, 1, 2])
+    if failure == "fold":
+        points[1] = _point(1, dict(dq=1.8, tau=0, alpha=1.8, f_alpha=1.8), True, "accepted")
+    elif failure == "peak":
+        points = [_point(0, dict(dq=1, tau=-1, alpha=2, f_alpha=1), True, "accepted"),
+                  _point(1, dict(dq=1.5, tau=0, alpha=1.5, f_alpha=1.5), True, "accepted")]
+    elif failure == "identity":
+        for point in points:
+            point["identities"]["status"] = "discrepancy"
+    else:
+        for point in points:
+            point["statuses"] = {"alpha": "not_supported", "f_alpha": "not_supported"}
+    spectrum = dict(source="assessment", points=points, summary=summarize_spectrum(points))
+    before = json.dumps(spectrum)
+    figure = spectrum_figure(spectrum, panel="f_alpha")
+    assert not figure.axes[0].lines and not figure.axes[0].collections
+    assert json.dumps(spectrum) == before
+    assert spectrum_shape_reasons(spectrum)
+    assert spectrum_shape_reasons(spectrum)[0] in figure.axes[0].texts[0].get_text()
+
+
+def test_known_binomial_cascade_direct_engine_spectrum_matches_analytic_truth():
+    # Exact dyadic probabilities isolate the estimator from geometric sampling.
+    model = MUSA(np.column_stack([np.arange(10.), np.arange(10.)]), q_values=np.arange(0., 5.))
+    weights = np.array([.3, .7])
+    def probabilities(scale, **kwargs):
+        p = np.array([1.])
+        for _ in range(int(round(-np.log2(scale)))):
+            p = np.kron(p, weights)
+        return p
+    model._probabilities_for_scale = probabilities
+    result = model.run_analysis(resolutions_m=2.**-np.arange(1, 10))
+    for q, alpha, f in zip(result.q, result.alpha, result.f_alpha):
+        mu = weights**q / np.sum(weights**q)
+        assert alpha == pytest.approx(-np.sum(mu*np.log(weights))/np.log(2), abs=1e-10)
+        assert f == pytest.approx(-np.sum(mu*np.log(mu))/np.log(2), abs=1e-10)
+    assert result.q[np.argmax(result.f_alpha)] == 0
+    assert np.all(np.diff(result.alpha) < 0)

@@ -491,7 +491,7 @@ def assess_lineament_scaling(analyzer, scales_m, options, *, support_id="global"
     for i in range(options.null_replicates):
         check_cancelled(cancelled)
         if progress:
-            progress(f"{support_id}: spatial null {i + 1}/{options.null_replicates}")
+            progress(f"Spatial relocation test: {i + 1}/{options.null_replicates}")
         relocated = _relocate(lines, boundary, rng, options.max_placement_attempts, cancelled)
         if relocated is None:
             null["status"] = "placement_failed_no_p_value"

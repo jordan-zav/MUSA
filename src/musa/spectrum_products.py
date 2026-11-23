@@ -1,6 +1,5 @@
 """Indexed spectra and descriptive peaks shared by Python, Processing and QGIS."""
 from __future__ import annotations
-
 import csv
 from contextlib import closing
 import json
@@ -15,6 +14,7 @@ import numpy as np
 
 from .control import check_cancelled
 from .spectrum import fit_quadratic_spectrum
+from .figure_style import figure_style
 
 OBSERVABLES = ("dq", "tau", "alpha", "f_alpha")
 IDENTITY_TOLERANCE = 1e-7
@@ -296,7 +296,39 @@ def read_spectrum(path, series_id):
         return {**json.loads(row[0]), "summary": json.loads(row[1]), "points": points}
 
 
+def spectrum_shape_reasons(spectrum):
+    """Explain the existing joint-spectrum display gates without changing values."""
+    if spectrum['source'] != 'assessment':
+        return ['Scaling support has not been assessed.']
+    points = sorted(spectrum['points'], key=lambda p: p['q'])
+    def supported(point, name):
+        state = point.get('statuses', {}).get(name)
+        return state in ('compatible_finite_range', 'identity') if state else point['accepted']
+    good = [p for p in points if all(supported(p, name) for name in OBSERVABLES)
+            and p['identities']['status'] == 'consistent'
+            and p['alpha'] is not None and p['f_alpha'] is not None]
+    if len(good) < 2:
+        return ['Fewer than two q values have jointly supported estimates.']
+    reasons = []
+    for left, right in zip(good, good[1:]):
+        if right['alpha'] - left['alpha'] > 1e-7:
+            reasons.append(
+                f"Alpha increases between q={left['q']:g} and q={right['q']:g}: "
+                f"alpha({left['q']:g}) = {left['alpha']:.4g} < "
+                f"alpha({right['q']:g}) = {right['alpha']:.4g}.")
+    zero = next((p for p in good if np.isclose(p['q'], 0, rtol=0, atol=1e-12)), None)
+    if zero and max(p['f_alpha'] for p in good) > zero['f_alpha'] + 1e-7:
+        reasons.append('The maximum f(alpha) exceeds its q=0 value.')
+    return reasons
+
+
 def spectrum_figure(spectrum, panel="all"):
+    """Render Chhabra–Jensen estimates with finite-range support required for f(α)."""
+    with figure_style():
+        return _spectrum_figure(spectrum, panel)
+
+
+def _spectrum_figure(spectrum, panel):
     """No pyplot/backend switch; connect only consecutive supported q points."""
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -310,7 +342,9 @@ def spectrum_figure(spectrum, panel="all"):
     def supported(name):
         return np.array([p.get("statuses", {}).get(name) in ("compatible_finite_range", "identity")
                          if p.get("statuses", {}).get(name) else p["accepted"] for p in points], bool)
-    for name, label in (("dq", r"$D_q$"), ("tau", r"$\tau(q)$"), ("alpha", r"$\alpha(q)$")):
+    titles = {"dq": "Generalized dimensions Dq", "tau": "Mass exponent τ(q)",
+              "alpha": "Singularity exponent α(q)", "f_alpha": "Multifractal spectrum"}
+    for name, label in (("dq", "Dq"), ("tau", "τ(q)"), ("alpha", "α(q)")):
         if name not in axes:
             continue
         ax = axes[name]
@@ -318,37 +352,56 @@ def spectrum_figure(spectrum, panel="all"):
         values = np.array([np.nan if p[name] is None else p[name] for p in points])
         accepted = supported(name)
         ax.plot(q, np.where(accepted, values, np.nan), "o-", color="#166c91")
-        ax.scatter(q[~accepted], values[~accepted], marker="x", color="#888888", label="unsupported/rejected")
-        ax.set(xlabel="q", ylabel=label)
+        ax.scatter(q[~accepted], values[~accepted], marker="x", color="#888888", label="Not supported")
+        ax.set(xlabel="q", ylabel=label, title=titles[name])
         ax.grid(alpha=.2)
         if not np.isfinite(values).any():
             ax.set_axis_off()
             ax.text(.5, .5, f"{label}: no estimates\nSee values and diagnostics for the reason.", ha="center", va="center", transform=ax.transAxes)
     if "f_alpha" not in axes:
-        figure.suptitle(f"{spectrum['support_id']} · {spectrum['source']} · {spectrum['estimator']}", fontsize=11)
         return figure
     ax = axes["f_alpha"]
+    ax.set_title(titles["f_alpha"])
+    # An R² filter alone cannot establish scaling. In particular, finite-range
+    # regression can violate alpha(q) order even with very high R². Keep all
+    # numeric exports and q-indexed panels; draw f(alpha) only for a diagnosed
+    # series, never substitute a different origin or estimator silently.
+    if spectrum["source"] != "assessment":
+        ax.set_axis_off()
+        ax.text(.5, .5, "Scaling support has not been assessed.\nRun Assess Rényi scaling support.",
+                ha="center", va="center", transform=ax.transAxes)
+        return figure
     alpha = np.array([np.nan if p["alpha"] is None else p["alpha"] for p in points])
     f = np.array([np.nan if p["f_alpha"] is None else p["f_alpha"] for p in points])
-    accepted = supported("alpha") & supported("f_alpha")
+    accepted = supported("dq") & supported("tau") & supported("alpha") & supported("f_alpha")
+    accepted &= np.array([p["identities"]["status"] == "consistent" for p in points])
     q = np.array([p["q"] for p in points])
-    ax.plot(np.where(accepted, alpha, np.nan), np.where(accepted, f, np.nan), color="#166c91", alpha=.7)
     good = accepted & np.isfinite(alpha) & np.isfinite(f)
+    # Do not conceal a fold by sorting alpha. A concave spectrum has alpha
+    # nonincreasing in q and a maximum at q=0 (allow numerical roundoff/ties).
+    ordered = np.all(np.diff(alpha[good]) <= 1e-7)
+    zero = good & np.isclose(q, 0, rtol=0, atol=1e-12)
+    peak_ok = not zero.any() or np.max(f[good], initial=-np.inf) <= f[zero][0] + 1e-7
+    if good.sum() < 2 or not ordered or not peak_ok:
+        ax.set_axis_off()
+        explanation = '\n'.join(spectrum_shape_reasons(spectrum))
+        ax.text(.5, .5, "No supported joint spectrum estimates.\n" + explanation +
+                "\nPer-q values remain in the table and q-indexed charts.", fontsize=9,
+                ha="center", va="center", transform=ax.transAxes)
+        return figure
+    ax.plot(np.where(accepted, alpha, np.nan), np.where(accepted, f, np.nan), color="#166c91", alpha=.7)
     if good.any():
-        scatter = ax.scatter(alpha[good], f[good], c=q[good], cmap="coolwarm", zorder=3)
+        scatter = ax.scatter(alpha[good], f[good], c=q[good], cmap="cividis", zorder=3)
         figure.colorbar(scatter, ax=ax, label="q")
-    ax.scatter(alpha[~accepted], f[~accepted], color="#888888", marker="x")
     summary = spectrum["summary"]
     if summary["fit_coefficients"] is not None and good.any():
         x = np.linspace(min(alpha[good]), max(alpha[good]), 100)
-        ax.plot(x, np.polyval(summary["fit_coefficients"], x), "--", color="#a46623", label="descriptive quadratic fit")
+        ax.plot(x, np.polyval(summary["fit_coefficients"], x), "--", color="#a46623", label="Quadratic fit")
         ax.legend(fontsize=7)
-    ax.set(xlabel=r"$\alpha$", ylabel=r"$f(\alpha)$")
+    ax.set(xlabel="α", ylabel="f(α)")
     ax.grid(alpha=.2)
     if not (np.isfinite(alpha) & np.isfinite(f)).any():
         ax.set_axis_off()
         ax.text(.5, .5, "No singularity estimates for this support\nSee values and diagnostics for the reason.",
                 ha="center", va="center", transform=ax.transAxes)
-    figure.suptitle(f"{spectrum['support_id']} | {spectrum['source']} | {spectrum['estimator']}\n"
-                   f"{spectrum['support_basis'].replace('_', ' ')} | descriptive peaks; not proof of multifractality", fontsize=10)
     return figure

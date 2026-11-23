@@ -17,8 +17,8 @@ is written to dist/qgis). In QGIS, open Plugins > Manage and Install
 Plugins > Install from ZIP and select the archive. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
-MUSA 1.2.0 is the current QGIS plugin release (the first was 1.1.0); the ZIP is
-attached to the v1.2.0 GitHub release.
+MUSA 1.3.0 is the current QGIS plugin release (the first was 1.1.0); the ZIP is
+attached to the v1.3.0 GitHub release.
 Metadata targets QGIS 3.34–3.99. The release was tested on QGIS 3.44.12;
 metadata does not imply all versions have been tested. QGIS 4 is not yet supported.
 The plugin bundles its own core, without changing global Python import paths.
@@ -89,6 +89,14 @@ Processing tools:
 - musa:run_recipe — all options from a musa-analysis version 1 JSON recipe.
 - musa:scaling_support — independent finite-range Rényi Dq assessment, including
   datasets that fail the legacy spectrum-fit gate. See [SCALING_SUPPORT.md](SCALING_SUPPORT.md).
+
+The panel and analysis workflow include the scaling diagnostic by default,
+using twelve relative mother/child-cell scales. Enter the source-specific
+observation resolution under Quality before running (the initial zero value
+is not a usable resolution). Processing analysis has the same required
+resolution entry. The Monte Carlo relocation test is a separate option, off
+by default. Results initially displays the global assessment, and shows the
+spectrum only if its diagnostics and shape support it.
 
 All three accept lineaments, polygon boundary, explicit metric analysis CRS and
 a new output folder. Processing's selected-feature source is supported. The

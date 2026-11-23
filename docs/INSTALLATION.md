@@ -1,6 +1,6 @@
 # Installation and execution routes
 
-Reference for MUSA 1.2.0; the first QGIS plugin release was 1.1.0.
+Reference for MUSA 1.3.0; the first QGIS plugin release was 1.1.0.
 
 ## Choose a route
 
@@ -35,23 +35,23 @@ Linux/macOS:
 source .venv/bin/activate
 ~~~
 
-Install the published 1.2.0 source (requires Git):
+Install the published 1.3.0 source (requires Git):
 
 ~~~text
-python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@v1.2.0"
+python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@v1.3.0"
 ~~~
 
 For a reproducible run, record the resolved commit hash. To work with examples
 and edit the source:
 
 ~~~text
-git clone --branch v1.2.0 https://github.com/jordan-zav/MUSA.git
+git clone --branch v1.3.0 https://github.com/jordan-zav/MUSA.git
 cd MUSA
 python -m pip install -e ".[gis]"
 ~~~
 
 The following commands assume the repository root and an active environment.
-Examples added after the v1.2.0 tag require a source checkout that contains
+Examples added after the v1.3.0 tag require a source checkout that contains
 those files. In particular, the scaling tutorial names its required generator
 and reference file; the tagged package alone does not provide those additions.
 
@@ -118,7 +118,7 @@ and results.
 | GitHub source / pip from Git | Available; pin a release or commit |
 | Python wheel from pyproject.toml | Built and installed separately in the earlier audit; a point example ran without QGIS |
 | PyPI, musa-multifractal | The November 2, 2026 audit found no project; these instructions do not assume a later PyPI publication |
-| Plugin ZIP 1.2.0 | Release v1.2.0 on GitHub; QGIS 3.44.12 was tested |
+| Plugin ZIP 1.3.0 | Release v1.3.0 on GitHub; QGIS 3.44.12 was tested |
 | Official QGIS plugin catalog | Check the catalog's version separately; the earlier audit did not establish a catalog publication |
 | musa analysis command / python -m musa | Not implemented |
 | musa-ui | Legacy Tk launcher; neither the QGIS interface nor a recipe runner |

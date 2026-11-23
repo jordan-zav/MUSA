@@ -19,18 +19,52 @@ cancelled manifests are refused; older completed runs still expose their files.
 ## Calculation sources and quality
 
 Analysis uses the original global/window calculation and its fit/box gates.
-Windows offer canonical and zeta-weighted estimates; the global analysis is
-canonical. A weighted global spectrum is not invented by averaging windows.
+Windows offer standard and weighted estimates; the global analysis uses
+ordinary least squares. A weighted global spectrum is not obtained by averaging windows.
 
 Scaling assessment uses its declared observation resolution, fixed interval,
-four shifted grids and stability/model checks. It is canonical only. Its
+four shifted grids and stability/model checks. It uses ordinary least squares. Its
 probabilities, interval and origins can differ from the normal analysis; the
 viewer labels these sources separately instead of attaching one source's
 quality flag to another source's estimate.
 
 All requested q remain in the data store. Missing estimates remain missing;
-unsupported computed points are grey. Connections follow q order and break
+unsupported computed points in q-indexed charts are grey. Connections follow q order and break
 at rejected q, so alpha sorting cannot disguise a turn or bridge missing support.
+
+The multifractal spectrum panel requires the scaling-assessment source. The
+analysis R² filter alone does not establish scaling, so its spectrum panel and
+the two global spectrum image files show a brief message directing the user to
+Assess Rényi scaling support. Numerical exports and q-indexed panels are retained.
+In a scaling assessment, the spectrum connects only points with supported Dq,
+tau, alpha and f(alpha), and consistent identities. It is withheld when fewer
+than two points qualify, alpha increases between consecutive qualifying orders,
+or the sampled maximum exceeds
+the supported q=0 height (absolute tolerance 1e-7). Missing q=0 is not inferred.
+This is a display rule, not a new estimator or a change to acceptance flags.
+The alpha message identifies every increasing pair and its values. JSON/CSV
+exports retain the numerical estimates and per-observable statuses; this
+display message is generated when rendering the spectrum.
+
+Both sources estimate alpha and f(alpha) directly by Chhabra–Jensen regression;
+neither differentiates tau nor uses the quadratic peak fit to calculate points.
+The analysis uses one grid origin and its cell-length threshold; the assessment
+uses four shifted origins and no threshold or probability floor. Local weighted
+clouds remain descriptive exponent estimates, without connected global curves.
+
+New QGIS forms and the analysis Processing algorithm start at q=0. Existing
+recipes retain their explicit settings; Python q defaults remain unchanged. Negative q triggers a warning in
+the form or Processing log; see [Negative q](NEGATIVE_Q.md).
+
+Scaling diagnostics are now enabled by default in QGIS and RunConfig. The
+default divisors are 2, 3, 4, 5, 6, 8, 10, 12, 16, 24 and 32, giving twelve
+scales including the mother cell. All scales remain relative to the selected
+mother size. Observation resolution has no assumed positive default: enter
+it before execution. The declared source resolution and domain-size limits
+can still leave too few resolved scales, in which case no support is claimed.
+Monte Carlo remains off unless explicitly enabled; it is not required for
+the scaling diagnostic. Results initially selects the global scaling
+assessment when present, so opening the run displays the diagnostic directly.
 
 The per-q table retains estimates, status and failure reasons. Individual Dq,
 tau and alpha panels use their own assessment status; a supported Dq does not

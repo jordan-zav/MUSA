@@ -8,7 +8,7 @@ import weakref
 
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import Qt, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QDesktopServices, QIcon, QPixmap
+from qgis.PyQt.QtGui import QColor, QDesktopServices, QIcon, QPixmap, QTextCursor, QTextDocument, QTextBlockFormat
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -33,6 +33,7 @@ from qgis.PyQt.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTextBrowser,
+    QPlainTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -52,6 +53,7 @@ from .inputs import make_analyzer, snapshot_sources, validate_metric_crs
 from .native_gis import export_mother_layers
 from .runtime import core, icon_path
 from .chart_view import ChartView, ImagePreview, ScrollSafeComboBox
+from .learning import TEXTS, comparison_text, default_language, learning_html, source_path, relocation_text, image_display_size
 
 
 class AnalysisTask(QgsTask):
@@ -98,10 +100,78 @@ def _spin(value, minimum=0, maximum=1e9, decimals=3):
     return widget
 
 
+class ScaleListEdit(QPlainTextEdit):
+    """Wrap a declared interval while retaining the numeric form's text API."""
+    def __init__(self):
+        super().__init__()
+        self.setFixedHeight(78)
+
+    def text(self):
+        return self.toPlainText().replace('\n', ' ')
+
+    def setText(self, text):
+        self.setPlainText(text)
+
+    def setCursorPosition(self, position):
+        cursor = self.textCursor()
+        cursor.setPosition(position)
+        self.setTextCursor(cursor)
+
+
+class LearningBrowser(QTextBrowser):
+    """Keep the teaching diagram inside a resized dock's text column."""
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.fit_images()
+
+    def fit_images(self):
+        changes = []
+        image_blocks = []
+        block = self.document().begin()
+        while block.isValid():
+            iterator = block.begin()
+            while not iterator.atEnd():
+                fragment = iterator.fragment()
+                if fragment.isValid() and fragment.charFormat().isImageFormat():
+                    block_format = block.blockFormat()
+                    if block_format.lineHeight() != 100 or block_format.lineHeightType() != QTextBlockFormat.ProportionalHeight:
+                        image_blocks.append(block.position())
+                    fmt = fragment.charFormat().toImageFormat()
+                    resource = self.document().resource(QTextDocument.ImageResource, QUrl(fmt.name()))
+                    if resource is not None and hasattr(resource, "width") and resource.width() > 0:
+                        width, height = image_display_size(self.viewport().width(), resource.width(),
+                                                           resource.height(), self.document().documentMargin())
+                        if abs(fmt.width() - width) > .01 or abs(fmt.height() - height) > .01:
+                            fmt.setWidth(width)
+                            fmt.setHeight(height)
+                            changes.append((fragment.position(), fragment.length(), fmt))
+                iterator += 1
+            block = block.next()
+        # Mutating image formats while walking QTextBlock iterators can leave
+        # later text blocks with empty layout rectangles in Qt 5.15.
+        if changes or image_blocks:
+            cursor = QTextCursor(self.document())
+            cursor.beginEditBlock()
+            for position in image_blocks:
+                cursor.setPosition(position)
+                block_format = cursor.blockFormat()
+                block_format.setLineHeight(100, QTextBlockFormat.ProportionalHeight)
+                cursor.setBlockFormat(block_format)
+            for position, length, fmt in changes:
+                cursor.setPosition(position)
+                cursor.setPosition(position + length, QTextCursor.KeepAnchor)
+                cursor.setCharFormat(fmt)
+            cursor.endEditBlock()
+            self.document().markContentsDirty(0, self.document().characterCount())
+
+
 class MusaDock(QDockWidget):
     def __init__(self, iface):
         super().__init__("MUSA — Multifractal Workbench", iface.mainWindow())
         self.iface, self.task, self.last_output = iface, None, None
+        self.learning_language = default_language()
+        defaults = core()[1]()
         self.setObjectName("MusaWorkbench")
         self.setMinimumWidth(380)
         self.setWindowIcon(QIcon(icon_path()))
@@ -135,20 +205,25 @@ class MusaDock(QDockWidget):
         self.crs.crsChanged.connect(self.update_source)
         scales = self._group(form, "2 · Scale design")
         self.mother = _spin(4000, 0.001)
-        self.divisors = QLineEdit("2,4,6,8,16")
+        self.divisors = QLineEdit(",".join(str(v) for v in defaults.divisors))
         scales.addRow("Mother cell (m)", self.mother)
         scales.addRow("Internal divisors", self.divisors)
-        self.q_min, self.q_max, self.q_step = _spin(-4, -100, 100), _spin(4, -100, 100), _spin(1, 0.001, 200)
+        self.q_min, self.q_max, self.q_step = _spin(0, -100, 100), _spin(4, -100, 100), _spin(1, 0.001, 200)
         q_row = QHBoxLayout()
         for label, widget in (("Min", self.q_min), ("Max", self.q_max), ("Step", self.q_step)):
             q_row.addWidget(QLabel(label))
             q_row.addWidget(widget)
         scales.addRow("q range", q_row)
+        self.negative_q_note = QLabel("Negative q may be unreliable. See docs/NEGATIVE_Q.md.")
+        self.negative_q_note.setWordWrap(True)
+        self.negative_q_note.setVisible(False)
+        self.q_min.valueChanged.connect(lambda value: self.negative_q_note.setVisible(value < 0))
+        scales.addRow(self.negative_q_note)
         scales.addRow(QLabel("Internal box sizes = mother size / divisors."))
         products = self._group(form, "3 · Products")
         self.options = {}
         for key, label, checked in (
-            ("local", "Mother-cell spectra and zeta reliability", True),
+            ("local", "Mother-cell spectra and reliability", True),
             ("structural", "Density, orientation and anisotropy", True),
             ("network", "Whole-network connectivity statistics", False),
             ("plots", "Spectrum and diagnostic figures", True),
@@ -208,41 +283,61 @@ class MusaDock(QDockWidget):
         self.sensitivity = QCheckBox("Export zeta sensitivity comparisons")
         quality.addRow(self.sensitivity)
         note = QLabel(
-            "Canonical and zeta-weighted estimates remain separate. Zeta measures numerical support; it is not a physical property or geological probability."
+            "Standard and weighted estimates are reported separately. The reliability weight measures numerical support."
         )
         note.setWordWrap(True)
         advanced.addWidget(note)
         scaling = self._group(advanced, "Finite-range Renyi scaling support")
-        self.scaling_support = QCheckBox("Assess scaling support (experimental)")
-        self.scaling_resolution = _spin(0, 0, 1e9, 4)
-        self.scaling_scales = QLineEdit()
+        self.scaling_support = QCheckBox("Assess scaling support")
+        self.scaling_support.setChecked(defaults.scaling_support)
+        self.scaling_resolution = _spin(defaults.scaling_resolution_m, 0, 1e9, 4)
+        self.scaling_resolution.setToolTip(
+            "Enter the observation resolution of your source map before running; "
+            "it is not inferred from the CRS or the cell sizes.")
+        self.scaling_scales = ScaleListEdit()
         self.scaling_scales.setPlaceholderText("Blank: analysis scales; need at least 8 resolved scales")
         self.scaling_null = QSpinBox()
-        self.scaling_null.setRange(0, 9999)
+        self.scaling_null.setRange(19, 9999)
+        self.scaling_null.setValue(199)
+        self.scaling_null.setEnabled(False)
+        self.scaling_null_enabled = QCheckBox("Run trace-relocation Monte Carlo test")
+        self.scaling_null_enabled.setToolTip(
+            "Optional; off by default. Reference timing for 1201 traces, 12 scales and four grid origins: "
+            "about 5 minutes for 199 replicates or 25 minutes for 999. Runtime varies with the map and computer. "
+            "The scaling diagnostic runs without this test; unsupported scaling can prevent the test from starting.")
+        self.scaling_null.setToolTip(self.scaling_null_enabled.toolTip())
+        self.scaling_null_enabled.toggled.connect(self.scaling_null.setEnabled)
         self.scaling_limit = QSpinBox()
         self.scaling_limit.setRange(1, 1000)
         self.scaling_limit.setValue(25)
         self.scaling_order_policy = QComboBox()
-        self.scaling_order_policy.addItem("Legacy: block on spectrum order", "legacy_block")
-        self.scaling_order_policy.addItem("Inform q=0,2: warning without order veto", "inform_q0_q2")
+        self.scaling_order_policy.addItem("Require ordered dimensions", "legacy_block")
+        self.scaling_order_policy.addItem("Warn about D0–D2 order", "inform_q0_q2")
         self.scaling_null_tail = QComboBox()
-        self.scaling_null_tail.addItem("Upper tail (legacy)", "upper")
+        self.scaling_null_tail.addItem("Upper tail", "upper")
         self.scaling_null_tail.addItem("Two-sided", "two_sided")
+        self.scaling_null_tail.setEnabled(False)
+        self.scaling_null_enabled.toggled.connect(self.scaling_null_tail.setEnabled)
         self.scaling_coarse_trim = _spin(0, 0, 1e6, 2)
         scaling.addRow(self.scaling_support)
+        self.classic_comparison = QCheckBox(TEXTS[self.learning_language]["classic"])
+        self.classic_comparison.setToolTip(TEXTS[self.learning_language]["warning"])
+        scaling.addRow(self.classic_comparison)
         scaling.addRow("Observation resolution (m; required)", self.scaling_resolution)
         scaling.addRow("Box sizes (m)", self.scaling_scales)
-        scaling.addRow("Trace-relocation null replicates (0=off; >=19)", self.scaling_null)
         scaling.addRow("Maximum windows to assess", self.scaling_limit)
         scaling.addRow("Renyi order policy", self.scaling_order_policy)
-        scaling.addRow("Null test tail", self.scaling_null_tail)
         scaling.addRow("Coarse-end trimming: min effective q=2 boxes (0=off)", self.scaling_coarse_trim)
-        note = QLabel("Tests fixed-interval Renyi Dq stability and curvature. Inform q=0,2 reports an order warning without blocking the finite-range slope contrast; all other gates remain. The optional null preserves trace shapes, lengths and orientations, but relocates them. A rejection concerns conditional spatial heterogeneity, not proof of multifractality. See also Processing: Assess Renyi scaling support, which runs independently of legacy fit acceptance.")
+        null_test = self._group(advanced, "Optional Monte Carlo test")
+        null_test.addRow(self.scaling_null_enabled)
+        null_test.addRow("Relocation replicates", self.scaling_null)
+        null_test.addRow("Test tail", self.scaling_null_tail)
+        note = QLabel("Checks dimension stability and curvature across the declared scales. The warning option retains the D0–D2 contrast when dimension order fails; all fit checks still apply. The optional spatial test relocates traces while preserving their shapes, lengths and orientations.")
         note.setWordWrap(True)
         advanced.addWidget(note)
         advanced.addStretch()
         _, moving = self._tab("Moving windows")
-        windows = self._group(moving, "Experimental · overlapping supports")
+        windows = self._group(moving, "Overlapping windows (experimental)")
         self.moving = QCheckBox("Enable moving-window analysis")
         windows.addRow(self.moving)
         self.window_sizes = QLineEdit("2000,4000,8000")
@@ -260,7 +355,7 @@ class MusaDock(QDockWidget):
             windows.addRow(label, widget)
         windows.addRow(self.ensemble)
         note = QLabel(
-            "Exports overlapping spectra, planar junctions and descriptive structural context. Requires GeoPandas and its GIS dependencies. No inferred permeability or prospectivity. Cancellation is checked between workflow stages; a window stage can take time."
+            "Estimates spectra and structural statistics in overlapping windows. Requires GeoPandas. Cancellation takes effect after the current stage."
         )
         note.setWordWrap(True)
         moving.addWidget(note)
@@ -270,6 +365,10 @@ class MusaDock(QDockWidget):
         self.summary.setWordWrap(True)
         self.summary.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         results.addWidget(self.summary)
+        self.comparison_summary = QLabel()
+        self.comparison_summary.setWordWrap(True)
+        self.comparison_summary.setVisible(False)
+        results.addWidget(self.comparison_summary)
         self.spectrum_open = QPushButton("Open completed run")
         self.spectrum_open.clicked.connect(self.browse_completed_run)
         results.addWidget(self.spectrum_open)
@@ -296,18 +395,19 @@ class MusaDock(QDockWidget):
         self.spectrum_panel = ScrollSafeComboBox()
         self.spectrum_panel.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.spectrum_panel.setMinimumContentsLength(12)
-        for label, name in (("Singularity spectrum · f(alpha)", "f_alpha"), ("Renyi dimensions · Dq", "dq"),
-                            ("Mass exponent · tau(q)", "tau"), ("Singularity exponent · alpha(q)", "alpha"),
-                            ("Overview · four charts", "all")):
+        for label, name in (("Multifractal spectrum", "f_alpha"), ("Generalized dimensions Dq", "dq"),
+                            ("Mass exponent τ(q)", "tau"), ("Singularity exponent α(q)", "alpha"),
+                            ("Overview", "all")):
             self.spectrum_panel.addItem(label, name)
         spectra.addRow("Chart", self.spectrum_panel)
         self.spectrum_panel.currentIndexChanged.connect(self.render_selected_spectrum)
         self.spectrum_preview = ChartView()
         self.spectrum_values = QTableWidget(0, 8)
-        self.spectrum_values.setHorizontalHeaderLabels(["q", "Dq", "tau", "alpha", "f(alpha)", "Dq status", "Spectrum", "Reason"])
+        self.spectrum_values.setHorizontalHeaderLabels(["q", "Dq", "tau", "alpha", "f(alpha)", "Dq status", "Per-q values", "Reason"])
         self.spectrum_values.setEditTriggers(QTableWidget.NoEditTriggers)
         self.spectrum_values.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.spectrum_values.horizontalHeader().setStretchLastSection(True)
+        self.spectrum_values.horizontalHeader().setSectionResizeMode(7, QHeaderView.Stretch)
         self.spectrum_values.setMinimumHeight(120)
         self.spectrum_values.setToolTip("All requested q are retained. A dash means no estimate; inspect the reason column.")
         spectrum_split = QSplitter(Qt.Vertical)
@@ -343,6 +443,17 @@ class MusaDock(QDockWidget):
         self.log = QTextBrowser()
         self.log.setMinimumHeight(100)
         details.addWidget(self.log, 1)
+        self.learning_page, learning = self._tab(TEXTS[self.learning_language]["learn"], scrollable=False)
+        self.learning_language_selector = QComboBox()
+        self.learning_language_selector.addItem("English", "en")
+        self.learning_language_selector.addItem("Español", "es")
+        self.learning_language_selector.setCurrentIndex(self.learning_language_selector.findData(self.learning_language))
+        learning.addWidget(self.learning_language_selector)
+        self.learning_reader = LearningBrowser()
+        self.learning_reader.setOpenExternalLinks(True)
+        learning.addWidget(self.learning_reader, 1)
+        self.learning_language_selector.currentIndexChanged.connect(self.update_learning_language)
+        self.update_learning_language()
         buttons = QHBoxLayout()
         self.run_button = QPushButton("Run MUSA")
         self.run_button.clicked.connect(self.start_run)
@@ -381,6 +492,26 @@ class MusaDock(QDockWidget):
         self.tabs.addTab(scroll, name)
         return scroll, layout
 
+    def update_learning_language(self):
+        self.learning_language = self.learning_language_selector.currentData()
+        text = TEXTS[self.learning_language]
+        self.tabs.setTabText(self.tabs.indexOf(self.learning_page), text["learn"])
+        self.learning_language_selector.setToolTip(text["language"])
+        path = source_path(self.learning_language)
+        self.learning_reader.document().setBaseUrl(QUrl.fromLocalFile(str(path.parent) + "/"))
+        self.learning_reader.setSearchPaths([str(path.parent)])
+        self.learning_reader.setHtml(learning_html(path.read_text(encoding="utf-8")))
+        self.learning_reader.fit_images()
+        self.classic_comparison.setText(text["classic"])
+        self.classic_comparison.setToolTip(text["warning"])
+        self.update_comparison_summary()
+
+    def update_comparison_summary(self, folder=None):
+        folder = folder or self.last_output
+        text = comparison_text(folder, self.learning_language) if folder else ""
+        self.comparison_summary.setText(text)
+        self.comparison_summary.setVisible(bool(text))
+
     @staticmethod
     def _group(layout, title):
         group = QGroupBox(title)
@@ -415,6 +546,8 @@ class MusaDock(QDockWidget):
 
     def config(self):
         _, RunConfig, _ = core()
+        if self.scaling_support.isChecked() and not self.scaling_resolution.cleanText().strip():
+            raise ValueError("Enter the observation resolution of your source map in metres under Quality before running.")
         return RunConfig(
             mother_cell_m=self.mother.value(),
             divisors=self._numbers(self.divisors),
@@ -439,9 +572,10 @@ class MusaDock(QDockWidget):
             origin_ensemble=self.ensemble.isChecked(),
             proximity_radii_m=self._numbers(self.proximity),
             scaling_support=self.scaling_support.isChecked(),
+            classic_comparison=self.classic_comparison.isChecked(),
             scaling_resolution_m=self.scaling_resolution.value(),
             scaling_scales_m=self._numbers(self.scaling_scales),
-            scaling_null_replicates=self.scaling_null.value(),
+            scaling_null_replicates=self.scaling_null.value() if self.scaling_null_enabled.isChecked() else 0,
             scaling_window_limit=self.scaling_limit.value(),
             renyi_order_policy=self.scaling_order_policy.currentData(),
             scaling_null_tail=self.scaling_null_tail.currentData(),
@@ -466,7 +600,7 @@ class MusaDock(QDockWidget):
             (self.zeta_floor, config.zeta_scale_floor),
             (self.window_step, config.window_step_m),
             (self.scaling_resolution, config.scaling_resolution_m),
-            (self.scaling_null, config.scaling_null_replicates),
+            (self.scaling_null, config.scaling_null_replicates or 199),
             (self.scaling_limit, config.scaling_window_limit),
             (self.scaling_coarse_trim, config.scaling_coarse_trim_min_effective_q2),
         ):
@@ -490,6 +624,8 @@ class MusaDock(QDockWidget):
         self.ensemble.setChecked(config.origin_ensemble)
         self.sensitivity.setChecked(config.zeta_sensitivity)
         self.scaling_support.setChecked(config.scaling_support)
+        self.classic_comparison.setChecked(config.classic_comparison)
+        self.scaling_null_enabled.setChecked(config.scaling_null_replicates > 0)
         self.scaling_order_policy.setCurrentIndex(self.scaling_order_policy.findData(config.renyi_order_policy))
         self.scaling_null_tail.setCurrentIndex(self.scaling_null_tail.findData(config.scaling_null_tail))
 
@@ -608,6 +744,7 @@ class MusaDock(QDockWidget):
         self.tabs.setCurrentWidget(self.results_page)
 
     def set_run_summary(self, folder, manifest):
+        self.update_comparison_summary(folder)
         prefix = f"Global fit: {manifest['accepted_q']} accepted q · {manifest['rejected_q']} rejected q" if "accepted_q" in manifest else "Completed run"
         self.summary.setText(f"{prefix}\n{Path(folder).name}")
         self.summary.setToolTip(str(folder))
@@ -622,8 +759,12 @@ class MusaDock(QDockWidget):
             policies = sorted({support.get("renyi_order_policy", "legacy_block") for support in report["supports"]})
             warnings = sum(support.get("renyi_pair_order", {}).get("warning") is True
                            for support in report["supports"])
-            self.summary.setText(self.summary.text() + "\nOrder policy: " + ", ".join(policies) +
+            self.summary.setText(self.summary.text() + "\nOrder policy: " + ", ".join({"legacy_block": "Require ordered dimensions", "inform_q0_q2": "Warn about D0–D2 order"}[p] for p in policies) +
                                  f". q=0,2 order warnings: {warnings}; these describe finite-range slopes.")
+            global_support = next((support for support in report['supports'] if support['support_id'] == 'global'), None)
+            null_text = relocation_text(global_support.get('null', {})) if global_support else ''
+            if null_text:
+                self.summary.setText(self.summary.text() + '\n' + null_text)
 
     def show_figure(self, filename):
         if self.last_output and filename:
@@ -705,7 +846,8 @@ class MusaDock(QDockWidget):
         path = self.last_output / "spectrum_curves.sqlite"
         if path.is_file():
             self._spectrum_index = list_spectra(path)
-        domains = sorted({(s["source"], s["kind"]) for s in self._spectrum_index})
+        domains = sorted({(s["source"], s["kind"]) for s in self._spectrum_index},
+                         key=lambda item: (item[0] != "assessment", item[1] != "global", item))
         entries = [(f"{'Global' if kind == 'global' else 'Moving windows'} — "
                     f"{'analysis' if source == 'analysis' else 'scaling assessment'}", (source, kind)) for source, kind in domains]
         self._fill_spectrum_combo(self.spectrum_domain, entries)
@@ -741,7 +883,7 @@ class MusaDock(QDockWidget):
         previous = self.spectrum_estimator.currentData()
         estimators = sorted({s["estimator"] for s in items})
         self._fill_spectrum_combo(self.spectrum_estimator,
-                                  [("Canonical" if name == "canonical" else "Zeta weighted", name) for name in estimators])
+                                  [("Standard" if name == "canonical" else "Weighted", name) for name in estimators])
         if previous in estimators:
             index = self.spectrum_estimator.findData(previous)
             self.spectrum_estimator.setCurrentIndex(index)
@@ -753,7 +895,7 @@ class MusaDock(QDockWidget):
                 (s["center_id"] == self.spectrum_center.currentData() and s["window_m"] == self.spectrum_size.currentData())]
 
     def render_selected_spectrum(self):
-        from ._core.musa.spectrum_products import read_spectrum, spectrum_figure
+        from ._core.musa.spectrum_products import read_spectrum, spectrum_figure, spectrum_shape_reasons
         item = next((s for s in self._selected_support_spectra() if s["estimator"] == self.spectrum_estimator.currentData()), None)
         self.spectrum_export.setEnabled(False)
         if self._spectrum_figure is not None:
@@ -771,41 +913,51 @@ class MusaDock(QDockWidget):
             self.spectrum_preview.set_figure(self._spectrum_figure, lambda: spectrum_figure(spectrum, panel=panel))
             summary = spectrum["summary"]
             def value(number):
-                return "unavailable" if number is None else f"{number:.5g}"
+                return "—" if number is None else f"{number:.5g}"
             observed = value(summary["observed_peak_alpha"])
             if summary["observed_peak_tied"]:
                 observed = observed + " (multiple q)" if summary["observed_peak_alpha"] is not None else "ties: " + ", ".join(value(v) for v in summary["observed_peak_alphas"][:3])
-            reasons = list(dict.fromkeys(self.friendly_reason(p['reason']) for p in spectrum['points'] if p['reason']))
             detail = self._support_details.get(spectrum['support_id'], {}) if spectrum['source'] == 'assessment' else {}
             coverage = detail.get('coverage')
             coverage_text = f" Coverage: {coverage:.1%} (minimum {detail['min_coverage']:.0%})." if coverage is not None else ""
-            prefix = "No usable full-spectrum q." if not summary['valid_q_count'] else f"Usable full-spectrum q: {summary['valid_q_count']}/{summary['requested_q_count']}."
+            prefix = "No jointly supported per-q estimates." if not summary['valid_q_count'] else f"Per-q estimates available: {summary['valid_q_count']}/{summary['requested_q_count']}."
+            shape_reasons = spectrum_shape_reasons(spectrum)
+            shape_note = ('Joint spectrum withheld: ' + ' '.join(shape_reasons) + '\n') if shape_reasons else ''
             self.spectrum_note.setText(
                 f"{prefix}{coverage_text}\n"
                 f"alpha(q=0): {value(summary['alpha_q0'])} · Observed peak: {observed} · Fitted peak: {value(summary['fit_peak_alpha'])}\n"
-                + ("; ".join(reasons[:2]) if reasons else "See per-q diagnostics below. Click the chart to enlarge."))
+                + shape_note + "See per-q diagnostics below. Click the chart to enlarge.")
             self.spectrum_note.setToolTip(
-                f"q=0: {summary['alpha_q0_status']}; fitted peak: {summary['fit_status']}; "
-                f"peak at q edge: {summary['observed_peak_at_q_edge']}; identities: {summary['identity_status']}. "
-                "Peaks are descriptive; compatibility over finite scales is not proof of multifractality.")
+                "Direct Chhabra–Jensen estimates from regressions across box sizes. "
+                "Standard estimates use ordinary least squares; weighted estimates use reliability weights. "
+                "Analysis uses one grid origin; scaling assessment averages four shifted origins. "
+                "The spectrum is shown only when scaling diagnostics and spectrum shape support it. "
+                "A quadratic peak is descriptive and does not establish multifractality.")
             self.spectrum_values.setRowCount(len(spectrum['points']))
             for row, point in enumerate(spectrum['points']):
                 status = point.get('statuses', {}).get('dq') or ('accepted' if point['accepted'] else 'not_supported')
                 reason = self.friendly_reason(point['reason'])
-                unsupported = [f"{name}: {state.replace('_', ' ')}" for name, state in point.get('statuses', {}).items()
+                unsupported = [f"{name}: {self.friendly_status(state)}" for name, state in point.get('statuses', {}).items()
                                if state not in ('compatible_finite_range', 'identity')]
                 if unsupported:
                     reason = '; '.join(filter(None, [reason, ', '.join(unsupported)]))
                 values = [f"{point['q']:g}", *["—" if point[n] is None else f"{point[n]:.6g}" for n in ('dq', 'tau', 'alpha', 'f_alpha')],
-                          status.replace('_', ' '), 'usable' if point['accepted'] else 'not usable', reason]
+                          self.friendly_status(status), 'available' if point['accepted'] else 'unavailable', reason]
                 for col, text in enumerate(values):
                     cell = QTableWidgetItem(text)
                     cell.setToolTip(text)
                     self.spectrum_values.setItem(row, col, cell)
+            self.spectrum_values.resizeRowsToContents()
             self.spectrum_export.setEnabled(True)
         except Exception as exc:
             self.spectrum_note.setText(f"Could not display spectrum: {exc}")
             self.log.append(str(exc))
+
+    @staticmethod
+    def friendly_status(status):
+        return {"compatible_finite_range": "Compatible over the tested scales", "identity": "Fixed by normalization",
+                "insufficient_information": "Insufficient information", "not_supported": "Not supported",
+                "accepted": "Regression accepted"}.get(status, "See diagnostics")
 
     @staticmethod
     def friendly_reason(reason):
@@ -814,8 +966,21 @@ class MusaDock(QDockWidget):
                   'quadratic_predicts_better': 'A curved model predicts better than a straight scaling law',
                   'no_line_support': 'No observed line support in this window',
                   'no_resolved_scales': 'No scales remain above the observation resolution',
-                  'accepted': 'Fit accepted; inspect scaling assessment separately'}
-        return '; '.join(labels.get(part, part.replace('_', ' ')) for part in reason.split(';') if part)
+                  'accepted': 'Fit threshold met',
+                  'legacy_fit_rejected': 'Regression does not meet the fit threshold',
+                  'too_few_resolved_scales': 'Fewer than eight resolved scales',
+                  'short_scaling_interval': 'Scale interval spans less than one decade',
+                  'poor_linear_fit': 'Scaling curve does not meet the fit threshold',
+                  'scale_sensitive_dimension': 'Estimate changes when scales are omitted',
+                  'grid_sensitive_dimension': 'Estimate changes with grid placement',
+                  'segmented_predicts_better': 'A segmented model predicts better than a straight scaling law',
+                  'renyi_dimension_order_violation': 'Dimensions do not decrease with q',
+                  'dimension_outside_planar_range': 'Dimension lies outside the expected planar range',
+                  'constant_curve': 'No change across the declared scales',
+                  'below_observation_resolution': 'Cell sizes fall below observation resolution',
+                  'normalization_identity_not_scaling_evidence': 'Fixed by normalization',
+                  'coarse_scale_trimming_below_one_decade': 'Coarse-scale removal leaves too short an interval'}
+        return '; '.join(labels.get(part, 'See the detailed diagnostic report') for part in reason.split(';') if part)
 
     def export_selected_spectrum(self, path):
         if self._spectrum_figure is None or self.task is not None:

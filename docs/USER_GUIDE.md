@@ -1,4 +1,4 @@
-# MUSA 1.2.0 user guide
+# MUSA 1.3.0 user guide
 
 MUSA measures the distribution of line length over square cells in a 2D
 observation domain. It provides descriptive global/local spectra and a separate
@@ -6,11 +6,7 @@ finite-range scaling assessment. Those paths have different acceptance rules.
 They do not establish permeability, geological favorability, 3D connectivity,
 or a universal classification of fractality.
 
-This English guide adapts the interface workflow of the
-[historical Spanish illustrated guide](USER_GUIDE.es.md) and documents 1.2.0
-options. Historical screenshots describe an earlier example; the executable
-[tutorial](TUTORIAL.md) instead uses generated synthetic data and needs no
-permission-dependent field dataset. Instructions and option names are in English.
+The illustrated walkthrough below uses the current interface and a synthetic fracture network in unlocated model metres. [Español](USER_GUIDE.es.md), [Learn](KNOWLEDGE_BASE.md), and the [workflow map](WORKFLOW.md) describe the same execution. The English controls and the bilingual learning/comparison blocks retain their own language.
 
 ## 1. Install and choose a calculation path
 
@@ -23,7 +19,7 @@ test matrix for all versions or systems.
 
 In QGIS, enable the plugin and open Vector > MUSA > MUSA Workbench. For the
 independent assessment, open Processing Toolbox > MUSA > Lineament analysis >
-Assess Renyi scaling support (experimental), identifier musa:scaling_support.
+Assess Renyi scaling support, identifier musa:scaling_support.
 
 | Path | Use | Important behavior |
 | --- | --- | --- |
@@ -80,7 +76,7 @@ The following are RunConfig defaults, not recommended geological values:
 
 | Fields | Defaults | Meaning |
 | --- | --- | --- |
-| mother_cell_m; divisors | 4000; (2,4,6,8,16) | Mother/child-cell scales |
+| mother_cell_m; divisors | 4000; (2,3,4,5,6,8,10,12,16,24,32) | Twelve mother/child-cell scales, all relative to mother size |
 | q_min; q_max; q_step | −4; 4; 1 | Moment orders, not spatial dimensions |
 | threshold_m | 0.01 | Descriptive per-box length threshold; changes the retained measure |
 | min_r2 | 0.9 | Strict descriptive R² filter for Dq, alpha, and f_alpha |
@@ -96,12 +92,26 @@ The following are RunConfig defaults, not recommended geological values:
 | window_sizes_m; window_step_m | (2000,4000,8000); 1000 | Window sides and center spacing |
 | moving_divisors; origin_ensemble | (2,4,8,16); False | Internal scales; one origin unless the 16-origin option is enabled |
 | proximity_radii_m | () | Off; optional exploratory search radii |
-| scaling_support | False | Independent assessment within the shared workflow |
-| scaling_resolution_m; scaling_scales_m | 0; () | Must supply a positive resolution when enabled; explicitly declare scales for reproducible use |
+| scaling_support | True | Scaling diagnostic included by default |
+| scaling_resolution_m; scaling_scales_m | 0; () | No assumed observation resolution: enter a positive source-specific value before running; empty scales use the relative analysis scales |
 | scaling_null_replicates; scaling_window_limit | 0; 25 | Null off; limit on assessed windows, allowed 1–1000 |
 | renyi_order_policy | legacy_block | Shared assessment order policy |
 | scaling_null_tail | upper | Shared-workflow name for ScalingOptions.null_tail |
 | scaling_coarse_trim_min_effective_q2 | 0 | Shared-workflow name for coarse-end trimming |
+
+The panel and RunConfig enable the scaling diagnostic for new analyses. A new
+configuration is incomplete until observation resolution is entered under
+Quality; zero is a prompt, not an inferred or hidden resolution. Processing
+analysis also requires its Observation resolution parameter. Use the source
+map's measurement or mapping resolution, not the CRS units or a universal
+metre value. Explicit settings in existing recipes remain unchanged.
+
+Monte Carlo is a separate unchecked option in Quality. With the option off,
+the replicate count saved in the recipe is zero, while scaling diagnostics
+still run. The tooltip gives a reference timing for 1201 traces, twelve scales
+and four origins: approximately five minutes for 199 replicates and 25 minutes
+for 999, based on three relocation/partition timing probes. Actual runtime
+depends on geometry, computer and diagnostic gates; these are estimates.
 
 Bootstrap and zeta do not correct mapping uncertainty. Zeta summarizes
 operational numerical support, not permeability or geological-validity
@@ -291,3 +301,77 @@ assessment products, and preserve inputs/recipes/results. Interface checks
 and numerical tests do not replace external scientific validation. See
 [theory](theory.md), [validation scope](SCALING_VALIDATION_STATUS.md), and
 [references](references.md).
+
+## 11. Illustrated synthetic walkthrough
+
+These screenshots were regenerated with QGIS 3.44.12 on 22 November 2026. The example contains 627 clipped fractures in a seven-sided observed polygon, within a 10000 × 10000 model-metre extent. Its three orientation families have means 20°, 80° and 140°, each with 9° angular standard deviation. Units are explicitly UNLOCATED model metres. This is a synthetic teaching network generated in the repository, with no field location or external data licence to infer.
+
+Regenerate the inputs with python scripts/tutorial_network.py --output outputs/fracture_example, then load lineaments and boundary from inputs.gpkg. The generator uses NumPy default_rng(20261122), 900 proposed centres from a four-level spatial cascade with quadrant probabilities (0.1,0.2,0.25,0.45), and Pareto-distributed lengths (shape 1.3) clipped to 150–900 m. Traces are clipped to the polygon and pieces shorter than 5 m are excluded. The retained count is 627. The generator writes provenance.json. Load [the walkthrough recipe](../examples/workbench_synthetic_recipe.json) after selecting the layers. The same generator supplies scripts/capture_user_guide_qgis.py, which executes the workflow and captures actual Qt widgets.
+
+![Synthetic fracture network and observed domain](images/user-guide/00-map.png)
+
+Analysis uses mother side 2000 m, divisors 2,4,8,16, q=0…4 in steps of 1, plots and GIS enabled. Mother-cell, structural and network products are off in this demonstration. Output names a new run's existing parent folder.
+
+![Current Analysis form](images/user-guide/01-analysis.png)
+
+Quality uses descriptive R²=0.9, length threshold 0 m, bootstrap off and default zeta settings. The independent assessment declares resolution 1 model m and 16 geometric scales from 125 to 2500 m; the complete interval wraps in its editor. Classic comparison is enabled. The order policy warns about D0–D2 order, and coarse trimming is off.
+
+![Quality settings and complete interval](images/user-guide/02-quality.png)
+
+The optional relocation test uses 99 replicates, seed 42 and the two-sided tail. The complete analysis with windows finishes in approximately five minutes on the walkthrough computer. Global p=0.02 and Holm p=0.46 over the 23-support family; minimum raw p=0.02. This demonstration cannot resolve the first Holm rejection at 0.05: at least 919 two-sided replicates are required, since 2 × 23 / (B + 1) ≤ 0.05. That minimum makes the threshold attainable; rejection also depends on the results. Results displays the resolution limit beside the p value.
+
+![Scaling assessment, comparison and Monte Carlo controls](images/user-guide/02b-scaling-options.png)
+
+Moving windows uses side 6000 m, spacing 2000 m, divisors 2,4,8,16, one origin and no proximity radii. Press Run MUSA and check Analysis complete. The descriptive fit accepts nine q values. Across global and window assessments, 61 support/q pairs are compatible, 14 are not supported and 132 have insufficient information. Eight of the 22 windows meet the 80% coverage threshold; every window retains the traces observed inside it and the diagnostic reasons.
+
+![Moving-window setup](images/user-guide/03-moving-windows.png)
+
+The separate classic block shows D_BC=1.59833, R²=0.994613 and global MUSA D0=1.56093, compatible on 16 scales from 125 to 2500 m. Classic counting uses one origin; assessment averages four origins. Separate JSON/CSV retain their measurement designs.
+
+![Classic comparison, assessed D0 and test resolution](images/user-guide/14-comparison.png)
+
+The global Dq estimates are compatible. The joint spectrum is withheld because alpha(0.5) = 1.571 < alpha(1) = 1.577 among jointly supported orders. The table also shows alpha(0) = 1.499 < alpha(0.5) = 1.571; alpha at q=0 is unsupported and remains outside that joint criterion. The message identifies the pair and its values. Window 18 below has a supported joint curve.
+
+![Global joint-spectrum shape diagnostic](images/user-guide/14b-global-spectrum.png)
+
+Select Moving windows — scaling assessment, Center 18, side 6000 m, Standard estimator. Coverage is 82.95%. All nine Dq values are compatible; four orders (q=0.5,1,1.5,2) also have jointly supported spectral estimates. The retained window interval is recorded separately from the global interval; it excludes boxes too large for the clipped support. Other windows show curvature, origin sensitivity or inadequate effective support.
+
+![Window Dq at center 18](images/user-guide/04-window-dq.png)
+
+![Per-q values, statuses and wrapped reasons](images/user-guide/07-per-q-values.png)
+
+The joint f(alpha) curve at center 18 is visible. Its shape passes the same display checks applied to every support; values and acceptance rules are computed by the shared core. The chart's observed peak and fitted peak have separate labels; a fitted peak remains unavailable when its checks fail. This finite sample illustrates how to read a supported curve alongside abstentions elsewhere.
+
+![Supported window spectrum](images/user-guide/05-window-spectrum.png)
+
+Center 0 has 39.19% observed coverage, below the minimum 80%. Its estimates remain absent with the low-coverage reason. Window 11 has useful coverage (97.61%), a compatible D0, unsupported D1 from predictive curvature and insufficient q=4 effective support. The center selector preserves access to all these outcomes.
+
+![Insufficient coverage at center 0](images/user-guide/08-low-coverage.png)
+
+![Window with useful coverage and a curvature rejection](images/user-guide/08b-curved-window.png)
+
+Click a spectrum to enlarge it with navigation controls; export the selected chart to PNG or SVG. The enlarged view retains the same selected supported curve.
+
+![Enlarged supported window spectrum](images/user-guide/06-enlarged-spectrum.png)
+
+Figures contains the saved descriptive figures. Scroll the page to see the full preview, then click to enlarge it. Descriptive Dq uses its own mother/child interval and origin; its values differ from the four-origin assessment above. The figure labels identify its descriptive calculation.
+
+![Saved descriptive figures](images/user-guide/09-figures.png)
+
+![Enlarged descriptive Dq figure](images/user-guide/10-enlarged-figure.png)
+
+Results has outer vertical scrolling; its table and details have their own scroll bars. Narrow panels also allow horizontal table scrolling to access every column.
+
+![Results in a small dock](images/user-guide/12-results-scroll.png)
+
+Run details recovers status, version, dates, provenance, parameters and files. Open completed run loads a folder containing run_manifest.json without recalculation. Preserve the inputs and full output tree alongside the recipe and project.
+
+![Details recovered from the saved run](images/user-guide/11-run-details.png)
+
+Learn / Fundamentos reads the canonical chapters in either language. The sequence starts from the geological object and compares density, distance and a rose diagram on the same 627-trace network. It continues with self-similarity, multifractality, box counting and cell length. Its 13 figures use labels in the selected language and numbered captions; the reader preserves their proportions and adapts their size to the available width. Its examples include exact-length versus pixel mass and 100 random rods: 24 scales, classic R²=0.992364, MUSA D0 not supported from predictive curvature and segmentation. A shorter finite Cantor example explicitly records that classic counting obtains the correct value and MUSA abstains from four scales. The selector changes the chapter and comparison block; the remaining Workbench controls and Results blocks are consistently English.
+
+![Learn in English](images/user-guide/15-learn-en.png)
+
+![Fundamentos in Spanish](images/user-guide/15-learn-es.png)
+
+Processing provides musa:analyze, musa:scaling_support and musa:run_recipe. The automated walkthrough runs their actual dialogs and checks complete manifests. Their help links to the same learning source. The [workflow map](WORKFLOW.md) connects controls to core functions and files; [five executed notebooks](../notebooks/README.md) demonstrate the API without QGIS.

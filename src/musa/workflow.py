@@ -20,7 +20,7 @@ _RUN_LOCK = Lock()  # Matplotlib and GIS writers must not run concurrently here.
 @dataclass(frozen=True)
 class RunConfig:
     mother_cell_m: float = 4000.0
-    divisors: tuple = (2, 4, 6, 8, 16)
+    divisors: tuple = (2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32)
     q_min: float = -4.0
     q_max: float = 4.0
     q_step: float = 1.0
@@ -46,7 +46,7 @@ class RunConfig:
     moving_divisors: tuple = (2, 4, 8, 16)
     origin_ensemble: bool = False
     proximity_radii_m: tuple = ()
-    scaling_support: bool = False
+    scaling_support: bool = True
     scaling_resolution_m: float = 0.0
     scaling_scales_m: tuple = ()
     scaling_null_replicates: int = 0
@@ -54,6 +54,7 @@ class RunConfig:
     renyi_order_policy: str = "legacy_block"
     scaling_null_tail: str = "upper"
     scaling_coarse_trim_min_effective_q2: float = 0.0
+    classic_comparison: bool = False
 
     def scaling_options(self):
         from .scaling import ScalingOptions
@@ -119,7 +120,7 @@ class RunConfig:
                 not np.isfinite(self.proximity_radii_m).all() or min(self.proximity_radii_m) <= 0
             ):
                 raise ValueError("Proximity radii must be positive and finite.")
-        for name in ("local", "structural", "network", "plots", "gis", "zeta_sensitivity", "moving", "origin_ensemble", "scaling_support"):
+        for name in ("local", "structural", "network", "plots", "gis", "zeta_sensitivity", "moving", "origin_ensemble", "scaling_support", "classic_comparison"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name} must be a boolean.")
         if self.renyi_order_policy not in ("legacy_block", "inform_q0_q2"):
@@ -127,6 +128,8 @@ class RunConfig:
         if self.scaling_null_tail not in ("upper", "two_sided"):
             raise ValueError("Use scaling_null_tail='upper' or 'two_sided'.")
         if self.scaling_support:
+            if not np.isfinite(self.scaling_resolution_m) or self.scaling_resolution_m <= 0:
+                raise ValueError("Enter the observation resolution of your source map in metres under Quality before running.")
             self.scaling_options().validate()
             if self.scaling_scales_m and (
                 len(self.scaling_scales_m) > 64 or not np.isfinite(self.scaling_scales_m).all()
@@ -194,10 +197,15 @@ def execute_analysis(
         analyzer.q_values = config.q_values()
         scales = MUSA.resolutions_from_mother_cell(config.mother_cell_m, config.divisors, include_mother=True)
         scaling_reports = []
+        if config.classic_comparison:
+            from .classic import classic_box_counting, write_classic_comparison
+            stage(1, "Computing classic box counting (comparison only)")
+            comparison = classic_box_counting(analyzer, config.scaling_scales_m or scales, cancelled=cancelled)
+            manifest["outputs"].update(write_classic_comparison(out, comparison))
         if config.scaling_support:
-            from .scaling import ScalingOptions, assess_lineament_scaling, write_scaling_reports
+            from .scaling import assess_lineament_scaling, write_scaling_reports
             scaling_options = config.scaling_options()
-            stage(2, "Assessing finite-range Renyi scaling; optional conditional spatial null")
+            stage(2, "Assessing scaling support")
             scaling_reports.append(assess_lineament_scaling(
                 analyzer, config.scaling_scales_m or scales, scaling_options,
                 cancelled=cancelled, progress=lambda message: stage(2, message)))

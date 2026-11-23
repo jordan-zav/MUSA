@@ -33,6 +33,7 @@ def test_native_geometry_adapter_matches_original_gis_core():
 def test_workflow_manifest_cancellation_and_collision(tmp_path):
     config = RunConfig(
         mother_cell_m=1000,
+        scaling_resolution_m=1,
         divisors=(2, 4, 8, 16),
         q_min=0,
         q_max=2,
@@ -99,7 +100,7 @@ def test_scaling_diagnostics_and_recipe_include_global_and_all_windows(tmp_path)
 
 
 def test_old_recipe_defaults_to_legacy_order_policy_and_invalid_policy_is_rejected():
-    recipe = RunConfig().recipe()
+    recipe = RunConfig(scaling_resolution_m=1).recipe()
     del recipe["parameters"]["renyi_order_policy"]
     assert RunConfig.from_recipe(recipe).renyi_order_policy == "legacy_block"
     recipe["parameters"]["renyi_order_policy"] = "not_a_policy"
@@ -118,3 +119,34 @@ def test_independent_scaling_report_survives_rejected_legacy_spectrum(tmp_path):
         execute_analysis(model, config, output)
     assert json.loads((output / "run_manifest.json").read_text())["status"] == "failed"
     assert (output / "scaling_support.json").is_file()
+
+
+def test_default_diagnostic_requires_an_explicit_source_resolution(tmp_path):
+    config = RunConfig()
+    assert config.scaling_support
+    assert config.scaling_resolution_m == 0
+    assert config.scaling_scales_m == ()
+    assert config.scaling_null_replicates == 0
+    scales = MUSA.resolutions_from_mother_cell(config.mother_cell_m, config.divisors, include_mother=True)
+    assert len(scales) == 12 and max(scales) / min(scales) >= 10
+    assert min(scales) == config.mother_cell_m / 32
+    with pytest.raises(ValueError, match="observation resolution"):
+        execute_analysis(_analyzer(), config, tmp_path / "unconfirmed")
+    assert not (tmp_path / "unconfirmed").exists()
+
+
+def test_diagnostic_runs_without_monte_carlo_and_explicit_old_recipes_remain_valid(tmp_path):
+    from dataclasses import replace
+    from unittest.mock import patch
+    config = RunConfig(mother_cell_m=1000, scaling_resolution_m=1, q_min=0, q_max=2,
+                       min_r2=0, local=False, structural=False, plots=False, gis=False)
+    with patch("musa.scaling._relocate", side_effect=AssertionError("Monte Carlo must remain off")):
+        manifest = execute_analysis(_analyzer(), config, tmp_path / "diagnosed")
+    report = json.loads((tmp_path / "diagnosed/scaling_support.json").read_text())["supports"][0]
+    assert manifest["recipe"]["parameters"]["scaling_support"]
+    assert len(report["used_scales_m"]) >= 8
+    assert report["null"]["status"] == "not_requested"
+    old = replace(config, scaling_support=False, scaling_resolution_m=0, divisors=(2, 4, 6, 8, 16))
+    restored = RunConfig.from_recipe(old.recipe())
+    assert not restored.scaling_support and restored.scaling_resolution_m == 0
+    assert tuple(restored.divisors) == (2, 4, 6, 8, 16)

@@ -15,9 +15,10 @@ from .synthetic import run_synthetic_validation
 from .spectrum import fit_quadratic_spectrum, spectrum_shape_diagnostics, write_spectrum_fit_summary
 from .scaling import ScalingOptions, assess_curve, assess_lineament_scaling, write_scaling_reports
 from .spectrum_products import list_spectra, read_spectrum, spectrum_figure
+from .classic import classic_box_counting, write_classic_comparison
 
 resolutions_from_mother_cell = MUSA.resolutions_from_mother_cell
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 
 def launch_interface() -> None:
@@ -52,4 +53,6 @@ __all__ = [
     "list_spectra",
     "read_spectrum",
     "spectrum_figure",
+    "classic_box_counting",
+    "write_classic_comparison",
 ]

@@ -1,18 +1,21 @@
-# MUSA documentation
+﻿# MUSA documentation
 
 Start with the [user guide](USER_GUIDE.md), [tutorial](TUTORIAL.md),
 [installation](INSTALLATION.md), [engine and QGIS architecture](ARCHITECTURE.md),
 or [Python API without QGIS](PYTHON_API.md). The current mathematical reference
-is [theory.md](theory.md). Software version: MUSA 1.2.0. The instructions use
+is [theory.md](theory.md). Software version: MUSA 1.3.0. The instructions use
 the source repository or QGIS ZIP; they do not require an assumed PyPI release.
 
 ## Main documents
 
 | Document | Purpose |
 | --- | --- |
+| [WORKFLOW.md](WORKFLOW.md) / [Español](WORKFLOW.es.md) | Generated diagram and every control/algorithm mapped to core functions, outputs and learning chapters |
+| [Python notebooks](../notebooks/README.md) | Five executed synthetic API tutorials without QGIS; mandatory nbclient test |
+| [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) / [EspaÃ±ol](KNOWLEDGE_BASE.es.md) | Learn / Fundamentos: the same source chapters read inside the plugin, classic box counting and MUSA interpretation |
 | [USER_GUIDE.md](USER_GUIDE.md) | English guide: inputs, outputs, options, expected behavior, and abstention |
 | [TUTORIAL.md](TUTORIAL.md) | Reproducible synthetic example in Python and QGIS Processing |
-| [USER_GUIDE.es.md](USER_GUIDE.es.md) | Historical illustrated Spanish user guide |
+| [USER_GUIDE.es.md](USER_GUIDE.es.md) | Current illustrated Spanish user guide |
 | [INSTALLATION.md](INSTALLATION.md) | Git installation, QGIS ZIP, dependencies, and distribution/command status |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Core responsibilities, shared workflow, and bundled plugin snapshot |
 | [PYTHON_API.md](PYTHON_API.md) | Points, lines, recipes, independent assessment, and result readers |
@@ -39,3 +42,4 @@ They are not MUSA products or authorized software examples, benchmarks, or publi
 material. This documentation covers methods, interfaces, synthetic controls, and
 validation using identified public sources. Numerical tests do not turn a geological
 inference into external validation.
+

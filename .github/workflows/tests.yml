@@ -31,6 +31,7 @@ jobs:
         run: python -m ruff check src tests qgis_plugin scripts
 
       - name: Run tests with a virtual display
+        # Includes mandatory nbclient execution of all five API notebooks.
         run: xvfb-run --auto-servernum python -B -m pytest
 
       - name: Check documentation links and Python examples

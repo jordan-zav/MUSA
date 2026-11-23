@@ -1,6 +1,6 @@
 # MUSA theory and methodology
 
-Reference for MUSA 1.2.0, revised November 10, 2026. The Python engine and QGIS
+Reference for MUSA 1.3.0, revised November 23, 2026. The Python engine and QGIS
 plugin use these operations; descriptive and assessment paths apply different
 criteria. This reference replaces older notes mixed with Tk-interface controls.
 

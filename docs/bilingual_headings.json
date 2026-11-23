@@ -1,0 +1,198 @@
+{
+  "USER_GUIDE": [
+    {
+      "level": 1,
+      "en": "MUSA 1.3.0 user guide",
+      "es": "Guía de usuario de MUSA 1.3.0"
+    },
+    {
+      "level": 2,
+      "en": "1. Install and choose a calculation path",
+      "es": "1. Instalar y elegir una ruta de cálculo"
+    },
+    {
+      "level": 2,
+      "en": "2. Prepare inputs",
+      "es": "2. Preparar las entradas"
+    },
+    {
+      "level": 2,
+      "en": "3. Analysis and Quality tabs",
+      "es": "3. Pestañas Analysis y Quality"
+    },
+    {
+      "level": 2,
+      "en": "4. All independent-assessment options",
+      "es": "4. Todas las opciones del diagnóstico independiente"
+    },
+    {
+      "level": 2,
+      "en": "5. Conditional trace-relocation test",
+      "es": "5. Prueba condicional de recolocación de trazas"
+    },
+    {
+      "level": 2,
+      "en": "6. Moving windows and planar relationships",
+      "es": "6. Ventanas móviles y relaciones planas"
+    },
+    {
+      "level": 2,
+      "en": "7. Run, cancel, and recognize abstention",
+      "es": "7. Ejecutar, cancelar y reconocer la abstención"
+    },
+    {
+      "level": 2,
+      "en": "8. Read and export results",
+      "es": "8. Leer y exportar resultados"
+    },
+    {
+      "level": 2,
+      "en": "9. Files, fields, and sharing",
+      "es": "9. Archivos, campos y uso compartido"
+    },
+    {
+      "level": 2,
+      "en": "10. Troubleshooting and interpretation checklist",
+      "es": "10. Resolución de problemas y lista de interpretación"
+    },
+    {
+      "level": 2,
+      "en": "11. Illustrated synthetic walkthrough",
+      "es": "11. Recorrido sintético ilustrado"
+    }
+  ],
+  "KNOWLEDGE_BASE": [
+    {
+      "level": 1,
+      "en": "Learn: how a fracture network is organized",
+      "es": "Fundamentos: cómo se organiza una red de fracturas"
+    },
+    {
+      "level": 2,
+      "en": "1. How structural patterns are analyzed",
+      "es": "1. Cómo se analiza la estructuralidad"
+    },
+    {
+      "level": 2,
+      "en": "2. The geological basis: from outcrop to map",
+      "es": "2. La base geológica: del afloramiento al mapa"
+    },
+    {
+      "level": 2,
+      "en": "3. What the usual approaches answer",
+      "es": "3. Qué responden los enfoques habituales"
+    },
+    {
+      "level": 3,
+      "en": "Length density",
+      "es": "Densidad de longitud"
+    },
+    {
+      "level": 3,
+      "en": "Euclidean distance to structures",
+      "es": "Distancia euclidiana a estructuras"
+    },
+    {
+      "level": 3,
+      "en": "Rose diagram",
+      "es": "Diagrama de rosa"
+    },
+    {
+      "level": 2,
+      "en": "4. Fractality and multifractality",
+      "es": "4. Fractalidad y multifractalidad"
+    },
+    {
+      "level": 2,
+      "en": "5. Applying it to a map: box counting",
+      "es": "5. Cómo se aplica al mapa: box counting"
+    },
+    {
+      "level": 2,
+      "en": "6. What counting loses and what the line can hide",
+      "es": "6. Qué pierde el conteo y qué puede ocultar la recta"
+    },
+    {
+      "level": 3,
+      "en": "A box counts as one",
+      "es": "Una caja vale uno"
+    },
+    {
+      "level": 3,
+      "en": "From vector length to rasterized ink",
+      "es": "De la longitud vectorial a la tinta rasterizada"
+    },
+    {
+      "level": 3,
+      "en": "Resolution, range and curvature",
+      "es": "Resolución, intervalo y curvatura"
+    },
+    {
+      "level": 3,
+      "en": "An example: high R<sup>2</sup> with systematic curvature",
+      "es": "Un ejemplo: R<sup>2</sup> alto con curvatura sistemática"
+    },
+    {
+      "level": 3,
+      "en": "A counterexample: the Cantor set and missing information",
+      "es": "Un contraejemplo: el Cantor y la falta de información"
+    },
+    {
+      "level": 2,
+      "en": "7. How MUSA computes it",
+      "es": "7. Cómo lo calcula MUSA"
+    },
+    {
+      "level": 3,
+      "en": "Length per cell",
+      "es": "Longitud por celda"
+    },
+    {
+      "level": 3,
+      "en": "Rényi entropies and generalized dimensions",
+      "es": "Entropías de Rényi y dimensiones generalizadas"
+    },
+    {
+      "level": 3,
+      "en": "Singularity spectrum by the direct method",
+      "es": "Espectro de singularidades por el método directo"
+    },
+    {
+      "level": 3,
+      "en": "A declared range and three possible results",
+      "es": "Un intervalo declarado y tres resultados posibles"
+    },
+    {
+      "level": 3,
+      "en": "Conditional trace relocation",
+      "es": "Recolocación condicional de trazas"
+    },
+    {
+      "level": 2,
+      "en": "8. Reading results and reporting an analysis",
+      "es": "8. Lectura de resultados y reporte de un análisis"
+    },
+    {
+      "level": 3,
+      "en": "Reproduction",
+      "es": "Reproducción"
+    },
+    {
+      "level": 2,
+      "en": "Sources",
+      "es": "Fuentes"
+    }
+  ],
+  "WORKFLOW": [
+    {
+      "level": 1,
+      "en": "Workflow map and control reference",
+      "es": "Mapa del flujo y referencia de controles"
+    },
+    {
+      "level": 2,
+      "en": "Reading the flow",
+      "es": "Lectura del flujo"
+    }
+  ]
+}

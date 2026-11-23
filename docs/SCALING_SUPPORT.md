@@ -1,6 +1,6 @@
 # Finite-range Rényi scaling support
 
-Feature of MUSA since 1.1.0 (tail and trimming options since 1.2.0); still marked experimental in the interface. Dq denotes
+Feature of MUSA since 1.1.0 (tail and trimming options since 1.2.0). Dq denotes
 generalized Rényi dimensions: D0 capacity, D1 information and D2 correlation.
 They are different orders of one planar length measure, not added spatial axes.
 
@@ -10,17 +10,23 @@ Processing > MUSA > Assess Renyi scaling support runs independently of the
 legacy analysis R2 gate, so unsuitable input can still receive a diagnostic.
 Choose lines, a polygon and a projected analysis CRS in metres. Declare the
 observation resolution from the mapping source, not an arbitrary pixel size.
-The example box sizes are editable examples, not recommended geological scales.
+Enter box sizes for the source map; there is no universal set of metre scales.
 Output must be a new folder. Both memory and selected inputs use the normal
 QGIS snapshot and reprojection adapter.
 
 ![Independent Processing diagnostic](images/qgis_scaling_processing.png)
 
-Alternatively, in Workbench > Quality, enable Assess scaling support. This adds
-reports to the shared analysis and saved recipes. Leave Box sizes blank to use
-the analysis scales; the original defaults often provide too few scales for
-this diagnostic, intentionally yielding insufficient information. Supply more
-distinct, justified box sizes when observations support them.
+In Workbench > Quality, Assess scaling support is enabled by default. Enter
+the source-specific observation resolution before running: the initial zero
+value is not accepted and no resolution is inferred. Leave Box sizes blank
+to use the analysis scales. The default relative divisors provide twelve
+scales including the mother cell, from its full size down to 1/32 of that size.
+Resolution and domain-size exclusions may still leave insufficient information;
+neither the scale count nor a high R² guarantees compatible scaling.
+
+The optional Monte Carlo relocation test is separately disabled by default.
+It is not required to obtain the scaling diagnostic. The tooltip reports an
+approximate reference cost and Results initially selects the global assessment.
 
 When Moving windows and this assessment are both enabled, the workflow assesses
 the global domain and every computed window. Empty box-size input uses each
@@ -130,6 +136,26 @@ calibration results apply to that configuration and to the inventories studied,
 not to every map or setting.
 
 ## Outputs and reproduction
+
+### Optional classic box-counting comparison
+
+Quality and both Processing forms offer **Classic box counting (comparison only)**,
+off by default. RunConfig.classic_comparison enables it in recipes. It fits ln N
+against ln(1/epsilon) with ordinary least squares on every input box size, using
+one fixed origin at the lower-left domain corner and positive-length occupation.
+Explicit assessment box sizes take precedence over the analysis scales. There
+is no resolution exclusion, scale trimming, origin averaging or diagnostic gate
+in this comparison. The observed polygon still defines the measured traces.
+
+classic_comparison.json contains a separate comparison block; the separate CSV
+records counts at every scale, D_BC, R², origin and comparison_only. Results
+shows it beside global MUSA D0, its diagnostic state and retained interval.
+High R² alone leaves scaling unvalidated. Python callers can also use
+classic_box_counting(analyzer, scales_m), independently of the assessment.
+The bilingual [Learn chapter](KNOWLEDGE_BASE.md) / [Fundamentos](KNOWLEDGE_BASE.es.md)
+is available inside Workbench and through the Processing help link.
+
+### Assessment products
 
 scaling_support.json records scales, exclusions, full entropy curves at each
 origin, model coefficients, nested predictive errors, stability diagnostics,

@@ -48,3 +48,20 @@ def test_export_analysis_plots_writes_q_colored_spectrum(tmp_path):
 
     assert "multifractal_singularity_spectrum_by_q" in outputs
     assert (tmp_path / "multifractal_singularity_spectrum_by_q.png").is_file()
+
+
+def test_uniform_line_plot_shows_dimension_one_without_tiny_offset_axis(tmp_path, monkeypatch):
+    from shapely.geometry import LineString, box
+    from musa import MUSA
+    import musa.plotting as plotting
+    result = MUSA.from_line_geometries([LineString([(0, 500), (1000, 500)])],
+                                      box(0, 0, 1000, 1000), 'EPSG:32718', q_values=[0, 1, 2]).run_analysis(
+                                          resolutions_m=[1000, 500, 250, 125, 62.5])
+    figures = []
+    monkeypatch.setattr(plotting, '_close', figures.append)
+    export_analysis_plots(tmp_path, result)
+    axis = next(fig.axes[0] for fig in figures if fig.axes[0].get_title() == 'Generalized dimensions Dq')
+    low, high = axis.get_ylim()
+    assert low < 1 < high and high - low >= .039
+    assert not axis.yaxis.get_major_formatter().get_useOffset()
+    assert axis.collections[-1].norm.vmin == 0 and axis.collections[-1].norm.vmax == 1

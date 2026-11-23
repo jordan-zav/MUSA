@@ -33,6 +33,20 @@ is not a sandbox algorithm on graph distances.
 10. Wei, D., and colleagues. 2014. Multi-fractal analysis of weighted networks. arXiv. DOI: https://doi.org/10.48550/arXiv.1402.7246
 11. Song, Y. Q., and colleagues. 2015. Multifractal analysis of weighted networks by a modified sandbox algorithm. Scientific Reports. DOI: https://doi.org/10.1038/srep17628
 
+## Box counting and finite-range interpretation
+
+The following references support the teaching chapters [Learn](KNOWLEDGE_BASE.md)
+and [Fundamentos](KNOWLEDGE_BASE.es.md). Bibliographic titles, authors, years
+and identifiers were checked against Crossref metadata when adding the chapters.
+
+- Walsh, J. J., and Watterson, J. (1993). Fractal analysis of fracture patterns using the standard box-counting technique: valid and invalid methodologies. [DOI](https://doi.org/10.1016/0191-8141(93)90010-8).
+- Gonzato, G., Mulargia, F., and Marzocchi, W. (1998). Practical application of fractal analysis: problems and solutions. [DOI](https://doi.org/10.1046/j.1365-246x.1998.00461.x).
+- Malcai, O., Lidar, D. A., Biham, O., and Avnir, D. (1997). Scaling range and cutoffs in empirical fractals. [DOI](https://doi.org/10.1103/PhysRevE.56.2817).
+- Lidar, D. A., Biham, O., and Avnir, D. (1997). Limited range fractality of randomly adsorbed rods. [DOI](https://doi.org/10.1063/1.474070).
+- Wilson, T. H. (2001). Scale transitions in fracture and active fault networks. [DOI](https://doi.org/10.1023/A:1011096828971).
+- Ouillon, G., and Sornette, D. (1996). Unbiased multifractal analysis: Application to fault patterns. [DOI](https://doi.org/10.1029/96GL02379).
+- Roy, A., Perfect, E., Dunne, W. M., and McKay, L. D. (2007). Fractal characterization of fracture networks: An improved box-counting technique. [DOI](https://doi.org/10.1029/2006JB004582).
+
 ## Public data and reproduction
 
 Provenance, licenses, adaptations, and actual source limits are documented in

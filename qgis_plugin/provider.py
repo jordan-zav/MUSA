@@ -21,6 +21,7 @@ from qgis.core import (
 from .inputs import make_analyzer, snapshot_sources
 from .native_gis import export_mother_layers
 from .runtime import core
+from .learning import TEXTS, default_language, help_url
 
 
 class MusaProvider(QgsProcessingProvider):
@@ -67,8 +68,13 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
             "Boundary uses all features. Use QGIS feature-source selection for selected lines. "
             "Output must be a new folder; temporary output is supported. "
             "Reliability describes numerical support, not geological probability. "
-            "Recipes expose all workbench options, including experimental moving windows."
+            "Recipes include all workbench options, including experimental moving windows. Negative q may be unreliable; see docs/NEGATIVE_Q.md. "
+            "Learn / Fundamentos is available in MUSA Workbench. "
+            '<a href="' + help_url() + '">Learn / Fundamentos: illustrated knowledge base</a>.'
         )
+
+    def helpUrl(self):
+        return help_url()
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource("LINES", "Lineaments", [QgsProcessing.TypeVectorLine]))
@@ -91,10 +97,14 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
                 )
             )
             self.addParameter(
-                QgsProcessingParameterString("DIVISORS", "Internal scale divisors", defaultValue="2,4,6,8,16")
+                QgsProcessingParameterString("DIVISORS", "Internal scale divisors",
+                    defaultValue=",".join(str(v) for v in core()[1]().divisors))
             )
+            self.addParameter(QgsProcessingParameterNumber(
+                "RESOLUTION", "Observation resolution (m; required)",
+                type=QgsProcessingParameterNumber.Double, defaultValue=0, minValue=0))
             for key, label, value in (
-                ("Q_MIN", "q minimum", -4),
+                ("Q_MIN", "q minimum", 0),
                 ("Q_MAX", "q maximum", 4),
                 ("Q_STEP", "q step", 1),
                 ("MIN_R2", "Minimum fit R2", 0.9),
@@ -109,6 +119,7 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
                 ("STRUCTURAL", "Structural statistics", True),
                 ("NETWORK", "Network statistics", False),
                 ("PLOTS", "Spectrum figures", True),
+                ("CLASSIC_COMPARISON", TEXTS[default_language()]["classic"], False),
             ):
                 self.addParameter(QgsProcessingParameterBoolean(key, label, defaultValue=default))
         self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
@@ -126,6 +137,7 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
             else:
                 self.config = RunConfig(
                     mother_cell_m=self.parameterAsDouble(parameters, "MOTHER", context),
+                    scaling_resolution_m=self.parameterAsDouble(parameters, "RESOLUTION", context),
                     divisors=tuple(
                         float(v.strip()) for v in self.parameterAsString(parameters, "DIVISORS", context).split(",")
                     ),
@@ -137,7 +149,10 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
                     structural=self.parameterAsBool(parameters, "STRUCTURAL", context),
                     network=self.parameterAsBool(parameters, "NETWORK", context),
                     plots=self.parameterAsBool(parameters, "PLOTS", context),
+                    classic_comparison=self.parameterAsBool(parameters, "CLASSIC_COMPARISON", context),
                 ).validate()
+            if self.config.q_min < 0:
+                feedback.pushWarning("Negative q may be unreliable. See docs/NEGATIVE_Q.md.")
             self.snapshot = snapshot_sources(
                 self.parameterAsSource(parameters, "LINES", context),
                 self.parameterAsSource(parameters, "BOUNDARY", context),
@@ -174,7 +189,7 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         return "scaling_support"
 
     def displayName(self):
-        return "Assess Renyi scaling support (experimental)"
+        return "Assess Renyi scaling support"
 
     def group(self):
         return "Lineament analysis"
@@ -196,19 +211,24 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
             "the boundary. Their Monte Carlo test concerns spatial heterogeneity, not proof of "
             "multifractality. Use zero replicates to disable, or at least 19; the minimum p is 1/(B+1). "
             "Outputs retain every q, including insufficient/unsupported fits. No best-range search. "
-            "Renyi order policy defaults to the legacy spectrum veto. The optional q=0,2 warning "
-            "does not veto the finite-range slope contrast; fit and curvature gates still apply. "
+            "Dimension order is checked by default. The optional D0–D2 warning "
+            "retains the slope contrast when order fails; fit and curvature checks still apply. "
             "The two-sided tail gives p = min(1, 2 min(upper, lower)), minimum 2/(B+1). "
             "Coarse-end trimming (0=off) drops coarse scales with too few effective q=2 boxes "
             "on the observed map before any replicate; less than one decade left means abstention. "
-            "This independent tool does not require legacy spectrum fit acceptance."
+            "This tool assesses scaling independently of the analysis regression filter. Negative q may be unreliable; see docs/NEGATIVE_Q.md. "
+            "The optional classic comparison uses all input scales and one origin. High R² alone leaves scaling unvalidated. "
+            '<a href="' + help_url() + '">Learn / Fundamentos: illustrated knowledge base</a>.'
         )
+
+    def helpUrl(self):
+        return help_url()
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource("LINES", "Lineaments", [QgsProcessing.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource("BOUNDARY", "Analysis boundary", [QgsProcessing.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterCrs("CRS", "Analysis CRS (projected, metres)", defaultValue="ProjectCrs"))
-        self.addParameter(QgsProcessingParameterString("SCALES", "Fixed box sizes (m; review for your data)", defaultValue="25,40,63,100,160,250,400,630"))
+        self.addParameter(QgsProcessingParameterString("SCALES", "Box sizes (m; enter for your source map)", defaultValue="", multiLine=True))
         for key, label, value in (
             ("RESOLUTION", "Observation resolution (m; must be declared)", 0),
             ("Q_MIN", "q minimum", 0), ("Q_MAX", "q maximum", 2),
@@ -218,27 +238,33 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber("NULL_REPLICATES", "Conditional trace-relocation replicates (0=off; >=19)", type=QgsProcessingParameterNumber.Integer, defaultValue=0, minValue=0, maxValue=9999))
         self.addParameter(QgsProcessingParameterEnum(
             "RENYI_ORDER_POLICY", "Renyi order policy",
-            options=["Legacy: block on spectrum order", "Inform q=0,2: warning without order veto"], defaultValue=0))
+            options=["Require ordered dimensions", "Warn about D0–D2 order"], defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(
             "NULL_TAIL", "Monte Carlo tail of the D0-D2 test",
-            options=["Upper tail (legacy)", "Two-sided"], defaultValue=0))
+            options=["Upper tail", "Two-sided"], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             "COARSE_TRIM", "Coarse-end trimming: minimum effective q=2 boxes (0=off)",
             type=QgsProcessingParameterNumber.Double, defaultValue=0, minValue=0, maxValue=1e6))
         self.addParameter(QgsProcessingParameterNumber("SEED", "Random seed", type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
+        self.addParameter(QgsProcessingParameterBoolean(
+            "CLASSIC_COMPARISON", TEXTS[default_language()]["classic"], defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
         self.addOutput(QgsProcessingOutputString("REPORT", "Scaling support JSON"))
 
     def prepareAlgorithm(self, parameters, context, feedback):
         try:
             _, RunConfig, _ = core()
+            scales_text = self.parameterAsString(parameters, "SCALES", context).strip()
+            if not scales_text:
+                raise ValueError("Enter source-specific box sizes in metres.")
             self.config = RunConfig(
                 q_min=self.parameterAsDouble(parameters, "Q_MIN", context),
                 q_max=self.parameterAsDouble(parameters, "Q_MAX", context),
                 q_step=self.parameterAsDouble(parameters, "Q_STEP", context),
                 scaling_support=True,
+                classic_comparison=self.parameterAsBool(parameters, "CLASSIC_COMPARISON", context),
                 scaling_resolution_m=self.parameterAsDouble(parameters, "RESOLUTION", context),
-                scaling_scales_m=tuple(float(v.strip()) for v in self.parameterAsString(parameters, "SCALES", context).split(",")),
+                scaling_scales_m=tuple(float(v.strip()) for v in scales_text.split(",")),
                 scaling_null_replicates=self.parameterAsInt(parameters, "NULL_REPLICATES", context),
                 renyi_order_policy=("legacy_block", "inform_q0_q2")[
                     self.parameterAsEnum(parameters, "RENYI_ORDER_POLICY", context)],
@@ -246,6 +272,8 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                 scaling_coarse_trim_min_effective_q2=self.parameterAsDouble(parameters, "COARSE_TRIM", context),
                 seed=self.parameterAsInt(parameters, "SEED", context),
             ).validate()
+            if self.config.q_min < 0:
+                feedback.pushWarning("Negative q may be unreliable. See docs/NEGATIVE_Q.md.")
             self.snapshot = snapshot_sources(
                 self.parameterAsSource(parameters, "LINES", context),
                 self.parameterAsSource(parameters, "BOUNDARY", context),
@@ -272,11 +300,16 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                         "source": self.snapshot["info"], "recipe": self.config.recipe()}
             manifest_path = output / "run_manifest.json"
             try:
+                if self.config.classic_comparison:
+                    from ._core.musa.classic import classic_box_counting, write_classic_comparison
+                    comparison = classic_box_counting(make_analyzer(self.snapshot, self.config),
+                                                      self.config.scaling_scales_m, cancelled=feedback.isCanceled)
+                    manifest["outputs"] = write_classic_comparison(output, comparison)
                 report = scaling.assess_lineament_scaling(
                     make_analyzer(self.snapshot, self.config), self.config.scaling_scales_m,
                     self.config.scaling_options(),
                     cancelled=feedback.isCanceled, progress=feedback.pushInfo)
-                manifest["outputs"] = scaling.write_scaling_reports(output, [report])
+                manifest.setdefault("outputs", {}).update(scaling.write_scaling_reports(output, [report]))
                 check_cancelled(feedback.isCanceled)
                 manifest["status"] = "complete"
             except Exception as exc:

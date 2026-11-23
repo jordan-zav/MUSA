@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import zipfile
+import importlib.util
 
 
 def build_plugin(repo, output):
@@ -28,14 +29,19 @@ def build_plugin(repo, output):
                 continue  # Tk desktop UI is legacy; it does not ship inside QGIS.
             files.append((source, archive_root + "/" + source.relative_to(folder).as_posix()))
     for source, name in ((repo / "LICENSE", "LICENSE"), (repo / "docs/QGIS.md", "QGIS.md"),
+                         (repo / "docs/KNOWLEDGE_BASE.md", "knowledge/KNOWLEDGE_BASE.md"),
+                         (repo / "docs/KNOWLEDGE_BASE.es.md", "knowledge/KNOWLEDGE_BASE.es.md"),
                          (repo / "docs/SCALING_SUPPORT.md", "SCALING_SUPPORT.md"),
                          (repo / "docs/SPECTRA.md", "SPECTRA.md"),
+                         (repo / "docs/NEGATIVE_Q.md", "docs/NEGATIVE_Q.md"),
                          (repo / "docs/images/qgis_scaling_quality.png", "images/qgis_scaling_quality.png"),
                          (repo / "docs/images/qgis_scaling_processing.png", "images/qgis_scaling_processing.png"),
                          (repo / "docs/images/scaling_controls.png", "images/scaling_controls.png"),
                          (repo / "docs/images/qgis_window_spectra.png", "images/qgis_window_spectra.png")):
         files.append((source, "musa_qgis/" + name))
     manifest = {"version": version, "files": {}}
+    for source in sorted((repo / 'docs/images').glob('knowledge_*.*.png')):
+        files.append((source, 'musa_qgis/knowledge/images/' + source.name))
     output.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     target = output / f"musa_qgis_{version}_{timestamp}.zip"
@@ -43,6 +49,14 @@ def build_plugin(repo, output):
         archive.writestr("musa_qgis/_core/__init__.py", "")
         for source, name in files:
             data = source.read_bytes()
+            archive.writestr(name, data)
+            manifest["files"][name] = hashlib.sha256(data).hexdigest()
+        spec = importlib.util.spec_from_file_location("musa_learning_build", repo / "qgis_plugin/learning.py")
+        learning = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(learning)
+        for filename in ("KNOWLEDGE_BASE.md", "KNOWLEDGE_BASE.es.md"):
+            data = learning.learning_html((repo / "docs" / filename).read_text(encoding="utf-8")).encode("utf-8")
+            name = "musa_qgis/knowledge/" + filename.replace(".md", ".html")
             archive.writestr(name, data)
             manifest["files"][name] = hashlib.sha256(data).hexdigest()
     # The hash manifest stays outside the ZIP: the QGIS repository's secret scanner
