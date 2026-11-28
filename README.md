@@ -33,7 +33,7 @@ MUSA provides a Python numerical engine and a QGIS workbench for direct Chhabraâ
 | --- | --- |
 | Learn inputs, outputs, options, and expected behavior | [English user guide](docs/USER_GUIDE.md) |
 | Run a synthetic assessment in Python and QGIS | [Reproducible tutorial](docs/TUTORIAL.md) |
-| Follow the historical illustrated QGIS workflow in Spanish | [Spanish user guide](docs/USER_GUIDE.es.md) |
+| Follow the illustrated QGIS workflow in Spanish | [Spanish user guide](docs/USER_GUIDE.es.md) |
 | Install and check distribution availability | [Installation](docs/INSTALLATION.md) |
 | Understand engine, QGIS adapter and recipes | [Architecture](docs/ARCHITECTURE.md) |
 | Run without QGIS | [Python API](docs/PYTHON_API.md) |
@@ -44,7 +44,7 @@ Installation with pip from GitHub is available. PyPI publication and a general
 installed recipe-running CLI remain pending. The existing musa-ui entry point
 opens the legacy Tk interface; it is not the QGIS workbench or a headless runner.
 
-MUSA 1.3.0 is the current QGIS plugin release (the first was 1.1.0). Download musa_qgis-1.3.0.zip from the
+MUSA 1.3.1 is the current QGIS plugin release (the first was 1.1.0). Download musa_qgis-1.3.1.zip from the
 [latest release](https://github.com/jordan-zav/MUSA/releases/latest) and install it with
 Plugins > Manage and Install Plugins > Install from ZIP.
 
@@ -87,7 +87,7 @@ Build the plugin from this checkout:
     python scripts/build_qgis_plugin.py
 
 In QGIS, open Plugins > Manage and Install Plugins > Install from ZIP and select
-the ZIP generated in dist/qgis. Then open Vector > MUSA > MUSA Workbench.
+the ZIP generated in dist/qgis. Then open Vector > MUSA > MUSA Workbench (the header selector switches the entire Workbench and Learn chapter between English and Spanish).
 See the [QGIS guide](docs/QGIS.md) for dependencies, recipes, Processing and limits.
 The plugin uses the Python packages supplied by your QGIS installation and does
 not install or replace interpreter dependencies.
@@ -200,7 +200,7 @@ Generated datasets, local experiments, and temporary outputs are intentionally e
 
 ## Project status
 
-MUSA 1.3.0 is the current public release; 1.1.0 was the first QGIS plugin release.
+MUSA 1.3.1 is the current public release; 1.1.0 was the first QGIS plugin release.
 See the [mathematical validation scope](docs/SCALING_VALIDATION_STATUS.md) for what the
 current scaling diagnostics can establish.
 The [extended public-data benchmarks](docs/EXTENDED_BENCHMARKS.md) add original
@@ -215,6 +215,8 @@ a stable numerical fit or high zeta weight is not proof of a geological process.
 ## How to cite
 
 If you use MUSA, please cite the version you used:
+
+For version 1.3.1, use CITATION.cff; the release date and version DOI are finalized at publication. Previous release citation:
 
 > Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (version 1.3.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24453350
 

@@ -18,6 +18,7 @@ from qgis.core import (
     QgsProcessingProvider,
 )
 
+from .i18n import tr
 from .inputs import make_analyzer, snapshot_sources
 from .native_gis import export_mother_layers
 from .runtime import core
@@ -32,7 +33,7 @@ class MusaProvider(QgsProcessingProvider):
         return "MUSA"
 
     def longName(self):
-        return "MUSA — Multifractal Spectrum Analyzer"
+        return tr(default_language(), "dock_title")
 
     def loadAlgorithms(self):
         self.addAlgorithm(AnalyzeAlgorithm())
@@ -50,10 +51,10 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
         return "run_recipe" if self.use_recipe else "analyze"
 
     def displayName(self):
-        return "Run analysis recipe" if self.use_recipe else "Multifractal and structural analysis"
+        return tr(default_language(), "proc_recipe" if self.use_recipe else "proc_analyze")
 
     def group(self):
-        return "Lineament analysis"
+        return tr(default_language(), "proc_group")
 
     def groupId(self):
         return "lineaments"
@@ -62,71 +63,64 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
         return AnalyzeAlgorithm(self.use_recipe)
 
     def shortHelpString(self):
-        return (
-            "Analyze line length at multiple scales with the shared MUSA core. "
-            "Choose a projected analysis CRS in metres. Inputs can have different CRSs. "
-            "Boundary uses all features. Use QGIS feature-source selection for selected lines. "
-            "Output must be a new folder; temporary output is supported. "
-            "Reliability describes numerical support, not geological probability. "
-            "Recipes include all workbench options, including experimental moving windows. Negative q may be unreliable; see docs/NEGATIVE_Q.md. "
-            "Learn / Fundamentos is available in MUSA Workbench. "
-            '<a href="' + help_url() + '">Learn / Fundamentos: illustrated knowledge base</a>.'
-        )
+        return tr(default_language(), "proc_help_analyze").format(url=help_url())
 
     def helpUrl(self):
         return help_url()
 
     def initAlgorithm(self, config=None):
-        self.addParameter(QgsProcessingParameterFeatureSource("LINES", "Lineaments", [QgsProcessing.TypeVectorLine]))
+        lang = default_language()
+        self.addParameter(QgsProcessingParameterFeatureSource("LINES", tr(lang, "lbl_lineaments"), [QgsProcessing.TypeVectorLine]))
         self.addParameter(
-            QgsProcessingParameterFeatureSource("BOUNDARY", "Analysis boundary", [QgsProcessing.TypeVectorPolygon])
+            QgsProcessingParameterFeatureSource("BOUNDARY", tr(lang, "proc_boundary"), [QgsProcessing.TypeVectorPolygon])
         )
         self.addParameter(
-            QgsProcessingParameterCrs("CRS", "Analysis CRS (projected, metres)", defaultValue="ProjectCrs")
+            QgsProcessingParameterCrs("CRS", tr(lang, "proc_crs"), defaultValue="ProjectCrs")
         )
         if self.use_recipe:
-            self.addParameter(QgsProcessingParameterFile("RECIPE", "MUSA analysis recipe", extension="json"))
+            self.addParameter(QgsProcessingParameterFile("RECIPE", tr(lang, "proc_recipe_file"), extension="json"))
         else:
             self.addParameter(
                 QgsProcessingParameterNumber(
                     "MOTHER",
-                    "Mother cell size (m)",
+                    tr(lang, "proc_mother"),
                     type=QgsProcessingParameterNumber.Double,
                     defaultValue=4000.0,
                     minValue=0.001,
                 )
             )
             self.addParameter(
-                QgsProcessingParameterString("DIVISORS", "Internal scale divisors",
+                QgsProcessingParameterString("DIVISORS", tr(lang, "proc_divisors"),
                     defaultValue=",".join(str(v) for v in core()[1]().divisors))
             )
             self.addParameter(QgsProcessingParameterNumber(
-                "RESOLUTION", "Observation resolution (m; required)",
+                "RESOLUTION", tr(lang, "lbl_resolution"),
                 type=QgsProcessingParameterNumber.Double, defaultValue=0, minValue=0))
-            for key, label, value in (
-                ("Q_MIN", "q minimum", 0),
-                ("Q_MAX", "q maximum", 4),
-                ("Q_STEP", "q step", 1),
-                ("MIN_R2", "Minimum fit R2", 0.9),
+            for key, label_key, value in (
+                ("Q_MIN", "proc_q_min", 0),
+                ("Q_MAX", "proc_q_max", 4),
+                ("Q_STEP", "proc_q_step", 1),
+                ("MIN_R2", "lbl_min_r2", 0.9),
             ):
                 self.addParameter(
                     QgsProcessingParameterNumber(
-                        key, label, type=QgsProcessingParameterNumber.Double, defaultValue=value
+                        key, tr(lang, label_key), type=QgsProcessingParameterNumber.Double, defaultValue=value
                     )
                 )
             for key, label, default in (
-                ("LOCAL", "Mother-cell spectra", True),
-                ("STRUCTURAL", "Structural statistics", True),
-                ("NETWORK", "Network statistics", False),
-                ("PLOTS", "Spectrum figures", True),
-                ("CLASSIC_COMPARISON", TEXTS[default_language()]["classic"], False),
+                ("LOCAL", tr(lang, "proc_local"), True),
+                ("STRUCTURAL", tr(lang, "proc_structural"), True),
+                ("NETWORK", tr(lang, "proc_network"), False),
+                ("PLOTS", tr(lang, "proc_plots"), True),
+                ("CLASSIC_COMPARISON", TEXTS[lang]["classic"], False),
             ):
                 self.addParameter(QgsProcessingParameterBoolean(key, label, defaultValue=default))
-        self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
-        self.addOutput(QgsProcessingOutputString("MANIFEST", "Run manifest"))
+        self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", tr(lang, "proc_output")))
+        self.addOutput(QgsProcessingOutputString("MANIFEST", tr(lang, "proc_manifest")))
 
     def prepareAlgorithm(self, parameters, context, feedback):
         try:
+            lang = default_language()
             _, RunConfig, _ = core()
             if self.use_recipe:
                 from pathlib import Path
@@ -152,7 +146,7 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
                     classic_comparison=self.parameterAsBool(parameters, "CLASSIC_COMPARISON", context),
                 ).validate()
             if self.config.q_min < 0:
-                feedback.pushWarning("Negative q may be unreliable. See docs/NEGATIVE_Q.md.")
+                feedback.pushWarning(tr(lang, "note_neg_q"))
             self.snapshot = snapshot_sources(
                 self.parameterAsSource(parameters, "LINES", context),
                 self.parameterAsSource(parameters, "BOUNDARY", context),
@@ -163,7 +157,6 @@ class AnalyzeAlgorithm(QgsProcessingAlgorithm):
             return True
         except Exception as exc:
             raise QgsProcessingException(str(exc)) from exc
-
 
     def processAlgorithm(self, parameters, context, feedback):
         from pathlib import Path
@@ -189,10 +182,10 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         return "scaling_support"
 
     def displayName(self):
-        return "Assess Renyi scaling support"
+        return tr(default_language(), "proc_scaling")
 
     def group(self):
-        return "Lineament analysis"
+        return tr(default_language(), "proc_group")
 
     def groupId(self):
         return "lineaments"
@@ -201,58 +194,43 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
         return ScalingSupportAlgorithm()
 
     def shortHelpString(self):
-        return (
-            "Assess finite-range generalized Renyi dimensions Dq on fixed box sizes. "
-            "Declare observation resolution in metres. Needs at least eight resolved scales "
-            "spanning one decade; boxes above one quarter of the smaller domain extent are excluded. "
-            "Compares linear, quadratic and segmented log-log fits by leave-one-scale-out prediction, "
-            "reselecting the breakpoint in each training fold. Four shifted origins diagnose grid effects. "
-            "Optional independent trace translations preserve shapes, lengths and orientations inside "
-            "the boundary. Their Monte Carlo test concerns spatial heterogeneity, not proof of "
-            "multifractality. Use zero replicates to disable, or at least 19; the minimum p is 1/(B+1). "
-            "Outputs retain every q, including insufficient/unsupported fits. No best-range search. "
-            "Dimension order is checked by default. The optional D0–D2 warning "
-            "retains the slope contrast when order fails; fit and curvature checks still apply. "
-            "The two-sided tail gives p = min(1, 2 min(upper, lower)), minimum 2/(B+1). "
-            "Coarse-end trimming (0=off) drops coarse scales with too few effective q=2 boxes "
-            "on the observed map before any replicate; less than one decade left means abstention. "
-            "This tool assesses scaling independently of the analysis regression filter. Negative q may be unreliable; see docs/NEGATIVE_Q.md. "
-            "The optional classic comparison uses all input scales and one origin. High R² alone leaves scaling unvalidated. "
-            '<a href="' + help_url() + '">Learn / Fundamentos: illustrated knowledge base</a>.'
-        )
+        return tr(default_language(), "proc_help_scaling").format(url=help_url())
 
     def helpUrl(self):
         return help_url()
 
     def initAlgorithm(self, config=None):
-        self.addParameter(QgsProcessingParameterFeatureSource("LINES", "Lineaments", [QgsProcessing.TypeVectorLine]))
-        self.addParameter(QgsProcessingParameterFeatureSource("BOUNDARY", "Analysis boundary", [QgsProcessing.TypeVectorPolygon]))
-        self.addParameter(QgsProcessingParameterCrs("CRS", "Analysis CRS (projected, metres)", defaultValue="ProjectCrs"))
-        self.addParameter(QgsProcessingParameterString("SCALES", "Box sizes (m; enter for your source map)", defaultValue="", multiLine=True))
-        for key, label, value in (
-            ("RESOLUTION", "Observation resolution (m; must be declared)", 0),
-            ("Q_MIN", "q minimum", 0), ("Q_MAX", "q maximum", 2),
-            ("Q_STEP", "q step", 1),
+        lang = default_language()
+        self.addParameter(QgsProcessingParameterFeatureSource("LINES", tr(lang, "lbl_lineaments"), [QgsProcessing.TypeVectorLine]))
+        self.addParameter(QgsProcessingParameterFeatureSource("BOUNDARY", tr(lang, "proc_boundary"), [QgsProcessing.TypeVectorPolygon]))
+        self.addParameter(QgsProcessingParameterCrs("CRS", tr(lang, "proc_crs"), defaultValue="ProjectCrs"))
+        self.addParameter(QgsProcessingParameterString("SCALES", tr(lang, "proc_scales"), defaultValue="", multiLine=True))
+        for key, label_key, value in (
+            ("RESOLUTION", "proc_res_decl", 0),
+            ("Q_MIN", "proc_q_min", 0),
+            ("Q_MAX", "proc_q_max", 2),
+            ("Q_STEP", "proc_q_step", 1),
         ):
-            self.addParameter(QgsProcessingParameterNumber(key, label, type=QgsProcessingParameterNumber.Double, defaultValue=value))
-        self.addParameter(QgsProcessingParameterNumber("NULL_REPLICATES", "Conditional trace-relocation replicates (0=off; >=19)", type=QgsProcessingParameterNumber.Integer, defaultValue=0, minValue=0, maxValue=9999))
+            self.addParameter(QgsProcessingParameterNumber(key, tr(lang, label_key), type=QgsProcessingParameterNumber.Double, defaultValue=value))
+        self.addParameter(QgsProcessingParameterNumber("NULL_REPLICATES", tr(lang, "proc_null_reps"), type=QgsProcessingParameterNumber.Integer, defaultValue=0, minValue=0, maxValue=9999))
         self.addParameter(QgsProcessingParameterEnum(
-            "RENYI_ORDER_POLICY", "Renyi order policy",
-            options=["Require ordered dimensions", "Warn about D0–D2 order"], defaultValue=0))
+            "RENYI_ORDER_POLICY", tr(lang, "lbl_order_policy"),
+            options=[tr(lang, "policy_legacy_block"), tr(lang, "policy_inform_q0_q2")], defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(
-            "NULL_TAIL", "Monte Carlo tail of the D0-D2 test",
-            options=["Upper tail", "Two-sided"], defaultValue=0))
+            "NULL_TAIL", tr(lang, "proc_null_tail"),
+            options=[tr(lang, "tail_upper"), tr(lang, "tail_two_sided")], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
-            "COARSE_TRIM", "Coarse-end trimming: minimum effective q=2 boxes (0=off)",
+            "COARSE_TRIM", tr(lang, "proc_coarse_trim"),
             type=QgsProcessingParameterNumber.Double, defaultValue=0, minValue=0, maxValue=1e6))
-        self.addParameter(QgsProcessingParameterNumber("SEED", "Random seed", type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
+        self.addParameter(QgsProcessingParameterNumber("SEED", tr(lang, "lbl_seed"), type=QgsProcessingParameterNumber.Integer, defaultValue=42, minValue=0))
         self.addParameter(QgsProcessingParameterBoolean(
-            "CLASSIC_COMPARISON", TEXTS[default_language()]["classic"], defaultValue=False))
-        self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", "New output folder"))
-        self.addOutput(QgsProcessingOutputString("REPORT", "Scaling support JSON"))
+            "CLASSIC_COMPARISON", TEXTS[lang]["classic"], defaultValue=False))
+        self.addParameter(QgsProcessingParameterFolderDestination("OUTPUT", tr(lang, "proc_output")))
+        self.addOutput(QgsProcessingOutputString("REPORT", tr(lang, "proc_report")))
 
     def prepareAlgorithm(self, parameters, context, feedback):
         try:
+            lang = default_language()
             _, RunConfig, _ = core()
             scales_text = self.parameterAsString(parameters, "SCALES", context).strip()
             if not scales_text:
@@ -273,7 +251,7 @@ class ScalingSupportAlgorithm(QgsProcessingAlgorithm):
                 seed=self.parameterAsInt(parameters, "SEED", context),
             ).validate()
             if self.config.q_min < 0:
-                feedback.pushWarning("Negative q may be unreliable. See docs/NEGATIVE_Q.md.")
+                feedback.pushWarning(tr(lang, "note_neg_q"))
             self.snapshot = snapshot_sources(
                 self.parameterAsSource(parameters, "LINES", context),
                 self.parameterAsSource(parameters, "BOUNDARY", context),

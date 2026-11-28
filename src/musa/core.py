@@ -174,28 +174,45 @@ class MUSA:
             if probs.size == 0:
                 raise ValueError("No se pudo calcular probabilidades por caja; revisa los datos.")
 
+            log_probs_base = np.log(probs)
+            log_probs_safe_base = np.log(probs + 1e-300)
+            n_pos_base = int(np.count_nonzero(probs > 0))
+            shannon_base = -float(np.sum(probs * np.log(probs + 1e-15)))
             for j, q in enumerate(self.q_values):
-                probs_q = self._stabilize_probs_for_q(
-                    probs,
-                    q,
-                    floor_fraction=negative_q_floor_fraction,
-                )
+                needs_floor = negative_q_floor_fraction > 0.0 and q < 0.0 and not np.isclose(q, 0.0)
+                if needs_floor:
+                    probs_q = self._stabilize_probs_for_q(
+                        probs,
+                        q,
+                        floor_fraction=negative_q_floor_fraction,
+                    )
+                    log_probs = np.log(probs_q)
+                    log_probs_safe = np.log(probs_q + 1e-300)
+                else:
+                    probs_q = probs
+                    log_probs = log_probs_base
+                    log_probs_safe = log_probs_safe_base
+
                 if np.isclose(q, 1.0):
                     # Information dimension uses Shannon entropy scaling.
-                    features_by_q[j, i] = -np.sum(probs_q * np.log(probs_q + 1e-15))
+                    features_by_q[j, i] = shannon_base if not needs_floor else -float(np.sum(probs_q * np.log(probs_q + 1e-15)))
+                    mu = probs_q
                 elif np.isclose(q, 0.0):
                     # Capacity dimension scales with log(N_boxes).
-                    features_by_q[j, i] = np.log(np.count_nonzero(probs_q > 0))
+                    n_boxes = n_pos_base if not needs_floor else int(np.count_nonzero(probs_q > 0))
+                    features_by_q[j, i] = float(np.log(n_boxes))
+                    mu = np.full(probs_q.shape, 1.0 / n_boxes, dtype=float)
                 else:
-                    log_z = logsumexp(q * np.log(probs_q))
+                    q_logp = q * log_probs
+                    log_z = float(logsumexp(q_logp))
                     # sum(p_i ** q) scales as epsilon ** tau(q). Because the
                     # regression x-axis is log(1 / epsilon), the sign is
                     # inverted to recover positive generalized dimensions.
                     features_by_q[j, i] = -log_z / (q - 1.0)
+                    mu = np.exp(q_logp - log_z)
 
-                mu = self._mu_for_q(probs_q, q)
-                alpha_features_by_q[j, i] = np.sum(mu * np.log(probs_q + 1e-300))
-                f_features_by_q[j, i] = np.sum(mu * np.log(mu + 1e-300))
+                alpha_features_by_q[j, i] = float(mu @ log_probs_safe)
+                f_features_by_q[j, i] = float(mu @ np.log(mu + 1e-300))
 
         x = np.log(1.0 / scales)
         x_eps = np.log(scales)
@@ -1380,14 +1397,37 @@ class MUSA:
         alpha_boot = np.full((iterations, n_q), np.nan, dtype=float)
         f_boot = np.full((iterations, n_q), np.nan, dtype=float)
 
+        all_finite = (
+            np.isfinite(x_dq).all()
+            and np.isfinite(x_chhabra).all()
+            and np.isfinite(dq_features).all()
+            and np.isfinite(alpha_features).all()
+            and np.isfinite(f_features).all()
+        )
         for b in range(iterations):
             idx = rng.integers(0, n_scales, size=n_scales)
             if np.unique(idx).size < 2:
                 continue
-            for j in range(n_q):
-                dq_boot[b, j] = MUSA._slope_only(x_dq[idx], dq_features[j, idx])
-                alpha_boot[b, j] = MUSA._slope_only(x_chhabra[idx], alpha_features[j, idx])
-                f_boot[b, j] = MUSA._slope_only(x_chhabra[idx], f_features[j, idx])
+            if all_finite:
+                xd = x_dq[idx]
+                xd_c = xd - xd.mean()
+                var_xd = float(xd_c @ xd_c)
+                if var_xd > 0:
+                    yd = dq_features[:, idx]
+                    dq_boot[b] = ((yd - yd.mean(axis=1, keepdims=True)) @ xd_c) / var_xd
+                xc = x_chhabra[idx]
+                xc_c = xc - xc.mean()
+                var_xc = float(xc_c @ xc_c)
+                if var_xc > 0:
+                    ya = alpha_features[:, idx]
+                    yf = f_features[:, idx]
+                    alpha_boot[b] = ((ya - ya.mean(axis=1, keepdims=True)) @ xc_c) / var_xc
+                    f_boot[b] = ((yf - yf.mean(axis=1, keepdims=True)) @ xc_c) / var_xc
+            else:
+                for j in range(n_q):
+                    dq_boot[b, j] = MUSA._slope_only(x_dq[idx], dq_features[j, idx])
+                    alpha_boot[b, j] = MUSA._slope_only(x_chhabra[idx], alpha_features[j, idx])
+                    f_boot[b, j] = MUSA._slope_only(x_chhabra[idx], f_features[j, idx])
 
         accepted_idx = np.where(accepted_mask)[0]
         alpha_tail = (1.0 - ci) / 2.0
@@ -1753,12 +1793,27 @@ class MUSA:
             )
         return self._point_count_cells(self.points, eps, self._origin)
 
+    def _cached_line_arrays(self) -> tuple[np.ndarray, np.ndarray]:
+        cached = getattr(self, "_line_arrays", None)
+        if cached is None:
+            from .mass_partition import primitive_arrays
+            cached = primitive_arrays(self._line_geometries)
+            self._line_arrays = cached
+        return cached
+
     def _probabilities_for_scale(self, eps: float, cell_length_threshold_m: float = 0.0) -> np.ndarray:
-        cell_measures = self._cell_measure_for_scale(eps=eps, cell_length_threshold_m=cell_length_threshold_m)
-        if not cell_measures:
-            return np.array([], dtype=float)
-        weights = np.array(list(cell_measures.values()), dtype=float)
-        return weights / np.sum(weights)
+        if self._kind == "lines":
+            if not np.isfinite(eps) or eps <= 0:
+                raise ValueError("Cell size must be positive and finite.")
+            from .mass_partition import primitive_mass_values
+            starts, ends = self._cached_line_arrays()
+            weights = primitive_mass_values(starts, ends, float(eps), float(self._origin[0]), float(self._origin[1]))
+            if cell_length_threshold_m > 0.0:
+                weights = weights[weights > cell_length_threshold_m]
+            if weights.size == 0:
+                return np.array([], dtype=float)
+            return weights / float(weights.sum())
+        return self._point_probabilities(self.points, eps, self._origin)
 
     @staticmethod
     def _point_probabilities(points: np.ndarray, eps: float, origin: np.ndarray | None) -> np.ndarray:

@@ -3,7 +3,7 @@
 Start with the [user guide](USER_GUIDE.md), [tutorial](TUTORIAL.md),
 [installation](INSTALLATION.md), [engine and QGIS architecture](ARCHITECTURE.md),
 or [Python API without QGIS](PYTHON_API.md). The current mathematical reference
-is [theory.md](theory.md). Software version: MUSA 1.3.0. The instructions use
+is [theory.md](theory.md). Software version: MUSA 1.3.1. The instructions use
 the source repository or QGIS ZIP; they do not require an assumed PyPI release.
 
 ## Main documents
@@ -12,7 +12,7 @@ the source repository or QGIS ZIP; they do not require an assumed PyPI release.
 | --- | --- |
 | [WORKFLOW.md](WORKFLOW.md) / [Español](WORKFLOW.es.md) | Generated diagram and every control/algorithm mapped to core functions, outputs and learning chapters |
 | [Python notebooks](../notebooks/README.md) | Five executed synthetic API tutorials without QGIS; mandatory nbclient test |
-| [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) / [EspaÃ±ol](KNOWLEDGE_BASE.es.md) | Learn / Fundamentos: the same source chapters read inside the plugin, classic box counting and MUSA interpretation |
+| [KNOWLEDGE_BASE.md](KNOWLEDGE_BASE.md) / [Español](KNOWLEDGE_BASE.es.md) | Learn / Fundamentos: the same source chapters read inside the plugin, classic box counting and MUSA interpretation |
 | [USER_GUIDE.md](USER_GUIDE.md) | English guide: inputs, outputs, options, expected behavior, and abstention |
 | [TUTORIAL.md](TUTORIAL.md) | Reproducible synthetic example in Python and QGIS Processing |
 | [USER_GUIDE.es.md](USER_GUIDE.es.md) | Current illustrated Spanish user guide |
@@ -22,7 +22,7 @@ the source repository or QGIS ZIP; they do not require an assumed PyPI release.
 | [OUTPUTS.md](OUTPUTS.md) | Files, columns, units, states, and table joins |
 | [theory.md](theory.md) | Global/local algorithms, zeta, and outputs |
 | [references.md](references.md) | Public scientific references |
-| [QGIS.md](QGIS.md) | Plugin installation, English workbench, recipes, and Processing |
+| [QGIS.md](QGIS.md) | Plugin installation, bilingual (English/Spanish) workbench, recipes, and Processing |
 | [SCALING_SUPPORT.md](SCALING_SUPPORT.md) | Independent scaling-assessment criteria |
 | [SPECTRA.md](SPECTRA.md) | analysis/assessment sources and singularity references |
 | [moving_windows.md](moving_windows.md) | Overlapping windows, origins, and topology |

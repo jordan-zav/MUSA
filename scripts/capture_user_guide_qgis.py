@@ -52,7 +52,10 @@ QgsApplication.setMaxThreads(2)
 QLocale.setDefault(QLocale('en_US'))
 assert Qgis.QGIS_VERSION.startswith('3.44.12')
 assert Path(QgsApplication.qgisSettingsDirPath()).resolve().is_relative_to(profile.resolve())
-QFontDatabase.addApplicationFont('C:/Windows/Fonts/arial.ttf')
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
+    QFontDatabase.addApplicationFont(str(font))
 app.setFont(QFont('Arial', 10))
 sys.path.insert(0, str(Path(QgsApplication.prefixPath()) / 'python/plugins'))
 from processing.core.Processing import Processing

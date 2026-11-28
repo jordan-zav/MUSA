@@ -1,8 +1,8 @@
-# Guía de usuario de MUSA 1.3.0
+# Guía de usuario de MUSA 1.3.1
 
 MUSA mide la distribución de longitud de líneas en celdas cuadradas dentro de un dominio de observación 2D. Proporciona espectros descriptivos globales y locales, junto con un diagnóstico separado del escalamiento en un intervalo finito. Estas rutas tienen reglas de aceptación distintas. Sus resultados describen la medida cartografiada; las interpretaciones de permeabilidad, favorabilidad geológica, conectividad 3D o una clasificación universal de fractalidad requieren evidencia externa.
 
-El recorrido ilustrado utiliza la interfaz vigente y una red sintética de fracturas en metros de modelo sin ubicación geográfica. [English](USER_GUIDE.md), [Fundamentos](KNOWLEDGE_BASE.es.md) y el [mapa del flujo](WORKFLOW.es.md) describen la misma ejecución. Los controles en inglés y los bloques bilingües de aprendizaje y comparación conservan cada uno su idioma.
+El recorrido ilustrado utiliza la interfaz vigente y una red sintética de fracturas en metros de modelo sin ubicación geográfica. [English](USER_GUIDE.md), [Fundamentos](KNOWLEDGE_BASE.es.md) y el [mapa del flujo](WORKFLOW.es.md) describen la misma ejecución. El selector de idioma en la cabecera del panel cambia en vivo todo el Entorno (pestañas, controles, visor de espectros, resúmenes y Fundamentos) entre español e inglés; las capturas históricas del recorrido muestran la disposición en inglés.
 
 ## 1. Instalar y elegir una ruta de cálculo
 
@@ -235,10 +235,12 @@ Run details recupera estado, versión, fechas, procedencia, parámetros y archiv
 
 ![Detalles recuperados de la ejecución guardada](images/user-guide/11-run-details.png)
 
-Learn / Fundamentos lee los capítulos canónicos en ambos idiomas. El recorrido empieza con el objeto geológico y compara densidad, distancia y rosa sobre la misma red de 627 trazas. Continúa con autosimilitud, multifractalidad, conteo de cajas y longitud por celda. Sus 13 figuras tienen etiquetas del idioma elegido y pies numerados; el visor conserva sus proporciones y adapta el tamaño al ancho disponible. Sus ejemplos incluyen longitud exacta frente a masa de píxeles y 100 segmentos aleatorios: 24 escalas, R² clásico=0,992364, D0 de MUSA no respaldado por curvatura predictiva y segmentación. Un ejemplo breve del Cantor finito declara expresamente que el clásico obtiene el valor correcto y MUSA se abstiene por contar con cuatro escalas. El selector cambia el capítulo y el bloque comparativo; los demás controles de Workbench y bloques de Results permanecen íntegramente en inglés.
+Learn / Fundamentos lee los capítulos canónicos en ambos idiomas. El recorrido empieza con el objeto geológico y compara densidad, distancia y rosa sobre la misma red de 627 trazas. Continúa con autosimilitud, multifractalidad, conteo de cajas y longitud por celda. Sus 13 figuras tienen etiquetas del idioma elegido y pies numerados; el visor conserva sus proporciones y adapta el tamaño al ancho disponible. Sus ejemplos incluyen longitud exacta frente a masa de píxeles y 100 segmentos aleatorios: 24 escalas, R² clásico=0,992364, D0 de MUSA no respaldado por curvatura predictiva y segmentación. Un ejemplo breve del Cantor finito declara expresamente que el clásico obtiene el valor correcto y MUSA se abstiene por contar con cuatro escalas. El único selector de idioma en la cabecera superior cambia simultáneamente el capítulo, el bloque comparativo, todas las pestañas y controles del Entorno y los paneles de Resultados entre español e inglés.
 
 ![Learn en inglés](images/user-guide/15-learn-en.png)
 
 ![Fundamentos en español](images/user-guide/15-learn-es.png)
 
 Processing proporciona musa:analyze, musa:scaling_support y musa:run_recipe. El recorrido automatizado ejecuta sus diálogos reales y comprueba manifiestos completos. Su ayuda enlaza la misma fuente de aprendizaje. El [mapa del flujo](WORKFLOW.es.md) conecta controles, funciones del núcleo y archivos; [cinco cuadernos ejecutados](../notebooks/README.md) demuestran la API sin QGIS.
+
+Las capturas del recorrido se hicieron con la versión 1.3.0.

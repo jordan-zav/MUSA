@@ -1,8 +1,9 @@
 # MUSA for QGIS
 
-QGIS is the primary MUSA interface. The English dock is organised as project
-inputs, analysis parameters, reproducible recipes, background execution and
-mapped results.
+QGIS is the primary MUSA interface. The bilingual (English and Spanish) dock is
+organised as project inputs, analysis parameters, reproducible recipes,
+background execution, mapped results and an illustrated knowledge chapter;
+a single language selector in the dock header switches the entire interface live.
 The numerical implementation remains in src/musa and is shared with Python.
 Start with [installation and distribution status](https://github.com/jordan-zav/MUSA/blob/main/docs/INSTALLATION.md) and
 [architecture](https://github.com/jordan-zav/MUSA/blob/main/docs/ARCHITECTURE.md) to distinguish the Python package from the
@@ -17,8 +18,8 @@ is written to dist/qgis). In QGIS, open Plugins > Manage and Install
 Plugins > Install from ZIP and select the archive. Open
 Vector > MUSA > MUSA Workbench, or use the MUSA toolbar button.
 
-MUSA 1.3.0 is the current QGIS plugin release (the first was 1.1.0); the ZIP is
-attached to the v1.3.0 GitHub release.
+MUSA 1.3.1 is the current QGIS plugin release (the first was 1.1.0); the ZIP is
+attached to the v1.3.1 GitHub release.
 Metadata targets QGIS 3.34–3.99. The release was tested on QGIS 3.44.12;
 metadata does not imply all versions have been tested. QGIS 4 is not yet supported.
 The plugin bundles its own core, without changing global Python import paths.

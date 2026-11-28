@@ -91,6 +91,10 @@ def classify_candidate_evidence(seeds, background, centered, shifted, sizes, set
         alternate_reference = _spectral_table(shifted_background)
         bg = bg.merge(alternate_reference[['center_id','window_m','width','usable']],
                       on=['center_id','window_m'],how='left',suffixes=('','_alternate'),validate='one_to_one')
+    usable_bg = bg.loc[bg.usable]
+    if shifted_background is not None:
+        usable_bg = usable_bg.loc[usable_bg.usable_alternate.fillna(False)]
+    bg_by_size = {float(s): grp for s, grp in usable_bg.groupby('window_m')}
     primary = primary.set_index(['center_id', 'window_m'])
     alternate = alternate.set_index(['center_id', 'window_m'])
     rows, details = [], []
@@ -129,13 +133,15 @@ def classify_candidate_evidence(seeds, background, centered, shifted, sizes, set
                 else:
                     d['phase_status'] = 'shifted_spectrum_not_usable'
             density = p.density_m_per_km2
-            refs = bg.loc[(bg.window_m == size) & bg.usable
-                          & (bg.density_m_per_km2 >= density/cfg['density_match_factor'])
-                          & (bg.density_m_per_km2 <= density*cfg['density_match_factor'])
-                          & ((bg.coverage-p.coverage).abs() <= .1)]
-            refs = refs.loc[~refs.geometry.intersects(p.geometry)]
-            if shifted_background is not None:
-                refs = refs.loc[refs.usable_alternate.fillna(False)]
+            size_bg = bg_by_size.get(float(size))
+            if size_bg is None or size_bg.empty:
+                refs = usable_bg.iloc[0:0]
+            else:
+                refs = size_bg.loc[(size_bg.density_m_per_km2 >= density/cfg['density_match_factor'])
+                                   & (size_bg.density_m_per_km2 <= density*cfg['density_match_factor'])
+                                   & ((size_bg.coverage-p.coverage).abs() <= .1)]
+                if len(refs):
+                    refs = refs.loc[~refs.geometry.intersects(p.geometry)]
             d['reference_count'] = len(refs)
             d['reference_center_ids'] = ','.join(str(int(v)) for v in refs.center_id)
             if len(refs) < cfg['min_reference_windows']:

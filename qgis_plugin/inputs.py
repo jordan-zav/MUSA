@@ -11,26 +11,28 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
+from .i18n import tr
 
-def validate_metric_crs(crs):
+
+def validate_metric_crs(crs, language="en"):
     if not crs.isValid() or crs.isGeographic() or crs.mapUnits() != Qgis.DistanceUnit.Meters:
-        raise ValueError("Choose a projected analysis CRS in metres.")
+        raise ValueError(tr(language, "err_metric_crs"))
 
 
-def snapshot_sources(lines, boundary, target_crs, transform_context=None, *, selected_only=False, cancelled=None):
+def snapshot_sources(lines, boundary, target_crs, transform_context=None, *, selected_only=False, cancelled=None, language="en"):
     """Only bytes/strings enter the worker, including unsaved memory/edit data.
 
     This runs on the main thread in the dock, and in prepareAlgorithm for
     Processing. All boundary features are included; line selection is explicit.
     """
-    validate_metric_crs(target_crs)
+    validate_metric_crs(target_crs, language=language)
     transform_context = transform_context or QgsProject.instance().transformContext()
 
     def copy_source(source, expected_type, selected):
         if source is None or not source.sourceCrs().isValid():
-            raise ValueError("Both inputs need a defined source CRS.")
+            raise ValueError(tr(language, "err_both_crs"))
         if QgsWkbTypes.geometryType(source.wkbType()) != expected_type:
-            raise ValueError("Choose a line layer and a polygon boundary layer.")
+            raise ValueError(tr(language, "err_geom_types"))
         transform = QgsCoordinateTransform(source.sourceCrs(), target_crs, transform_context)
         features = source.getSelectedFeatures() if selected else source.getFeatures()
         result, attributes = [], []
@@ -39,25 +41,25 @@ def snapshot_sources(lines, boundary, target_crs, transform_context=None, *, sel
         ]
         for feature in features:
             if cancelled and cancelled():
-                raise RuntimeError("Input preparation cancelled.")
+                raise RuntimeError(tr(language, "err_prep_cancelled"))
             geometry = QgsGeometry(feature.geometry())
             if geometry.isNull() or geometry.isEmpty():
                 continue
             if geometry.requiresConversionToStraightSegments():
                 geometry.convertToStraightSegment()
             if not geometry.isGeosValid():
-                raise ValueError(f"Invalid geometry in feature {feature.id()}; repair the input layer first.")
+                raise ValueError(tr(language, "err_invalid_geom").format(fid=feature.id()))
             if source.sourceCrs() != target_crs:
                 geometry.transform(transform)
             if not geometry.isGeosValid():
-                raise ValueError(f"Feature {feature.id()} is invalid after transformation.")
+                raise ValueError(tr(language, "err_invalid_transformed").format(fid=feature.id()))
             result.append(bytes(geometry.asWkb()))
             if expected_type == QgsWkbTypes.LineGeometry:
                 entry = {name: str(feature[name]) for name in retained}
                 entry.setdefault("fault_id", str(feature.id()))
                 attributes.append(entry)
         if not result:
-            raise ValueError("Input is empty (or the explicit line selection is empty).")
+            raise ValueError(tr(language, "err_empty_input"))
         return tuple(result), tuple(attributes)
 
     line_wkb, attributes = copy_source(lines, QgsWkbTypes.LineGeometry, selected_only)

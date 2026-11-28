@@ -1,6 +1,6 @@
 # Installation and execution routes
 
-Reference for MUSA 1.3.0; the first QGIS plugin release was 1.1.0.
+Reference for MUSA 1.3.1; the first QGIS plugin release was 1.1.0.
 
 ## Choose a route
 
@@ -35,17 +35,17 @@ Linux/macOS:
 source .venv/bin/activate
 ~~~
 
-Install the published 1.3.0 source (requires Git):
+Install the 1.3.1 release source (once published) (requires Git):
 
 ~~~text
-python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@v1.3.0"
+python -m pip install "musa-multifractal[gis] @ git+https://github.com/jordan-zav/MUSA.git@v1.3.1"
 ~~~
 
 For a reproducible run, record the resolved commit hash. To work with examples
 and edit the source:
 
 ~~~text
-git clone --branch v1.3.0 https://github.com/jordan-zav/MUSA.git
+git clone --branch v1.3.1 https://github.com/jordan-zav/MUSA.git
 cd MUSA
 python -m pip install -e ".[gis]"
 ~~~
@@ -118,7 +118,7 @@ and results.
 | GitHub source / pip from Git | Available; pin a release or commit |
 | Python wheel from pyproject.toml | Built and installed separately in the earlier audit; a point example ran without QGIS |
 | PyPI, musa-multifractal | The November 2, 2026 audit found no project; these instructions do not assume a later PyPI publication |
-| Plugin ZIP 1.3.0 | Release v1.3.0 on GitHub; QGIS 3.44.12 was tested |
+| Plugin ZIP 1.3.1 | Release v1.3.1 on GitHub (once published); QGIS 3.44.12 was tested |
 | Official QGIS plugin catalog | Check the catalog's version separately; the earlier audit did not establish a catalog publication |
 | musa analysis command / python -m musa | Not implemented |
 | musa-ui | Legacy Tk launcher; neither the QGIS interface nor a recipe runner |

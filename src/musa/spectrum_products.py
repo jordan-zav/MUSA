@@ -296,10 +296,11 @@ def read_spectrum(path, series_id):
         return {**json.loads(row[0]), "summary": json.loads(row[1]), "points": points}
 
 
-def spectrum_shape_reasons(spectrum):
+def spectrum_shape_reasons(spectrum, language="en"):
     """Explain the existing joint-spectrum display gates without changing values."""
+    es = language == "es"
     if spectrum['source'] != 'assessment':
-        return ['Scaling support has not been assessed.']
+        return ['No se ha evaluado el soporte de escalamiento.' if es else 'Scaling support has not been assessed.']
     points = sorted(spectrum['points'], key=lambda p: p['q'])
     def supported(point, name):
         state = point.get('statuses', {}).get(name)
@@ -308,32 +309,36 @@ def spectrum_shape_reasons(spectrum):
             and p['identities']['status'] == 'consistent'
             and p['alpha'] is not None and p['f_alpha'] is not None]
     if len(good) < 2:
-        return ['Fewer than two q values have jointly supported estimates.']
+        return ['Menos de dos valores de q tienen estimaciones respaldadas conjuntamente.' if es
+                else 'Fewer than two q values have jointly supported estimates.']
     reasons = []
     for left, right in zip(good, good[1:]):
         if right['alpha'] - left['alpha'] > 1e-7:
             reasons.append(
-                f"Alpha increases between q={left['q']:g} and q={right['q']:g}: "
-                f"alpha({left['q']:g}) = {left['alpha']:.4g} < "
-                f"alpha({right['q']:g}) = {right['alpha']:.4g}.")
+                (f"Alpha aumenta entre q={left['q']:g} y q={right['q']:g}: " if es else
+                 f"Alpha increases between q={left['q']:g} and q={right['q']:g}: ")
+                + f"alpha({left['q']:g}) = {left['alpha']:.4g} < "
+                + f"alpha({right['q']:g}) = {right['alpha']:.4g}.")
     zero = next((p for p in good if np.isclose(p['q'], 0, rtol=0, atol=1e-12)), None)
     if zero and max(p['f_alpha'] for p in good) > zero['f_alpha'] + 1e-7:
-        reasons.append('The maximum f(alpha) exceeds its q=0 value.')
+        reasons.append('El máximo de f(alpha) supera su valor en q=0.' if es
+                       else 'The maximum f(alpha) exceeds its q=0 value.')
     return reasons
 
 
-def spectrum_figure(spectrum, panel="all"):
+def spectrum_figure(spectrum, panel="all", language="en"):
     """Render Chhabra–Jensen estimates with finite-range support required for f(α)."""
     with figure_style():
-        return _spectrum_figure(spectrum, panel)
+        return _spectrum_figure(spectrum, panel, language=language)
 
 
-def _spectrum_figure(spectrum, panel):
+def _spectrum_figure(spectrum, panel, language="en"):
     """No pyplot/backend switch; connect only consecutive supported q points."""
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     if panel not in ("all", "dq", "tau", "alpha", "f_alpha"):
         raise ValueError("Unknown spectrum panel.")
+    es = language == "es"
     figure = Figure(figsize=(10, 7) if panel == "all" else (7, 5), constrained_layout=True)
     FigureCanvasAgg(figure)
     names = ("dq", "tau", "alpha", "f_alpha") if panel == "all" else (panel,)
@@ -342,8 +347,11 @@ def _spectrum_figure(spectrum, panel):
     def supported(name):
         return np.array([p.get("statuses", {}).get(name) in ("compatible_finite_range", "identity")
                          if p.get("statuses", {}).get(name) else p["accepted"] for p in points], bool)
-    titles = {"dq": "Generalized dimensions Dq", "tau": "Mass exponent τ(q)",
-              "alpha": "Singularity exponent α(q)", "f_alpha": "Multifractal spectrum"}
+    titles = ({"dq": "Dimensiones generalizadas Dq", "tau": "Exponente de masa τ(q)",
+               "alpha": "Exponente de singularidad α(q)", "f_alpha": "Espectro multifractal"}
+              if es else
+              {"dq": "Generalized dimensions Dq", "tau": "Mass exponent τ(q)",
+               "alpha": "Singularity exponent α(q)", "f_alpha": "Multifractal spectrum"})
     for name, label in (("dq", "Dq"), ("tau", "τ(q)"), ("alpha", "α(q)")):
         if name not in axes:
             continue
@@ -352,12 +360,15 @@ def _spectrum_figure(spectrum, panel):
         values = np.array([np.nan if p[name] is None else p[name] for p in points])
         accepted = supported(name)
         ax.plot(q, np.where(accepted, values, np.nan), "o-", color="#166c91")
-        ax.scatter(q[~accepted], values[~accepted], marker="x", color="#888888", label="Not supported")
+        ax.scatter(q[~accepted], values[~accepted], marker="x", color="#888888",
+                   label="No respaldado" if es else "Not supported")
         ax.set(xlabel="q", ylabel=label, title=titles[name])
         ax.grid(alpha=.2)
         if not np.isfinite(values).any():
             ax.set_axis_off()
-            ax.text(.5, .5, f"{label}: no estimates\nSee values and diagnostics for the reason.", ha="center", va="center", transform=ax.transAxes)
+            msg = (f"{label}: sin estimaciones\nVéanse valores y diagnósticos para el motivo."
+                   if es else f"{label}: no estimates\nSee values and diagnostics for the reason.")
+            ax.text(.5, .5, msg, ha="center", va="center", transform=ax.transAxes)
     if "f_alpha" not in axes:
         return figure
     ax = axes["f_alpha"]
@@ -368,7 +379,9 @@ def _spectrum_figure(spectrum, panel):
     # series, never substitute a different origin or estimator silently.
     if spectrum["source"] != "assessment":
         ax.set_axis_off()
-        ax.text(.5, .5, "Scaling support has not been assessed.\nRun Assess Rényi scaling support.",
+        ax.text(.5, .5,
+                ("No se ha evaluado el soporte de escalamiento.\nEjecute Evaluar soporte de escalamiento de Rényi."
+                 if es else "Scaling support has not been assessed.\nRun Assess Rényi scaling support."),
                 ha="center", va="center", transform=ax.transAxes)
         return figure
     alpha = np.array([np.nan if p["alpha"] is None else p["alpha"] for p in points])
@@ -384,9 +397,10 @@ def _spectrum_figure(spectrum, panel):
     peak_ok = not zero.any() or np.max(f[good], initial=-np.inf) <= f[zero][0] + 1e-7
     if good.sum() < 2 or not ordered or not peak_ok:
         ax.set_axis_off()
-        explanation = '\n'.join(spectrum_shape_reasons(spectrum))
-        ax.text(.5, .5, "No supported joint spectrum estimates.\n" + explanation +
-                "\nPer-q values remain in the table and q-indexed charts.", fontsize=9,
+        explanation = '\n'.join(spectrum_shape_reasons(spectrum, language=language))
+        header = "Sin estimaciones respaldadas de espectro conjunto.\n" if es else "No supported joint spectrum estimates.\n"
+        footer = "\nLos valores por q permanecen en la tabla y gráficos por orden q." if es else "\nPer-q values remain in the table and q-indexed charts."
+        ax.text(.5, .5, header + explanation + footer, fontsize=9,
                 ha="center", va="center", transform=ax.transAxes)
         return figure
     ax.plot(np.where(accepted, alpha, np.nan), np.where(accepted, f, np.nan), color="#166c91", alpha=.7)
@@ -396,12 +410,15 @@ def _spectrum_figure(spectrum, panel):
     summary = spectrum["summary"]
     if summary["fit_coefficients"] is not None and good.any():
         x = np.linspace(min(alpha[good]), max(alpha[good]), 100)
-        ax.plot(x, np.polyval(summary["fit_coefficients"], x), "--", color="#a46623", label="Quadratic fit")
+        ax.plot(x, np.polyval(summary["fit_coefficients"], x), "--", color="#a46623",
+                label="Ajuste cuadrático" if es else "Quadratic fit")
         ax.legend(fontsize=7)
     ax.set(xlabel="α", ylabel="f(α)")
     ax.grid(alpha=.2)
     if not (np.isfinite(alpha) & np.isfinite(f)).any():
         ax.set_axis_off()
-        ax.text(.5, .5, "No singularity estimates for this support\nSee values and diagnostics for the reason.",
+        ax.text(.5, .5,
+                ("Sin estimaciones de singularidad para este soporte\nVéanse valores y diagnósticos para el motivo."
+                 if es else "No singularity estimates for this support\nSee values and diagnostics for the reason."),
                 ha="center", va="center", transform=ax.transAxes)
     return figure

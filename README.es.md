@@ -26,10 +26,10 @@ de terminal para recetas siguen pendientes**; musa-ui es el lanzador Tk legado.
 
 ## Instalación en QGIS
 
-QGIS es la interfaz principal de MUSA. MUSA 1.3.0 es la release actual del plugin (la primera fue 1.1.0):
-descarga musa_qgis-1.3.0.zip desde la [última release](https://github.com/jordan-zav/MUSA/releases/latest)
+QGIS es la interfaz principal de MUSA. MUSA 1.3.1 es la release actual del plugin (la primera fue 1.1.0):
+descarga musa_qgis-1.3.1.zip desde la [última release](https://github.com/jordan-zav/MUSA/releases/latest)
 e instálalo con Complementos > Administrar e instalar complementos > Instalar a partir de ZIP.
-El panel actual está en inglés y se acopla a la ventana de QGIS.
+El panel acoplable es bilingüe (español e inglés): detecta el idioma de QGIS al abrirse y permite alternar en vivo toda la interfaz, los gráficos de espectros y la pestaña Fundamentos desde el selector superior.
 
 Empieza por el [manual ilustrado en español](docs/USER_GUIDE.es.md), con capturas,
 un ejemplo guiado y soluciones para ventanas sin valores o problemas de desplazamiento.
@@ -55,9 +55,9 @@ Genera el paquete desde el repositorio:
 Ejecuta las órdenes de desarrollo desde la raíz del repositorio.
 En QGIS abre Complementos > Administrar e instalar complementos > Instalar
 a partir de ZIP y selecciona el paquete de dist/qgis. Abre después
-Vector > MUSA > MUSA Workbench.
+Vector > MUSA > Entorno MUSA (o MUSA Workbench en inglés).
 
-La [guía de QGIS en inglés](docs/QGIS.md) explica dependencias, recetas,
+La [guía técnica de QGIS](docs/QGIS.md) explica dependencias, recetas,
 Processing y límites. El núcleo se comparte con la API Python; no se instala
 automáticamente ninguna dependencia dentro de QGIS. Los lanzadores anteriores
 se conservan como código legado y no se incluyen en el plugin.
@@ -126,7 +126,7 @@ pip install -e ".[gis,fast]"
 
 ## Estado y límites
 
-La release pública actual es 1.3.0; la primera del plugin de QGIS fue 1.1.0.
+La release pública actual es 1.3.1; la primera del plugin de QGIS fue 1.1.0.
 Consulta el [alcance de la validación matemática](docs/SCALING_VALIDATION_STATUS.md):
 los filtros actuales no demuestran por sí solos fractalidad ni multifractalidad.
 La [validación ampliada con datos publicados](docs/EXTENDED_BENCHMARKS.md)
@@ -146,6 +146,8 @@ Los resultados generados y experimentos locales se excluyen del control de versi
 ## Cómo citar
 
 Si usas MUSA, cita la versión que utilizaste:
+
+Para la versión 1.3.1, usa CITATION.cff; la fecha y el DOI de versión se ajustan al publicar. Cita de la versión anterior:
 
 > Zavaleta, J. (2026). *MUSA: Multifractal Spectrum Analyzer* (versión 1.3.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24453350
 

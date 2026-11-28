@@ -2,7 +2,7 @@
 
 [English](WORKFLOW.md) · [Español](WORKFLOW.es.md)
 
-Each row maps a visible control to its adapter and core function. Products depend on enabled options; run_manifest.json is the actual inventory. Unprefixed core paths belong to src/musa; workbench.py and provider.py belong to qgis_plugin. Control names match the English interface.
+Each row maps a visible control to its adapter and core function. Products depend on enabled options; run_manifest.json is the actual inventory. Unprefixed core paths belong to src/musa; workbench.py and provider.py belong to qgis_plugin. The header language selector switches the entire interface between English and Spanish; the first column lists the canonical English labels.
 
 ![Workflow map and control reference](images/workflow.en.png)
 

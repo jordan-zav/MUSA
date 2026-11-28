@@ -18,7 +18,7 @@ ENSEMBLE_OFFSETS = [((x+.137)%1,(y+.271)%1)
 ENSEMBLE_DIVISORS = [16,24,32,48,64,96,128]
 
 
-def fracture_nodes(lines, boundary):
+def fracture_nodes(lines, boundary, *, _already_unioned=False):
     """Exact planar topology. Degree counts branches, not intersecting line pairs.
 
     Unary union removes coincident traces and splits at exact intersections.
@@ -27,7 +27,7 @@ def fracture_nodes(lines, boundary):
     from shapely.geometry import Point
     from shapely.ops import unary_union
 
-    parts = list(_iter_line_parts(unary_union(lines)))
+    parts = lines if _already_unioned else list(_iter_line_parts(unary_union(lines)))
     degrees = Counter()
     directions = {}
     for line in parts:
@@ -120,10 +120,14 @@ def analyze_moving_windows(
     zeta_exponents = analyzer._normalize_zeta_exponents(zeta_exponents)
     if not np.isfinite(zeta_scale_floor) or not 0 <= zeta_scale_floor <= 1 or not np.isfinite(reliable_min_zeta) or reliable_min_zeta < 0:
         raise ValueError("Invalid zeta floor or reliability threshold.")
+    from shapely.prepared import prep
     boundary = analyzer._boundary_geom
+    prepared_boundary = prep(boundary)
     lines = list(_iter_line_parts(unary_union(analyzer._line_geometries)))
     tree = STRtree(lines)
-    nodes = fracture_nodes(lines, boundary)
+    nodes = fracture_nodes(lines, boundary, _already_unioned=True)
+    interior_junction_geoms = [n["geometry"] for n in nodes if not n["boundary_node"] and n["degree"] >= 3]
+    junction_tree = STRtree(interior_junction_geoms) if interior_junction_geoms else None
     node_gdf = gpd.GeoDataFrame(nodes, columns=["node_id", "degree", "kind", "boundary_node", "max_branch_angle_deg", "intersection_angles_json", "intersection_angle_min_deg", "intersection_angle_max_deg", "angle_basis", "geometry"], geometry="geometry", crs=crs)
     if centers is None:
         x0, y0, x1, y1 = boundary.bounds
@@ -158,8 +162,9 @@ def analyze_moving_windows(
         configuration.update(centers=coords.tolist(),workers=workers)
         return windows,node_gdf,configuration
     rows = []
+    from .mass_partition import primitive_arrays, bounded_mass_values
     for center_id, (cx, cy) in enumerate(coords):
-        if not boundary.covers(Point(cx, cy)):
+        if not prepared_boundary.covers(Point(cx, cy)):
             continue
         for size in sizes:
             xmin, ymin = cx-size/2, cy-size/2
@@ -169,17 +174,18 @@ def analyze_moving_windows(
             clipped = [part for idx in tree.query(support, predicate="intersects")
                        for part in _iter_line_parts(lines[int(idx)].intersection(support)) if part.length > 0]
             length = sum(line.length for line in clipped)
-            local_nodes = [n for n in nodes if not n["boundary_node"] and n["degree"] >= 3 and support.contains(n["geometry"])]
+            junction_count = int(len(junction_tree.query(support, predicate="contains"))) if junction_tree is not None else 0
             base = {"center_id": center_id, "center_x": cx, "center_y": cy,
                     "window_m": float(size), "area_m2": area, "coverage": coverage,
                     "length_m": length, "density_m_per_km2": length/area*1e6 if area else np.nan,
-                    "junction_count": len(local_nodes),
-                    "junction_density_per_km2": len(local_nodes)/area*1e6 if area else np.nan,
+                    "junction_count": junction_count,
+                    "junction_density_per_km2": junction_count/area*1e6 if area else np.nan,
                     "geometry": support}
             probabilities, mass_totals = [], []
             scales = size/div
+            log_scales = np.log(scales)
+            log_inv_scales = -log_scales
             zeta_values, scale_details = [], []
-            from .mass_partition import primitive_arrays, bounded_mass_values
             starts, ends = primitive_arrays(clipped)
             for index, eps in enumerate(scales if length and coverage >= min_coverage else []):
                 phase_probabilities, origin_details = [], []
@@ -207,6 +213,15 @@ def analyze_moving_windows(
                 zeta_values.append(average['zeta'])
                 scale_details.append(dict(eps_m=float(eps),mass_ratio=average['mass_m']/length,
                                           origin_details=origin_details,**average))
+            has_full_support = (
+                coverage >= min_coverage
+                and len(probabilities) == len(scales)
+                and all(len(p) >= 2 for bank in probabilities for p in bank)
+            )
+            log_probabilities = (
+                [[(p, np.log(p)) for p in bank] for bank in probabilities]
+                if has_full_support else None
+            )
             for q in qs:
                 row = dict(base, q=float(q), dq=np.nan, tau=np.nan, alpha=np.nan, f_alpha=np.nan,
                            dq_r2=np.nan, alpha_r2=np.nan, f_alpha_r2=np.nan,
@@ -223,19 +238,21 @@ def analyze_moving_windows(
                 if coverage < min_coverage:
                     row["reason"] = "low_coverage"
                     row["reason_w"] = "low_coverage"
-                elif len(probabilities) == len(scales) and all(len(p) >= 2 for bank in probabilities for p in bank):
+                elif has_full_support:
                     features, alphas, fs, neff, dominant = [], [], [], [], []
                     origin_alphas = []
-                    for bank in probabilities:
+                    q_is_one = bool(np.isclose(q, 1))
+                    for bank in log_probabilities:
                         bank_features, bank_alphas, bank_fs = [], [], []
-                        for p in bank:
-                            logp = np.log(p)
-                            logmu = q*logp-logsumexp(q*logp)
+                        for p, logp in bank:
+                            q_logp = q * logp
+                            log_z = float(logsumexp(q_logp))
+                            logmu = q_logp - log_z
                             mu = np.exp(logmu)
-                            bank_features.append(-np.sum(p*logp) if np.isclose(q,1) else -logsumexp(q*logp)/(q-1))
-                            bank_alphas.append(float(np.sum(mu*logp)))
-                            bank_fs.append(float(np.sum(mu*logmu)))
-                            neff.append(float(1/np.sum(mu**2)))
+                            bank_features.append(-float(p @ logp) if q_is_one else -log_z / (q - 1))
+                            bank_alphas.append(float(mu @ logp))
+                            bank_fs.append(float(mu @ logmu))
+                            neff.append(float(1.0 / float(mu @ mu)))
                             dominant.append(float(mu.max()))
                         features.append(float(np.mean(bank_features)))
                         alphas.append(float(np.mean(bank_alphas)))
@@ -244,20 +261,19 @@ def analyze_moving_windows(
                     # These are correlated origin diagnostics, never independent
                     # samples for a standard error. Common weights preserve the
                     # equality between the average slope and fitted mean features.
-                    x = np.log(scales)
                     for weights,field in ((np.ones(len(scales)), 'origin_alpha_json'),
                                           (np.asarray(zeta_values), 'origin_alpha_w_json')):
-                        dx = x-np.average(x,weights=weights) if weights.sum() else x-x.mean()
+                        dx = log_scales-np.average(log_scales,weights=weights) if weights.sum() else log_scales-log_scales.mean()
                         denominator = np.sum(weights*dx*dx)
                         slopes = (weights*dx)@np.asarray(origin_alphas)/denominator if denominator > 0 else np.full(len(phases),np.nan)
                         row[field] = json.dumps([float(v) if np.isfinite(v) else None for v in slopes])
-                    row["dq"], row["dq_r2"] = _fit(np.log(1/scales), features)
-                    row["alpha"], row["alpha_r2"] = _fit(np.log(scales), alphas)
-                    row["f_alpha"], row["f_alpha_r2"] = _fit(np.log(scales), fs)
-                    for name, x, values in (("dq", np.log(1/scales), features),
-                                            ("alpha", np.log(scales), alphas),
-                                            ("f_alpha", np.log(scales), fs)):
-                        row[name+"_w"], row[name+"_w_r2"] = analyzer._weighted_regression_slope_r2(x, values, zeta_values)
+                    row["dq"], row["dq_r2"] = _fit(log_inv_scales, features)
+                    row["alpha"], row["alpha_r2"] = _fit(log_scales, alphas)
+                    row["f_alpha"], row["f_alpha_r2"] = _fit(log_scales, fs)
+                    for name, x_vals, values in (("dq", log_inv_scales, features),
+                                                 ("alpha", log_scales, alphas),
+                                                 ("f_alpha", log_scales, fs)):
+                        row[name+"_w"], row[name+"_w_r2"] = analyzer._weighted_regression_slope_r2(x_vals, values, zeta_values)
                     row['scale_diagnostics_json'] = json.dumps([
                         dict(d, dq_feature=features[i], alpha_feature=alphas[i], f_feature=fs[i])
                         for i,d in enumerate(scale_details)], allow_nan=False)
@@ -310,10 +326,13 @@ def export_moving_windows(analyzer, output_dir, window_sizes_m, step_m, *, expor
     nodes["role"] = np.where(nodes.boundary_node, "boundary_control", np.where(nodes.degree >= 3, "structural_candidate", "endpoint_control"))
     nodes["interpretation"] = "planar_geometry_not_validated_prospectivity"
     # Context refers to intersecting windows, never a node-level multifractal score.
+    from shapely.strtree import STRtree
+    q2_windows = windows.loc[np.isclose(windows.q, 2)].reset_index(drop=True)
+    q2_tree = STRtree(q2_windows.geometry.to_numpy()) if len(q2_windows) else None
     contexts = []
     for point in nodes.geometry:
-        local = windows.loc[windows.geometry.contains(point)]
-        q2 = local.loc[np.isclose(local.q, 2)]
+        hit_ids = q2_tree.query(point, predicate="within") if q2_tree is not None else ()
+        q2 = q2_windows.iloc[hit_ids] if len(hit_ids) else q2_windows.iloc[0:0]
         good = q2.loc[q2.accepted]
         contexts.append({"context_windows_q2": len(q2), "accepted_context_q2": len(good),
                          "accepted_sizes_q2": int(good.window_m.nunique()),

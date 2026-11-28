@@ -18,7 +18,7 @@ from .spectrum_products import list_spectra, read_spectrum, spectrum_figure
 from .classic import classic_box_counting, write_classic_comparison
 
 resolutions_from_mother_cell = MUSA.resolutions_from_mother_cell
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 
 def launch_interface() -> None:

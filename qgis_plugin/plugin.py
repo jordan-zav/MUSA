@@ -3,6 +3,8 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
+from .i18n import tr
+from .learning import default_language
 from .runtime import icon_path
 
 
@@ -24,21 +26,27 @@ class MusaPlugin:
         self.initProcessing()
         if self.iface is None or self.actions:
             return
-        for label, callback in (
-            ("MUSA Workbench", self.show_workbench),
-            ("Multifractal analysis / batch…", self.open_processing),
+        lang = default_language()
+        for key, callback in (
+            ("menu_workbench", self.show_workbench),
+            ("menu_processing", self.open_processing),
         ):
-            action = QAction(QIcon(icon_path()), label, self.iface.mainWindow())
+            action = QAction(QIcon(icon_path()), tr(lang, key), self.iface.mainWindow())
             action.triggered.connect(callback)
             self.iface.addPluginToVectorMenu("MUSA", action)
             self.actions.append(action)
         self.iface.addToolBarIcon(self.actions[0])
 
+    def update_action_labels(self, language):
+        if len(self.actions) == 2:
+            self.actions[0].setText(tr(language, "menu_workbench"))
+            self.actions[1].setText(tr(language, "menu_processing"))
+
     def show_workbench(self):
         if self.dock is None:
             from .workbench import MusaDock
 
-            self.dock = MusaDock(self.iface)
+            self.dock = MusaDock(self.iface, on_language_changed=self.update_action_labels)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock)
         self.dock.show()
         self.dock.raise_()

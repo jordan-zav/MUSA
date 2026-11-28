@@ -11,13 +11,13 @@ TEXTS = {
            "musa": "Global MUSA D0", "interval": "Retained interval", "absent": "Assessment unavailable",
            "compatible_finite_range": "Compatible", "not_supported": "Not supported",
            "insufficient_information": "Insufficient information", "scales": "scales",
-           "all_scales": "All input scales", "language": "Learning and comparison language"},
+           "all_scales": "All input scales", "language": "Interface and learning language"},
     "es": {"learn": "Fundamentos", "classic": "Box counting clásico (solo comparación)",
            "warning": "Un R² alto por sí solo deja sin validar el escalamiento.",
            "musa": "D0 global de MUSA", "interval": "Intervalo retenido", "absent": "Diagnóstico ausente",
            "compatible_finite_range": "Compatible", "not_supported": "No respaldado",
            "insufficient_information": "Información insuficiente", "scales": "escalas",
-           "all_scales": "Todas las escalas de entrada", "language": "Idioma de fundamentos y comparación"},
+           "all_scales": "Todas las escalas de entrada", "language": "Idioma de la interfaz y fundamentos"},
 }
 
 
@@ -122,12 +122,20 @@ def comparison_text(folder, language):
     return "\n".join(lines)
 
 
-def relocation_text(null):
+def relocation_text(null, language="en"):
     """Display the global conditional test together with its Monte Carlo resolution."""
     requested = null.get('replicates_requested', 0)
     if not requested:
         return ''
     valid = len(null.get('values', []))
+    if language == "es":
+        if null.get('status') != 'complete':
+            return f'Reubicación global de trazas: sin valor p; requisitos de soporte o ubicación no cumplidos ({valid}/{requested} réplicas).'
+        text = (f"Reubicación global de trazas: p={null['p_value']:.4g}; p de Holm={null.get('p_holm', null['p_value']):.4g}; "
+                f"{valid}/{requested} réplicas; p bruto mínimo={null['minimum_p']:.4g}.")
+        if null.get('resolution_sufficient_for_family_at_0_05') is False:
+            text += ' Muy pocas réplicas para resolver rechazo al nivel 0.05 en esta familia.'
+        return text
     if null.get('status') != 'complete':
         return f'Global trace relocation: no p value; support or placement requirements unmet ({valid}/{requested} replicates).'
     text = (f"Global trace relocation: p={null['p_value']:.4g}; Holm p={null.get('p_holm', null['p_value']):.4g}; "

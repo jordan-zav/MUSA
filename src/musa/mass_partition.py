@@ -74,6 +74,18 @@ def line_masses(lines, eps, origin):
 
 
 @njit(cache=not getattr(sys,"frozen",False))
+def primitive_mass_values(starts,ends,eps,ox,oy):
+    """Return occupied-cell masses as a 1D array without Python dict boxing."""
+    masses=primitive_masses(starts,ends,eps,ox,oy)
+    values=np.empty(len(masses))
+    i=0
+    for value in masses.values():
+        values[i]=value
+        i+=1
+    return values
+
+
+@njit(cache=not getattr(sys,"frozen",False))
 def bounded_mass_values(starts,ends,eps,ox,oy,upper_x,upper_y):
     """Keep the bounded reduction compiled; avoid Python boxing every cell."""
     masses=primitive_masses(starts,ends,eps,ox,oy)

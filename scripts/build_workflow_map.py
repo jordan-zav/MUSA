@@ -104,7 +104,7 @@ def diagram(language, folder):
     arrow((7.8, 7.5), (8.3, 7.5), True)
     ax.plot([11.95, 12.3, 12.3], [7.5, 7.5, 1.8], color='#426777', linewidth=1)
     arrow((12.3, 1.8), (7.8, 1.8))
-    ax.text(11.7, 10.7, 'MUSA 1.3.0', ha='right', fontsize=12, color='#24536b')
+    ax.text(11.7, 10.7, 'MUSA 1.3.1', ha='right', fontsize=12, color='#24536b')
     for extension in ('png', 'svg'):
         fig.savefig(folder / f'workflow.{language}.{extension}', dpi=120)
 
@@ -116,11 +116,11 @@ def build():
         title = 'Mapa del flujo y referencia de controles' if lang == 'es' else 'Workflow map and control reference'
         intro = ('Cada fila relaciona un control visible con su adaptador y función del núcleo. Los productos dependen '
                  'de las opciones activadas; el inventario efectivo está en run_manifest.json. Las rutas sin prefijo '
-                 'pertenecen a src/musa; workbench.py y provider.py pertenecen a qgis_plugin. Los nombres de controles '
-                 'permanecen en inglés para localizarlos en la interfaz.' if lang == 'es' else
+                 'pertenecen a src/musa; workbench.py y provider.py pertenecen a qgis_plugin. El selector de idioma '
+                 'superior traduce toda la interfaz a español o inglés; la primera columna conserva los identificadores canónicos en inglés.' if lang == 'es' else
                  'Each row maps a visible control to its adapter and core function. Products depend on enabled options; '
                  'run_manifest.json is the actual inventory. Unprefixed core paths belong to src/musa; workbench.py and '
-                 'provider.py belong to qgis_plugin. Control names match the English interface.')
+                 'provider.py belong to qgis_plugin. The header language selector switches the entire interface between English and Spanish; the first column lists the canonical English labels.')
         text = f'# {title}\n\n[English](WORKFLOW.md) · [Español](WORKFLOW.es.md)\n\n{intro}\n\n'
         text += f'![{title}](images/workflow.{lang}.png)\n\n[SVG](images/workflow.{lang}.svg)\n\n'
         text += ('El diagrama y esta tabla se regeneran con python scripts/build_workflow_map.py. '

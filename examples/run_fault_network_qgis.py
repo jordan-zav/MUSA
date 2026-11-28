@@ -57,8 +57,9 @@ from qgis.gui import QgsLayerTreeView, QgsMapCanvas
 
 app = QgsApplication([], True)
 app.initQgis()
-font = Path("C:/Windows/Fonts/arial.ttf")
-if font.is_file():
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
     QFontDatabase.addApplicationFont(str(font))
     app.setFont(QFont("Arial", 10))
 from musa_qgis import classFactory

@@ -2,7 +2,7 @@
 
 [English](WORKFLOW.md) · [Español](WORKFLOW.es.md)
 
-Cada fila relaciona un control visible con su adaptador y función del núcleo. Los productos dependen de las opciones activadas; el inventario efectivo está en run_manifest.json. Las rutas sin prefijo pertenecen a src/musa; workbench.py y provider.py pertenecen a qgis_plugin. Los nombres de controles permanecen en inglés para localizarlos en la interfaz.
+Cada fila relaciona un control visible con su adaptador y función del núcleo. Los productos dependen de las opciones activadas; el inventario efectivo está en run_manifest.json. Las rutas sin prefijo pertenecen a src/musa; workbench.py y provider.py pertenecen a qgis_plugin. El selector de idioma superior traduce toda la interfaz a español o inglés; la primera columna conserva los identificadores canónicos en inglés.
 
 ![Mapa del flujo y referencia de controles](images/workflow.es.png)
 

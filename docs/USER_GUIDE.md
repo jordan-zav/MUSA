@@ -1,4 +1,4 @@
-# MUSA 1.3.0 user guide
+# MUSA 1.3.1 user guide
 
 MUSA measures the distribution of line length over square cells in a 2D
 observation domain. It provides descriptive global/local spectra and a separate
@@ -6,7 +6,7 @@ finite-range scaling assessment. Those paths have different acceptance rules.
 They do not establish permeability, geological favorability, 3D connectivity,
 or a universal classification of fractality.
 
-The illustrated walkthrough below uses the current interface and a synthetic fracture network in unlocated model metres. [Español](USER_GUIDE.es.md), [Learn](KNOWLEDGE_BASE.md), and the [workflow map](WORKFLOW.md) describe the same execution. The English controls and the bilingual learning/comparison blocks retain their own language.
+The illustrated walkthrough below uses the current interface and a synthetic fracture network in unlocated model metres. [Español](USER_GUIDE.es.md), [Learn](KNOWLEDGE_BASE.md), and the [workflow map](WORKFLOW.md) describe the same execution. The language selector in the dock header switches the entire Workbench, spectrum viewer, summaries, and Learn chapter between English and Spanish; screenshots below show the English layout.
 
 ## 1. Install and choose a calculation path
 
@@ -368,10 +368,12 @@ Run details recovers status, version, dates, provenance, parameters and files. O
 
 ![Details recovered from the saved run](images/user-guide/11-run-details.png)
 
-Learn / Fundamentos reads the canonical chapters in either language. The sequence starts from the geological object and compares density, distance and a rose diagram on the same 627-trace network. It continues with self-similarity, multifractality, box counting and cell length. Its 13 figures use labels in the selected language and numbered captions; the reader preserves their proportions and adapts their size to the available width. Its examples include exact-length versus pixel mass and 100 random rods: 24 scales, classic R²=0.992364, MUSA D0 not supported from predictive curvature and segmentation. A shorter finite Cantor example explicitly records that classic counting obtains the correct value and MUSA abstains from four scales. The selector changes the chapter and comparison block; the remaining Workbench controls and Results blocks are consistently English.
+Learn / Fundamentos reads the canonical chapters in either language. The sequence starts from the geological object and compares density, distance and a rose diagram on the same 627-trace network. It continues with self-similarity, multifractality, box counting and cell length. Its 13 figures use labels in the selected language and numbered captions; the reader preserves their proportions and adapts their size to the available width. Its examples include exact-length versus pixel mass and 100 random rods: 24 scales, classic R²=0.992364, MUSA D0 not supported from predictive curvature and segmentation. A shorter finite Cantor example explicitly records that classic counting obtains the correct value and MUSA abstains from four scales. The single language selector in the dock header switches the chapter, comparison block, Workbench tabs, controls, and Results views together between English and Spanish.
 
 ![Learn in English](images/user-guide/15-learn-en.png)
 
 ![Fundamentos in Spanish](images/user-guide/15-learn-es.png)
 
 Processing provides musa:analyze, musa:scaling_support and musa:run_recipe. The automated walkthrough runs their actual dialogs and checks complete manifests. Their help links to the same learning source. The [workflow map](WORKFLOW.md) connects controls to core functions and files; [five executed notebooks](../notebooks/README.md) demonstrate the API without QGIS.
+
+Walkthrough screenshots were captured with version 1.3.0.

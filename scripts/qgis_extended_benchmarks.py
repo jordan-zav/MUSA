@@ -4,7 +4,7 @@ import argparse
 from collections import defaultdict
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import sys
 import tempfile
 import time
@@ -34,7 +34,10 @@ from qgis.PyQt.QtWidgets import QMainWindow
 from qgis.gui import QgsMapCanvas
 app = QgsApplication([], True)
 app.initQgis()
-QFontDatabase.addApplicationFont("C:/Windows/Fonts/arial.ttf")
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
+    QFontDatabase.addApplicationFont(str(font))
 app.setFont(QFont("Arial", 10))
 sys.path.insert(0, str(Path(QgsApplication.prefixPath()) / "python/plugins"))
 from processing.core.Processing import Processing
@@ -177,7 +180,7 @@ for family, members in groups.items():
     with zipfile.ZipFile(target) as archive:
         from xml.etree import ElementTree
         xml = ElementTree.fromstring(archive.read(next(name for name in archive.namelist() if name.endswith(".qgs"))))
-        assert all("D:/" not in node.text and "D:\\" not in node.text for node in xml.findall(".//datasource") if node.text)
+        assert all(not PureWindowsPath(node.text).is_absolute() and not Path(node.text).is_absolute() for node in xml.findall(".//datasource") if node.text)
     projects.append(dict(family=family, path=str(target), layers=len(project.mapLayers()), reopened_all_valid=True, relative_paths=True))
     reader.clear()
     iface.canvas.setDestinationCrs(project.crs())

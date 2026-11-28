@@ -123,18 +123,34 @@ def _fit(x, y, model):
 def _models(x, y):
     # The knot is reselected inside every training fold, never on the held-out y.
     output = {}
+    n = len(x)
     for model in ("linear", "quadratic", "segmented"):
         fit = _fit(x, y, model)
+        if fit is None:
+            continue
+        sse, beta, knot = fit
+        if model in ("linear", "quadratic"):
+            matrix = _design(x, model)
+            q_mat, _ = np.linalg.qr(matrix, mode="reduced")
+            h = np.sum(q_mat * q_mat, axis=1)
+            if np.all(1.0 - h > 1e-12):
+                errors = (y - matrix @ beta) / (1.0 - h)
+                output[model] = {
+                    "sse": sse,
+                    "cv_rmse": float(np.sqrt(np.mean(np.square(errors)))),
+                    "coefficients": beta.tolist(),
+                    "knot_centered_log_inverse_scale": knot,
+                }
+                continue
         errors = []
-        for i in range(len(x)):
-            keep = np.arange(len(x)) != i
+        for i in range(n):
+            keep = np.arange(n) != i
             training = _fit(x[keep], y[keep], model)
             if training is None:
                 break
-            _, beta, knot = training
-            errors.append(float(y[i] - (_design(x[i:i + 1], model, knot) @ beta)[0]))
-        if fit is not None and len(errors) == len(x):
-            sse, beta, knot = fit
+            _, fold_beta, fold_knot = training
+            errors.append(float(y[i] - (_design(x[i:i + 1], model, fold_knot) @ fold_beta)[0]))
+        if len(errors) == n:
             output[model] = {"sse": sse, "cv_rmse": float(np.sqrt(np.mean(np.square(errors)))),
                              "coefficients": beta.tolist(), "knot_centered_log_inverse_scale": knot}
     return output
@@ -233,7 +249,7 @@ def assess_curve(scales_m, entropies, options, *, origin_dimensions=(), min_effe
 
 
 def _curves(lines, boundary, scales, qs, offsets, cancelled=None, *, singularities=False):
-    from .mass_partition import primitive_arrays, primitive_masses
+    from .mass_partition import primitive_arrays, primitive_mass_values
     starts, ends = primitive_arrays(lines)
     total = sum(line.length for line in lines)
     origin = np.asarray(boundary.bounds[:2])
@@ -242,29 +258,52 @@ def _curves(lines, boundary, scales, qs, offsets, cancelled=None, *, singulariti
     effective = np.full(len(qs), np.inf)
     for j, scale in enumerate(scales):
         check_cancelled(cancelled)
+        scale_f = float(scale)
         for i, offset in enumerate(offsets):
-            masses = np.asarray(list(primitive_masses(starts, ends, float(scale),
-                                                      *map(float, origin + offset * scale)).values()))
-            if not np.isclose(masses.sum(), total, rtol=1e-9, atol=1e-8):
+            ox, oy = float(origin[0] + offset[0] * scale_f), float(origin[1] + offset[1] * scale_f)
+            masses = primitive_mass_values(starts, ends, scale_f, ox, oy)
+            mass_sum = float(masses.sum())
+            if not np.isclose(mass_sum, total, rtol=1e-9, atol=1e-8):
                 raise ArithmeticError("Scaling partition did not conserve line length.")
-            p = masses / total
+            p = masses / mass_sum
             logp = np.log(p)
+            n_boxes = len(p)
+            log_n = float(np.log(n_boxes))
+            mean_logp = None
             for k, q in enumerate(qs):
-                curves[i, k, j] = renyi_entropy(p, q)
-                logmu = q * logp - logsumexp(q * logp)
-                effective[k] = min(effective[k], float(np.exp(-logsumexp(2 * logmu))))
+                if q == 0:
+                    curves[i, k, j] = log_n
+                    effective[k] = min(effective[k], float(n_boxes))
+                    if singularities:
+                        features["tau"][i, k, j] = -log_n
+                        features["alpha"][i, k, j] = -float(np.mean(logp))
+                        features["f_alpha"][i, k, j] = log_n
+                    continue
+                q_logp = q * logp
+                log_z = float(logsumexp(q_logp))
+                if abs(q - 1) < 1e-7:
+                    if mean_logp is None:
+                        mean_logp = float(p @ logp)
+                    variance = float(p @ (logp - mean_logp) ** 2)
+                    curves[i, k, j] = -mean_logp - 0.5 * (q - 1) * variance
+                else:
+                    curves[i, k, j] = log_z / (1.0 - q)
+                logmu = q_logp - log_z
+                effective[k] = min(effective[k], float(np.exp(-logsumexp(2.0 * logmu))))
                 if singularities:
                     mu = np.exp(logmu)
                     # All slopes use x=log(1/epsilon); CJ features change sign.
-                    features["tau"][i, k, j] = 0.0 if q == 1 else -logsumexp(q * logp)
-                    features["alpha"][i, k, j] = -np.sum(mu * logp)
-                    features["f_alpha"][i, k, j] = -np.sum(mu * logmu)
+                    features["tau"][i, k, j] = 0.0 if q == 1 else -log_z
+                    features["alpha"][i, k, j] = -float(mu @ logp)
+                    features["f_alpha"][i, k, j] = -float(mu @ logmu)
     return (curves, effective, features) if singularities else (curves, effective)
 
 
 def _relocate(lines, boundary, rng, attempts, cancelled=None):
     from shapely.affinity import translate
+    from shapely.prepared import prep
     xmin, ymin, xmax, ymax = boundary.bounds
+    prepared = prep(boundary)
     relocated = []
     for line in lines:
         a, b, c, d = line.bounds
@@ -273,7 +312,7 @@ def _relocate(lines, boundary, rng, attempts, cancelled=None):
             dx = rng.uniform(xmin - a, xmax - c)
             dy = rng.uniform(ymin - b, ymax - d)
             candidate = translate(line, xoff=dx, yoff=dy)
-            if boundary.covers(candidate):
+            if prepared.covers(candidate):
                 relocated.append(candidate)
                 break
         else:

@@ -38,7 +38,10 @@ gdal.SetConfigOption("OGR_SQLITE_USE_OGR_VFS", "NO")
 gdal.SetConfigOption("CPL_TMPDIR", str(session))
 app = QgsApplication([], True)
 app.initQgis()
-QFontDatabase.addApplicationFont("C:/Windows/Fonts/arial.ttf")
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
+    QFontDatabase.addApplicationFont(str(font))
 app.setFont(QFont("Arial", 10))
 from musa_qgis import classFactory
 from musa_qgis.inputs import validate_metric_crs

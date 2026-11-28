@@ -37,7 +37,10 @@ app.initQgis()
 QgsApplication.setMaxThreads(2)
 assert Qgis.QGIS_VERSION.startswith('3.44.12')
 assert Path(QgsApplication.qgisSettingsDirPath()).resolve().is_relative_to(profile)
-QFontDatabase.addApplicationFont('C:/Windows/Fonts/arial.ttf')
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
+    QFontDatabase.addApplicationFont(str(font))
 app.setFont(QFont('Arial', 11))
 from musa_qgis.workbench import MusaDock
 from musa_qgis.learning import source_path
@@ -56,7 +59,7 @@ iface = Interface()
 dock = MusaDock(iface)
 iface.window.addDockWidget(Qt.RightDockWidgetArea, dock)
 dock.setFloating(True)
-dock.setWindowTitle('MUSA 1.3.0 | QGIS 3.44.12')
+dock.setWindowTitle('MUSA 1.3.1 | QGIS 3.44.12')
 dock.show()
 reader = dock.learning_reader
 

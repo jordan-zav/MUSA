@@ -37,7 +37,7 @@ def test_packaged_learning_chapters_are_exact_sources_and_help_is_local(tmp_path
                 assert image.endswith(f'.{language}.png')
                 assert archive.read('musa_qgis/knowledge/' + image) == (ROOT / 'docs' / image).read_bytes()
         assert bundle.stat().st_size <= 8_000_000
-        assert "version=1.3.0" in archive.read("musa_qgis/metadata.txt").decode()
+        assert "version=1.3.1" in archive.read("musa_qgis/metadata.txt").decode()
 
 
 def test_spanish_results_comparison_uses_complete_spanish_sentences(tmp_path):
@@ -60,3 +60,42 @@ def test_spanish_results_comparison_uses_complete_spanish_sentences(tmp_path):
                                                      'assessment', status])
         english = learning.comparison_text(tmp_path, 'en')
         assert 'Retained interval' in english and 'escala' not in english
+    es_reloc = learning.relocation_text(dict(status='complete', replicates_requested=19, values=[0.] * 19,
+                                             p_value=.7, p_holm=1., minimum_p=.1,
+                                             resolution_sufficient_for_family_at_0_05=False), language='es')
+    assert 'Reubicación global de trazas' in es_reloc and 'Muy pocas réplicas' in es_reloc
+
+
+def test_full_ui_i18n_tables_and_spectrum_localization():
+    spec = importlib.util.spec_from_file_location('musa_i18n_test', ROOT / 'qgis_plugin/i18n.py')
+    i18n = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(i18n)
+    en, es = i18n.UI_TEXTS['en'], i18n.UI_TEXTS['es']
+    assert set(en) == set(es)
+    assert set(en['statuses']) == set(es['statuses'])
+    assert set(en['reasons']) == set(es['reasons'])
+    assert len(en['tbl_headers']) == len(es['tbl_headers']) == 8
+    assert es['tab_analysis'] == 'Análisis'
+    assert es['tab_quality'] == 'Calidad'
+    assert es['tab_moving'] == 'Ventanas móviles'
+    assert es['tab_results'] == 'Resultados'
+    assert es['btn_run'] == 'Ejecutar MUSA'
+
+    from musa.spectrum_products import spectrum_figure, spectrum_shape_reasons
+    sample = {
+        'source': 'analysis',
+        'support_id': 'global',
+        'kind': 'global',
+        'estimator': 'canonical',
+        'summary': {'fit_coefficients': None},
+        'points': [
+            {'q': 0.0, 'dq': 1.5, 'tau': -1.5, 'alpha': 1.5, 'f_alpha': 1.5, 'accepted': True,
+             'reason': 'accepted', 'statuses': {}, 'identities': {'status': 'consistent'}},
+            {'q': 2.0, 'dq': 1.4, 'tau': 1.4, 'alpha': 1.35, 'f_alpha': 1.3, 'accepted': True,
+             'reason': 'accepted', 'statuses': {}, 'identities': {'status': 'consistent'}},
+        ],
+    }
+    assert 'No se ha evaluado' in spectrum_shape_reasons(sample, language='es')[0]
+    fig_es = spectrum_figure(sample, panel='dq', language='es')
+    assert fig_es.axes[0].get_title() == 'Dimensiones generalizadas Dq'
+    fig_es.clear()

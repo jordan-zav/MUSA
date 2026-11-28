@@ -60,8 +60,9 @@ app = QgsApplication([], True, str(session / "profile"))
 app.initQgis()
 QgsApplication.setMaxThreads(2)
 assert Path(QgsApplication.qgisSettingsDirPath()).resolve().is_relative_to((session / "profile").resolve())
-font = Path("C:/Windows/Fonts/arial.ttf")
-if font.is_file():
+windows_dir = os.environ.get("WINDIR")
+font = Path(windows_dir) / "Fonts/arial.ttf" if windows_dir else None
+if font is not None and font.is_file():
     QFontDatabase.addApplicationFont(str(font))
     app.setFont(QFont("Arial", 10))
 sys.path.insert(0, str(Path(QgsApplication.prefixPath()) / "python/plugins"))
@@ -292,6 +293,15 @@ assert not dock.classic_comparison.isChecked()
 for language, title, content in (("en", "Learn", "fracture network"), ("es", "Fundamentos", "red de fracturas")):
     dock.learning_language_selector.setCurrentIndex(dock.learning_language_selector.findData(language))
     assert dock.tabs.tabText(dock.tabs.indexOf(dock.learning_page)) == title
+    expected_tabs = (
+        ["Analysis", "Quality", "Moving windows", "Results", "Learn"]
+        if language == "en"
+        else ["Análisis", "Calidad", "Ventanas móviles", "Resultados", "Fundamentos"]
+    )
+    assert [dock.tabs.tabText(i) for i in range(dock.tabs.count())] == expected_tabs
+    assert dock.run_button.text() == ("Run MUSA" if language == "en" else "Ejecutar MUSA")
+    assert dock.cancel_button.text() == ("Cancel" if language == "en" else "Cancelar")
+    assert plugin.actions[0].text() == ("MUSA Workbench" if language == "en" else "Entorno MUSA")
     assert content in dock.learning_reader.toPlainText()
     dock.tabs.setCurrentWidget(dock.learning_page)
     app.processEvents()
@@ -528,6 +538,17 @@ older_view.mkdir()
 dock.open_completed_run(older_view)
 assert not dock._spectrum_index and not dock.spectrum_export.isEnabled()
 dock.open_completed_run(moving_output)
+dock.learning_language_selector.setCurrentIndex(dock.learning_language_selector.findData("es"))
+app.processEvents()
+assert "Política de orden: Advertir sobre el orden D0–D2" in dock.summary.text()
+assert "Escalamiento de Rényi (soporte/q):" in dock.summary.text()
+assert "Análisis guardado" in dock.log.toPlainText()
+assert "Parámetros del análisis" in dock.log.toPlainText()
+assert "Archivos de salida" in dock.log.toPlainText()
+assert [dock.result_tabs.tabText(i) for i in range(dock.result_tabs.count())] == ["Espectros", "Figuras", "Detalles de ejecución"]
+assert "Pico observado" in dock.spectrum_note.text()
+dock.learning_language_selector.setCurrentIndex(dock.learning_language_selector.findData("en"))
+app.processEvents()
 print("PASS indexed global/window spectra, canonical/zeta selectors, singularity summaries and PNG/SVG export", flush=True)
 support_reports = json.loads(Path(moving_manifest["outputs"]["scaling_support_json"]).read_text())
 assert len(support_reports["supports"]) >= 2
